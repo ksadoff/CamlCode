@@ -1,3 +1,7 @@
+(* The File module contains types and functions used for manipulating
+ * a single file. It is technically part of the "model" in the MVC
+ * architecture, but it only includes file-specific things. *)
+
 (* A location represents a place in a file where someone's
  * cursor could be located. This will be used for displaying
  * a cursor, selecting text, find/replace, etc. *)
