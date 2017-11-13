@@ -1,3 +1,8 @@
+(* The Keyboard module is responsible for getting input from the user
+ * either as keybindings within the file or as a command in the command
+ * prompt. It then uses the State module to update the current state of
+ * the editor and the Terminal module to update the display. *)
+
 open File
 open State
 open Terminal
