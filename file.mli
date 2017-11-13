@@ -25,10 +25,6 @@ type contents
  * * list of locations where search term was found *)
 type file 
 
-(* [init_file s] creates a new, empty file at path [s].
- * Raises Sys_error creating file failed. *)
-val init_file : string -> unit
-
 (* [open_file s st] reads the contents of the file stored at 
  * relative path [s] and uses that to construct a new file.
  * Raises Sys_error if opening file failed. *)
