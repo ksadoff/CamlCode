@@ -64,4 +64,4 @@ val undo : file -> file
 
 (* [redo f] redoes the last change that was undone in [f]. If there
  * is nothing left to redo, [redo f] will return [f] unchanged. *)
-val undo : file -> file
+val redo : file -> file
