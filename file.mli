@@ -54,6 +54,10 @@ val move_cursor : file -> location -> file
  * to [n]. *)
 val scroll_to : file -> int -> file 
 
+(* [get_text f l1 l2] returns all text in [f] from [l1] to [l2].
+ * Raises Invalid_argument if [l2] comes before [l1].  *)
+val get_text : file -> location -> location -> string
+
 (* [select_text f l1 l2] selects text from [l1] to [l2].
  * Raises Invalid_argument if [l2] comes before [l1]. *)
 val select_text : file -> location -> location -> file 
