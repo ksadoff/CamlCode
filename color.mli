@@ -9,3 +9,5 @@ type color_mapping
 
 (* [make_color i] *)
 val make_color : int -> color
+
+val get_color_list : color_mapping -> (location*color) list
