@@ -11,3 +11,5 @@ type color_mapping
  * the least significant 3 bytes of [rgb], of which the most significant
  * byte is the red value, the second is green, and the last is blue. *)
 val make_color : int -> color
+
+
