@@ -4,5 +4,8 @@
 (* Type of a color *)
 type color
 
+(* [color_mapping] holds a list of colors and their locations in a file. *)
+type color_mapping
+
 (* [make_color i] *)
 val make_color : int -> color
