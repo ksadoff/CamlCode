@@ -1,6 +1,8 @@
 (* Abstraction for the type of colors, to be used for coloring text
  * in the terminal *)
 
+open Location
+
 (* Type of a color *)
 type color
 
@@ -12,4 +14,7 @@ type color_mapping
  * byte is the red value, the second is green, and the last is blue. *)
 val make_color : int -> color
 
-
+(* [cm_to_list cm] takes a color mapping [cm] and returns a list of 
+ * tuples [(l1, l2, c)], in which [c] is the color used on the text
+ * from locations [l1] to [l2]. *)
+val cm_to_list : color_mapping -> (location * location * color) list

@@ -1,10 +1,6 @@
-(* still need delete*)
-
-
 (* The State module contains the entire state of the program,
  * including a list of all files being used. *)
 
-open File
 open Location
 open Color
 
@@ -20,27 +16,27 @@ type typing_area
  * * Name of the current file
  * * First (top) visible line of text
  * * Start and end locations for a block of selected text
- * * Current search term*)
+ * * Current search term *)
 type state
 
 (* [new_file s] creates a new, empty file at path [s].
  * Raises Sys_error creating file failed. *)
 val new_file : string -> unit
 
-(* [open_file_state s st] constructs the file at path [s] and adds it
+(* [open_file s st] constructs the file at path [s] and adds it
  * to the list of files in state [st].
  * Raises Sys_error if file read failed. *)
-val open_file_state : string -> state -> state
+val open_file : string -> state -> state
 
 (*[is_filed_saved st] returns true if the file is saved and false if not*)
 val is_file_saved : state -> bool
 
-(* [save_file_state st] saves the currently selected file in [st] at
+(* [save_file st] saves the currently selected file in [st] at
  * its corresponding path.
  * Raises Sys_error if file write failed. *)
-val save_file_state : state -> unit
+val save_file : state -> unit
 
-(* [close_file_state st] removes the currently selected file [f]
+(* [close_file st] removes the currently selected file [f]
  * from the list of open files in [st]. The newly selected file
  * becomes the file that occurs before [f] in the list in [st]. *)
 val close_file : state -> state
@@ -60,23 +56,24 @@ val paste : state -> state
 
 (* [get_cursor_location st] gets the location of the cursor in the file open
  * in [st]. *)
-val get_cursor_location_state : state -> location
+val get_cursor_location : state -> location
 
-(* [move_cursor_state st l] moves the cursor of the open file in [st] to [l] *)
-val move_cursor_state : state -> location -> state
+(* [move_cursor st l] moves the cursor of the open file in [st] to [l] *)
+val move_cursor : state -> location -> state
 
-(* [scroll_to_state st n] changes the line number of the scrolled view of
+(* [scroll_to st n] changes the line number of the scrolled view of
  * the file open in [st] to to [n]. *)
-val scroll_to_state : state -> int -> state
+val scroll_to : state -> int -> state
 
-(* [get_scroll_line_number st] returns the first visible line in state *)
+(* [get_scroll_line_number st] returns the first visible line in the
+ * currently selected file in [st]. *)
 val get_scroll_line_number : state -> int
 
-(* [get_text_state st l1 l2] returns all text in the open file of [st] from
+(* [get_text st l1 l2] returns all text in the open file of [st] from
  * [l1] to [l2]. Raises Invalid_argument if [l2] comes before [l1].  *)
-val get_text_state : state -> location -> location -> string
+val get_text : state -> location -> location -> string
 
-(* [get_all_text_state st] returns a string representing all of the text in
+(* [get_all_text st] returns a string representing all of the text in
  * the file opened in [st] *)
 val get_all_text : state -> string
 
@@ -86,30 +83,40 @@ val get_highlighted_region : state -> (location*location)
 
 (* [select_text st l1 l2] selects text from [l1] to [l2] in the open file of [st].
  * Raises Invalid_argument if [l2] comes before [l1]. *)
-val select_text_state : state -> location -> location -> state
+val select_text : state -> location -> location -> state
 
-(* [insert_text_state st s l] inserts string [s] into the contents the open
+(* [insert_text st s l] inserts string [s] into the contents the open
  * file of [st] at location [l]. *)
-val insert_text_state : state -> string -> location -> state
+val insert_text : state -> string -> location -> state
 
-(* [undo_state st] undoes the last change recorded in the open file of [st].
- * If there is nothing left to undo, [undo_state st] will return [st] unchanged. *)
-val undo_state : state -> state
+(* [delete_text l1 l2] deletes all the text in the currently held
+ * file from location [l1] to [l2]. *)
+val delete_text : state -> location -> location -> state
 
-(* [redo_state st] redoes the last change that was undone in the open file of
- * [st]. If there is nothing left to redo, [redo_state st] will return [st]
+(* [undo st] undoes the last change recorded in the open file of [st].
+ * If there is nothing left to undo, [undo st] will return [st] unchanged. *)
+val undo : state -> state
+
+(* [redo st] redoes the last change that was undone in the open file of
+ * [st]. If there is nothing left to redo, [redo st] will return [st]
  * unchanged. *)
-val redo_state : state -> state
+val redo : state -> state
 
-(* [color_text_state st lst] returns a copy of [st] with the open file now
+(* [color_text st lst] returns a copy of [st] with the open file now
  * having the color mappings of [lst] *)
-val color_text_state : state -> color_mapping -> state
+val color_text : state -> color_mapping -> state
 
-val get_color_mapping : state -> color_mapping
+(* [get_coloring st] gets the coloring scheme of the currently 
+ * open file in [st]. *)
+val get_coloring : state -> color_mapping
 
+(* [get_search_term st] gets the current search term in [st]. *)
 val get_search_term : state -> string
 
+(* [get_search_locations st] returns the list of regions in which
+ * the search term has been found in the currently selected file in [st]. *)
 val get_search_locations : state -> (location*location) list
 
-(*[find st str] takes in a string and a state and returns an updated state*)
+(* [find st s] updates [st] so that it holds [s] as its current
+ * search term in its currently selected file. *)
 val find :  string -> state -> state
