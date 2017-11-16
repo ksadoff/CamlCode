@@ -18,8 +18,7 @@ type contents
  * * text copied to clipboard
  * * whether file has been saved since last change
  * * last k changes (used for undo/redo)
- * * current search term (used in find/replace)
- * * list of locations where search term was found *)
+ * * current search term (used in find/replace) *)
 type file
 
 (* [open_file s] reads the contents of the file stored at
@@ -56,6 +55,10 @@ val select_text : file -> location -> location -> file
  * of [f] at location [l]. *)
 val insert_text : file -> string -> location -> file
 
+(* [delete_text l1 l2] deletes all text in [f] from location 
+ * [l1] to [l2]. *)
+val delete_text : file -> location -> location -> file
+
 (* [undo f] undoes the last change recorded in [f]. If there
  * is nothing left to undo, [undo f] will return [f] unchanged. *)
 val undo : file -> file
@@ -66,3 +69,17 @@ val redo : file -> file
 
 (* [color_text f lst] returns a copy of [f] with the color mappings of [lst] *)
 val color_text : file -> (location * location * color) list -> file
+
+(* [get_coloring f] gets the coloring scheme of [f]. *)
+val get_coloring : file -> color_mapping
+
+(* [get_search_term f] gets the current search term in [f]. *)
+val get_search_term : file -> string
+
+(* [get_search_locations f] returns the list of regions in which
+ * the search term has been found in [f]. *)
+val get_search_locations : file -> (location*location) list
+
+(* [find f s] updates [f] so that it holds [s] as its current
+ * search term. *)
+val find :  file -> string -> file
