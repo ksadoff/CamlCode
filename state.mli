@@ -1,3 +1,6 @@
+(* still need delete*)
+
+
 (* The State module contains the entire state of the program,
  * including a list of all files being used. *)
 
@@ -17,6 +20,7 @@ type typing_area
  * * First (top) visible line of text
  * * Start and end locations for a block of selected text
  * * Current search term *)
+
 type state
 
 (* [new_file s] creates a new, empty file at path [s].
@@ -30,6 +34,7 @@ val open_file : string -> state -> state
 
 (*[is_filed_saved st] returns true if the file is saved and false if not*)
 val is_file_saved : state -> bool
+
 
 (* [save_file st] saves the currently selected file in [st] at
  * its corresponding path.
@@ -68,6 +73,7 @@ val scroll_to : state -> int -> state
 (* [get_scroll_line_number st] returns the first visible line in the
  * currently selected file in [st]. *)
 val get_scroll_line_number : state -> int
+
 
 (* [get_text st l1 l2] returns all text in the open file of [st] from
  * [l1] to [l2]. Raises Invalid_argument if [l2] comes before [l1].  *)
@@ -120,3 +126,4 @@ val get_search_locations : state -> (location*location) list
 (* [find st s] updates [st] so that it holds [s] as its current
  * search term in its currently selected file. *)
 val find :  string -> state -> state
+
