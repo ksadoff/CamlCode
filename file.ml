@@ -37,9 +37,10 @@ let open_file s =
   let rec append_lines channel rope_acc = 
     try begin 
       let line = input_line channel in 
-      let rope_line = Rope.of_string line in 
+      let rope_line = Rope.concat2 
+        (Rope.of_string line) (Rope.of_string "\n") in 
       Rope.concat2 rope_acc rope_line
-      |> append_lines channel
+        |> append_lines channel
     end 
     with End_of_file -> rope_acc in
   let channel = open_in s in 
