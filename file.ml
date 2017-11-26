@@ -2,8 +2,6 @@
  * a single file. It is technically part of the "model" in the MVC
  * architecture, but it only includes file-specific things. *)
 
-open Location
-
 (* A contents variable represents the entire contents of a file,
  * including all characters. *)
 type contents = Rope.t
@@ -20,17 +18,49 @@ type contents = Rope.t
  * * last k changes (used for undo/redo)
  * * current search term (used in find/replace) *)
 type file = {
-  name : string;
-  contents : contents;
-  (* cursor : location;
-  view_line_num : int;
+  (* relative file path *)
+  name : string; 
+
+  (* file contents *)
+  contents : contents; 
+
+  (* index of cursor in contents *)
+  cursor : int; 
+
+  (* line number of cursor *)
+  cursor_line_num : int;
+
+  (* [get f.line_lengths i] is the number of characters in line [i]
+   * of [f.contents] *)
+  line_lengths : int array; 
+  
+  (* view_line_num : int;
   selected_range : location * location;
   clipboard : string;
   was_saved : bool;
   search_term : string; *)
 }
 
-(* [open_file s] reads the contents of the file stored at
+(* [find_newlines cont i0] returns a list [l] (not an array)
+ * such that the ith element of [l] is the length of the ith line
+ * in [cont], starting at contents location [i0]. *)
+let rec find_newlines cont i0 = 
+  try 
+    let linepos = Rope.search_forward_string "\n" cont i0 in
+    linepos :: (find_newlines cont (linepos+1))
+  with Not_found -> []
+
+(* [get_line_lengths nls nl0] takes a list of of newline characters 
+ * [nls] and returns a list of lengths of lines. [nl0] is the number
+ * of characters up to the beginning of the first line, so it is
+ * 0 for the first call. The length of the line includes the newline 
+ * character at the end. *)
+let rec get_line_lengths nls nl0 = 
+  match nls with 
+  | [] -> []
+  | h :: t -> (h - nl0 + 1) :: (get_line_lengths t (h + 1))
+
+(* [open_file s] reads the contents of the file sored at
  * relative path [s] and uses that to construct a new file type.
  * Raises Sys_error if opening file failed. *)
 let open_file s = 
@@ -48,6 +78,11 @@ let open_file s =
   {
     name = s;
     contents = contents;
+    cursor = 0;
+    cursor_line_num = 0;
+    line_lengths = find_newlines contents 0 
+      |> fun nls -> get_line_lengths nls 0
+      |> Array.of_list;
   }
 
 (* [save_file f] saves [f] at its corresponding path.
@@ -55,10 +90,25 @@ let open_file s =
 let save_file f = failwith "Unimplemented" 
 
 (* [get_cursor_location f] gets the location of the cursor in [f]. *)
-let get_cursor_location f = failwith "Unimplemented" 
+let get_cursor_location f = f.cursor
 
-(* [move_cursor f l] moves the cursor location in [f] to [l]. *)
-let move_cursor f l = failwith "Unimplemented" 
+(* [get_cursor_line_num f] gets the line number of the cursor in [f]. *)
+let get_cursor_line_num f = f.cursor_line_num
+
+(* [get_line_lengths f] returns the list of the lengths of lines
+ * in the contents of [f], in order from top of file to bottom. *)
+let get_line_lengths f = f.line_lengths |> Array.to_list
+
+(* [move_cursor f l] moves the cursor location in [f] to [l].
+ * If [l] is an invalid location, the cursor becomes the closest
+ * value to [l]. *)
+let move_cursor f l = { f 
+  with cursor = 
+    if l < 0 then 0
+    else if l >= Rope.length f.contents then Rope.length f.contents - 1
+    else l
+    (* TODO: calculate cursor_line_num *)
+}
 
 (* [scroll_to f n] changes the line number of the scrolled view
  * to [n]. *)

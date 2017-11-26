@@ -3,9 +3,9 @@
  * a cursor, selecting text, find/replace, etc. *)
 type location
 
-(* [make_location n c] creates a new location at line number [n]
+(* [make_location (n, c)] creates a new location at line number [n]
  * and column number [c]. *)
-val make_location : int -> int -> location
+val make_location : (int * int) -> location
 
 (* [get_line l] returns the line number of [l]. *)
 val get_line : location -> int
