@@ -107,9 +107,15 @@ let open_file s =
     search_term = None;
   }
 
-(* [save_file f] saves [f] at its corresponding path.
+(* [save_file f] saves [f] at relative path [s].
  * Raises Sys_error if file write failed. *)
-let save_file f = failwith "Unimplemented"
+let save_file f s = 
+  let ch_out = open_out s in 
+  Printf.fprintf ch_out "%s" (Rope.to_string f.contents);
+  close_out ch_out
+
+(* [get_name f] is the relative path of [f]. *)
+let get_name f = f.name
 
 (* [get_cursor_location f] gets the location of the cursor in [f]. *)
 let get_cursor_location f = f.cursor
