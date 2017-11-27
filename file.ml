@@ -44,7 +44,7 @@ type file = {
   selected_range : (int * int) option;
 
   (* the string that the user is currently searching for *)
-  search_term : string;
+  search_term : string option;
 
   (* clipboard : string;
   was_saved : bool; *)
@@ -104,7 +104,7 @@ let open_file s =
     line_lengths = line_lengths_arr contents;
     scroll_line_num = 0;
     selected_range = None;
-    search_term = "";
+    search_term = None;
   }
 
 (* [save_file f] saves [f] at relative path [s].
@@ -374,9 +374,14 @@ let rec select_search_term f =
   | None ->
     begin
       try begin
-        let next_loc = Rope.search_forward_string f.search_term f.contents 0 in
-        let next_loc_end = next_loc + (String.length f.search_term) in
-        select_text f next_loc next_loc_end
+        match f.search_term with
+        | Some term ->
+          begin
+            let next_loc = Rope.search_forward_string term f.contents 0 in
+            let next_loc_end = next_loc + (String.length term) in
+            select_text f next_loc next_loc_end
+          end
+        | None -> f
       end
       with
       | Not_found -> f
@@ -384,9 +389,14 @@ let rec select_search_term f =
   | Some (curr, _) ->
     begin
       try begin
-        let next_loc = Rope.search_forward_string f.search_term f.contents (curr+1) in
-        let next_loc_end = next_loc + (String.length f.search_term) in
-        select_text f next_loc next_loc_end
+        match f.search_term with
+        | Some term ->
+          begin
+            let next_loc = Rope.search_forward_string term f.contents (curr+1) in
+            let next_loc_end = next_loc + (String.length term) in
+            select_text f next_loc next_loc_end
+          end
+        | None -> f
       end
       with
       | Not_found -> select_search_term {f with selected_range = None;}
@@ -394,6 +404,10 @@ let rec select_search_term f =
 
 (* [find f s] updates [f] so that it holds [s] as its current
  * search term. *)
-let find f s = { f with
-                 search_term = s;
-               }
+let find f s =
+  match s with
+  | "" -> { f with search_term = None; }
+  | term -> { f with search_term = Some term; }
+
+(* [remove_search_term f] removes the search_term of file [f] *)
+let remove_search_term f = { f with search_term = None; }

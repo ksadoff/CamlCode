@@ -123,7 +123,7 @@ val color_text : file -> (int * int * color) list -> file
 val get_coloring : file -> color_mapping
 
 (* [get_search_term f] gets the current search term in [f]. *)
-val get_search_term : file -> string
+val get_search_term : file -> string option
 
 (* [select_search_term f] returns an updated version of [f] with
  * with the next instance of the search term selected. The next instance is
@@ -134,3 +134,6 @@ val select_search_term : file -> file
 (* [find f s] updates [f] so that it holds [s] as its current
  * search term. *)
 val find :  file -> string -> file
+
+(* [remove_search_term f] removes the search_term of file [f] *)
+val remove_search_term: file -> file
