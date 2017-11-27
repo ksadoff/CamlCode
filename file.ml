@@ -324,8 +324,20 @@ let insert_text f s l' =
   }
 
 (* [delete_text l1 l2] deletes all text in [f] from location 
- * [l1] to [l2]. *)
-let delete_text l1 l2 = failwith "Unimplemented" 
+ * [l1] to [l2]. The new file contents contains everything up
+ * to and not including [l1] and everything including [l2]
+ * up to the end. [l1] and [l2] are automatically forced by
+ * this function to be in bounds and in order. *)
+let delete_text f l1' l2' = 
+  let (l1, l2) = make_range_valid (l1', l2') (cont_length f) in
+  let begin_rope = Rope.sub f.contents 0 l1 in 
+  let len_rope = cont_length f in
+  let end_rope = Rope.sub f.contents l2 (len_rope - l2) in 
+  let new_rope = Rope.concat2 begin_rope end_rope in 
+  { f with 
+    contents = new_rope;
+    line_lengths = line_lengths_arr new_rope;
+  }
 
 (* [undo f] undoes the last change recorded in [f]. If there
  * is nothing left to undo, [undo f] will return [f] unchanged. *)
