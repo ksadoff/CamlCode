@@ -201,13 +201,47 @@ let cursor_right f =
   * If the cursor is farther right then the length of the line it
   * moved to, then the cursor goes at the end of the line.
   * If on first line, cursor goes to farthest left position. *)
-let cursor_up f = failwith "Unimplemented"
+let cursor_up f = 
+  let lnum = 
+    if f.cursor_line_num = 0 then 0 
+    else f.cursor_line_num - 1 in
+  let line_len = Array.get f.line_lengths lnum in 
+  let col = 
+    if f.cursor_line_num = 0 then 0
+    else if f.cursor_column < line_len then f.cursor_column
+    else line_len - 1 in
+  let new_cursor = 
+    if f.cursor_line_num = 0 then 0
+    else f.cursor - f.cursor_column - line_len + col in
+  { f with
+    cursor = new_cursor;
+    cursor_line_num = lnum;
+    cursor_column = col;
+  }
  
  (* [cursor_down f] returns [f] with cursor moved one line down.
   * If the cursor is farther right then the length of the line it
   * moved to, then the cursor goes at the end of the line.
   * If on last line, cursor goes to farthest right position. *)
-let cursor_down f = failwith "Unimplemented"
+let cursor_down f = 
+  let num_lines = Array.length f.line_lengths in 
+  let lnum =
+    if f.cursor_line_num = num_lines - 1 then num_lines - 1
+    else f.cursor_line_num + 1 in
+  let prev_line_len = Array.get f.line_lengths f.cursor_line_num in
+  let line_len = Array.get f.line_lengths lnum in
+  let col = 
+    if f.cursor_line_num = num_lines - 1 then line_len - 1
+    else if f.cursor_column < line_len then f.cursor_column
+    else line_len - 1 in 
+  let new_cursor = 
+    if f.cursor_line_num = num_lines - 1 then cont_length f - 1
+    else f.cursor - f.cursor_column + prev_line_len + col in
+  { f with
+    cursor = new_cursor;
+    cursor_line_num = lnum;
+    cursor_column = col;
+  }
 
 (* [scroll_to f n] changes the line number of the scrolled view
  * to [n]. If [n] is less than 0 or greater than the number of lines in

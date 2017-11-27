@@ -75,7 +75,16 @@ let tests = [
   modify_file_test "cursor18" (move_cursor somelines 13) cursor_left (12, 2, 0);
   modify_file_test "cursor19" (move_cursor somelines 16) cursor_right (16, 3, 3);
   modify_file_test "cursor20" (move_cursor somelines 14) cursor_right (15, 3, 2);
-  modify_file_test "cursor21" (move_cursor somelines 5) cursor_right (6, 1, 0); 
+  modify_file_test "cursor21" (move_cursor somelines 5) cursor_right (6, 1, 0);
+  modify_file_test "cursor22" somelines cursor_up (0, 0, 0);
+  modify_file_test "cursor23" (move_cursor somelines 3) cursor_up (0, 0, 0);
+  modify_file_test "cursor24" (move_cursor somelines 8) cursor_up (2, 0, 2);
+  modify_file_test "cursor25" (move_cursor somelines 15) cursor_up (12, 2, 0);
+  modify_file_test "cursor26" (move_cursor somelines 12) cursor_up (6, 1, 0);
+  modify_file_test "cursor27" (move_cursor somelines 16) cursor_down (16, 3, 3);
+  modify_file_test "cursor28" (move_cursor somelines 14) cursor_down (16, 3, 3);
+  modify_file_test "cursor29" (move_cursor somelines 2) cursor_down (8, 1, 2);
+  modify_file_test "cursor30" (move_cursor somelines 11) cursor_down (12, 2, 0);
 
   (* scrolling tests *)
   "scroll0" >:: (fun _ -> assert_equal 3 
