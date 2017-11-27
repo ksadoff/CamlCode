@@ -38,6 +38,17 @@ let modify_file_test test_name orig_f ffun exp =
       (string_of_int c) ^ ")")
   )
 
+(* [insert_test test_name f s l exp_s exp_ls] creates a test case with name 
+ * [test_name] that inserts string [s] into the contents of [f] at
+ * location [l]. [exp_s] is the expected string contents of [f], and 
+ * [exp_ls] is the expected list of line lengths in [f]. *)
+let insert_test test_name orig_f s l exp_s exp_ls = 
+  let f = insert_text orig_f s l in
+  test_name >:: (fun _ -> assert_equal (exp_s, exp_ls)
+    (get_all_text f, get_line_lengths f)
+    ~printer: (fun (s, ls) -> "\"" ^ s ^ "\", " ^ (int_list_printer ls))
+  )
+
 (* Test cases for File module. *)
 let tests = [
   "read_file" >:: (fun _ -> assert_equal "test file\n"
@@ -117,4 +128,18 @@ let tests = [
     (select_text somelines 5 0 |> get_selected_range));
   "select4" >:: (fun _ -> assert_equal None
     (select_text somelines 5 0 |> unselect_text |> get_selected_range));
+
+  (* inserting text *)
+  insert_test "insert0" somelines "oh, " 0 
+    "oh, hello\nworld\n\n!!!\n" [10; 6; 1; 4];
+  insert_test "insert1" somelines "n" 2 
+    "henllo\nworld\n\n!!!\n" [7; 6; 1; 4];
+  insert_test "insert2" somelines "o\nk" 3
+    "helo\nklo\nworld\n\n!!!\n" [5; 4; 6; 1; 4];
+  insert_test "insert3" somelines "yo" (-1)
+    "yohello\nworld\n\n!!!\n" [8; 6; 1; 4];
+  insert_test "insert4" somelines "yo" 17
+    "hello\nworld\n\n!!!\nyo" [6; 6; 1; 4; 2];
+  insert_test "insert5" somelines "ok\n" 20
+    "hello\nworld\n\n!!!\nok\n" [6; 6; 1; 4; 3];
 ]

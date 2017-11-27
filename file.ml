@@ -58,7 +58,8 @@ let rec find_newlines cont i0 =
   try 
     let linepos = Rope.search_forward_string "\n" cont i0 in
     linepos :: (find_newlines cont (linepos+1))
-  with Not_found -> []
+  with Not_found -> 
+    if Rope.length cont = i0 then [] else [Rope.length cont - 1]
 
 (* [get_line_lengths nls nl0] takes a list of of newline characters 
  * [nls] and returns a list of lengths of lines. [nl0] is the number
@@ -69,6 +70,13 @@ let rec get_line_lengths nls nl0 =
   match nls with 
   | [] -> []
   | h :: t -> (h - nl0 + 1) :: (get_line_lengths t (h + 1))
+
+(* [line_lengths_arr cont] returns an array [a] where
+ * [Array.get a i] is the length of the ith line in [cont]. *)
+let line_lengths_arr cont =
+  find_newlines cont 0 
+  |> fun nls -> get_line_lengths nls 0
+  |> Array.of_list
 
 (* [open_file s] reads the contents of the file stored at
  * relative path [s] and uses that to construct a new file type.
@@ -91,9 +99,7 @@ let open_file s =
     cursor = 0;
     cursor_line_num = 0;
     cursor_column = 0;
-    line_lengths = (find_newlines contents 0 
-      |> fun nls -> get_line_lengths nls 0
-      |> Array.of_list);
+    line_lengths = line_lengths_arr contents;
     scroll_line_num = 0;
     selected_range = None;
   }
@@ -300,9 +306,22 @@ let unselect_text f = {f with selected_range = None}
  * index [i1] to [i2]. *)
 let get_selected_range f = f.selected_range
 
-(* [insert_text f s l] inserts string [s] into the contents
- * of [f] at location [l]. *)
-let insert_text f s l = failwith "Unimplemented" 
+(* [insert_text f s] inserts string [s] into the contents
+ * of [f] at location [l]. The beginning of the inserted string
+ * will be at index [l]. If [l] is an invalid location, the closest
+ * valid location will be used. *)
+let insert_text f s l' = 
+  let clen = cont_length f in 
+  let l = if l' < 0 then 0 else if l' > clen then clen else l' in
+  let begin_rope = Rope.sub f.contents 0 l in
+  let len_rope = cont_length f in
+  let end_rope = Rope.sub f.contents l (len_rope - l) in
+  let insert_rope = Rope.of_string s in
+  let new_rope = Rope.concat Rope.empty [begin_rope; insert_rope; end_rope] in
+  { f with 
+    contents = new_rope;
+    line_lengths = line_lengths_arr new_rope;
+  }
 
 (* [delete_text l1 l2] deletes all text in [f] from location 
  * [l1] to [l2]. *)

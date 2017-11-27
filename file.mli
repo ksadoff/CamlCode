@@ -95,8 +95,10 @@ val unselect_text : file -> file
  * [i1] to [i2]. *)
 val get_selected_range : file -> (int * int) option
 
-(* [insert_text f s l] inserts string [s] into the contents
- * of [f] at location [l]. *)
+(* [insert_text f s] inserts string [s] into the contents
+ * of [f] at location [l]. The beginning of the inserted string
+ * will be at index [l]. If [l] is an invalid location, the closest
+ * valid location will be used. *)
 val insert_text : file -> string -> int -> file
 
 (* [delete_text l1 l2] deletes all text in [f] from location 
