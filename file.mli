@@ -46,6 +46,28 @@ val get_line_lengths : file -> int list
 (* [move_cursor f l] moves the cursor location in [f] to [l]. *)
 val move_cursor : file -> int -> file
 
+(* [cursor_left f] returns [f] with cursor moved one position left.
+ * If the end of the line is reached, cursor moves to end of previous
+ * line. If cursor at index 0, it doesn't move. *)
+val cursor_left : file -> file
+
+(* [cursor_right f] returns [f] with cursor moved one position right.
+ * If the end of the line is reached, cursor moves to beginning
+ * of next line. If cursor at the end of file, it doesn't move. *)
+val cursor_right : file -> file
+
+(* [cursor_up f] returns [f] with cursor moved one line up.
+ * If the cursor is farther right then the length of the line it
+ * moved to, then the cursor goes at the end of the line.
+ * If on first line, cursor goes to farthest left position. *)
+val cursor_up : file -> file
+
+(* [cursor_down f] returns [f] with cursor moved one line down.
+ * If the cursor is farther right then the length of the line it
+ * moved to, then the cursor goes at the end of the line.
+ * If on last line, cursor goes to farthest right position. *)
+val cursor_down : file -> file
+
 (* [scroll_to f n] changes the line number of the scrolled view
  * to [n]. *)
 val scroll_to : file -> int -> file

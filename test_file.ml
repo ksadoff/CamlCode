@@ -9,12 +9,26 @@ let somelines = File.open_file "testtxts/somelines.txt"
 let somelines_moved = move_cursor somelines 12
 let somelines_moved2 = move_cursor somelines 8
 
-(* [move_cursor_test f exp] returns a test case where
+(* [move_cursor_test test_name f l exp] returns a test case where
  * the cursor in file [f] is moved to index [l]. [exp] is
  * the expected (index, line num, column) tuple. [test_name] is
  * name of the test, used by OUnit. *)
 let move_cursor_test test_name orig_f l exp = 
   let f = orig_f |> fun f' -> move_cursor f' l in 
+  test_name >:: (fun _ -> assert_equal exp 
+    (get_cursor_location f, 
+    get_cursor_line_num f, 
+    get_cursor_column f)
+    ~printer: (fun (i,l,c) -> "(" ^ (string_of_int i) ^ ", " ^ 
+      (string_of_int l) ^ ", " ^ 
+      (string_of_int c) ^ ")")
+  )
+
+(* [modify_file_test test_name f ffun exp] returns a test case where
+ * [f] is acted on by [ffun]. [exp] is the expected (index, line num, 
+ * column) tuple. [test_name] is name of the test, used by OUnit. *)
+let modify_file_test test_name orig_f ffun exp =
+  let f = ffun orig_f in 
   test_name >:: (fun _ -> assert_equal exp 
     (get_cursor_location f, 
     get_cursor_line_num f, 
@@ -53,6 +67,15 @@ let tests = [
   move_cursor_test "cursor12" somelines_moved 6 (6, 1, 0);
   move_cursor_test "cursor13" somelines_moved2 11 (11, 1, 5);
   move_cursor_test "cursor14" somelines_moved2 6 (6, 1, 0);
+
+  (* cursor moves by 1 tests *)
+  modify_file_test "cursor15" somelines cursor_left (0, 0, 0);
+  modify_file_test "cursor16" (move_cursor somelines 5) cursor_left (4, 0, 4);
+  modify_file_test "cursor17" (move_cursor somelines 6) cursor_left (5, 0, 5);
+  modify_file_test "cursor18" (move_cursor somelines 13) cursor_left (12, 2, 0);
+  modify_file_test "cursor19" (move_cursor somelines 16) cursor_right (16, 3, 3);
+  modify_file_test "cursor20" (move_cursor somelines 14) cursor_right (15, 3, 2);
+  modify_file_test "cursor21" (move_cursor somelines 5) cursor_right (6, 1, 0); 
 
   (* scrolling tests *)
   "scroll0" >:: (fun _ -> assert_equal 3 

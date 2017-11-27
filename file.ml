@@ -166,6 +166,49 @@ let move_cursor f l =
     cursor_column = new_col;
   }
 
+(* [cursor_left f] returns [f] with cursor moved one position left.
+ * If the end of the line is reached, cursor moves to end of previous
+ * line. If cursor at index 0, it doesn't move. *)
+let cursor_left f = 
+  if f.cursor = 0 then f
+  else if f.cursor_column = 0 then { f with
+    cursor = f.cursor - 1;
+    cursor_line_num = f.cursor_line_num - 1;
+    cursor_column =  Array.get f.line_lengths (f.cursor_line_num - 1) - 1;
+  }
+  else { f with
+    cursor = f.cursor - 1;
+    cursor_column = f.cursor_column - 1;
+  }
+ 
+ (* [cursor_right f] returns [f] with cursor moved one position right.
+  * If the end of the line is reached, cursor moves to beginning
+  * of next line. If cursor at the end of file, it doesn't move. *)
+let cursor_right f = 
+  let line_len = Array.get f.line_lengths f.cursor_line_num in
+  if f.cursor = cont_length f - 1 then f
+  else if f.cursor_column = line_len - 1 then { f with
+    cursor = f.cursor + 1;
+    cursor_line_num = f.cursor_line_num + 1;
+    cursor_column = 0;
+  }
+  else { f with
+    cursor = f.cursor + 1;
+    cursor_column = f.cursor_column + 1;
+  }
+ 
+ (* [cursor_up f] returns [f] with cursor moved one line up.
+  * If the cursor is farther right then the length of the line it
+  * moved to, then the cursor goes at the end of the line.
+  * If on first line, cursor goes to farthest left position. *)
+let cursor_up f = failwith "Unimplemented"
+ 
+ (* [cursor_down f] returns [f] with cursor moved one line down.
+  * If the cursor is farther right then the length of the line it
+  * moved to, then the cursor goes at the end of the line.
+  * If on last line, cursor goes to farthest right position. *)
+let cursor_down f = failwith "Unimplemented"
+
 (* [scroll_to f n] changes the line number of the scrolled view
  * to [n]. If [n] is less than 0 or greater than the number of lines in
  * contents, then the closest line number is chosen. *)
