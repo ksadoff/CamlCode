@@ -175,4 +175,23 @@ let tests = [
   "find3" >:: (fun _ -> assert_equal ""
     (get_search_term somelines));
 
+
+  (* tests for selecting the search term of a file *)
+  "sel_search0" >:: (fun _ -> assert_equal (Some (0,1))
+    ((find somelines "h") |> select_search_term |> get_selected_range));
+  (* loop back to start at end of file *)
+  "sel_search1" >:: (fun _ -> assert_equal (Some (0,1))
+    ((find somelines "h") |> select_search_term |> select_search_term |> get_selected_range));
+  (* term not found *)
+  "sel_search2" >:: (fun _ -> assert_equal None
+    ((find somelines "Hello") |> select_search_term |> get_selected_range));
+  (* first location *)
+  "sel_search3" >:: (fun _ -> assert_equal (Some (2,3))
+    ((find somelines "l") |> select_search_term |> get_selected_range));
+  (* second location *)
+  "sel_search4" >:: (fun _ -> assert_equal (Some (3,4))
+    ((find somelines "l") |> select_search_term |> select_search_term |> get_selected_range));
+  (* third location *)
+  "sel_search5" >:: (fun _ -> assert_equal (Some (9,10))
+    ((find somelines "l") |> select_search_term |> select_search_term |> select_search_term |> get_selected_range));
 ]

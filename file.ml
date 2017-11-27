@@ -359,9 +359,32 @@ let get_coloring f = failwith "Unimplemented"
 (* [get_search_term f] gets the current search term in [f]. *)
 let get_search_term f = f.search_term
 
-(* [get_search_locations f] returns the list of regions in which
- * the search term has been found in [f]. *)
-let get_search_locations f = failwith "Unimplemented"
+(* [select_search_term f] returns an updated version of [f] with
+ * with the next instance of the search term selected. The next instance is
+ * defined as from the currently selected text. If no text is selected the
+ * new version of [f] will have the first instance of its search term selected *)
+let rec select_search_term f =
+  match f.selected_range with
+  | None ->
+    begin
+      try begin
+        let next_loc = Rope.search_forward_string f.search_term f.contents 0 in
+        let next_loc_end = next_loc + (String.length f.search_term) in
+        select_text f next_loc next_loc_end
+      end
+      with
+      | Not_found -> f
+    end
+  | Some (curr, _) ->
+    begin
+      try begin
+        let next_loc = Rope.search_forward_string f.search_term f.contents (curr+1) in
+        let next_loc_end = next_loc + (String.length f.search_term) in
+        select_text f next_loc next_loc_end
+      end
+      with
+      | Not_found -> select_search_term {f with selected_range = None;}
+    end
 
 (* [find f s] updates [f] so that it holds [s] as its current
  * search term. *)
