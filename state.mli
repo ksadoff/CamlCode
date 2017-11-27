@@ -1,10 +1,6 @@
-(* still need delete*)
-
-
 (* The State module contains the entire state of the program,
  * including a list of all files being used. *)
 
-open Location
 open Color
 
 (* Represents the area where user is typing, i.e. in a file or
@@ -34,7 +30,6 @@ val open_file : string -> state -> state
 (*[is_filed_saved st] returns true if the file is saved and false if not*)
 val is_file_saved : state -> bool
 
-
 (* [save_file st] saves the currently selected file in [st] at
  * its corresponding path.
  * Raises Sys_error if file write failed. *)
@@ -60,10 +55,10 @@ val paste : state -> state
 
 (* [get_cursor_location st] gets the location of the cursor in the file open
  * in [st]. *)
-val get_cursor_location : state -> location
+val get_cursor_location : state -> int
 
 (* [move_cursor st l] moves the cursor of the open file in [st] to [l] *)
-val move_cursor : state -> location -> state
+val move_cursor : state -> int -> state
 
 (* [scroll_to st n] changes the line number of the scrolled view of
  * the file open in [st] to to [n]. *)
@@ -73,10 +68,9 @@ val scroll_to : state -> int -> state
  * currently selected file in [st]. *)
 val get_scroll_line_number : state -> int
 
-
 (* [get_text st l1 l2] returns all text in the open file of [st] from
  * [l1] to [l2]. Raises Invalid_argument if [l2] comes before [l1].  *)
-val get_text : state -> location -> location -> string
+val get_text : state -> int -> int -> string
 
 (* [get_all_text st] returns a string representing all of the text in
  * the file opened in [st] *)
@@ -84,19 +78,19 @@ val get_all_text : state -> string
 
 (* [get_highlighted_region st] returns a tuple of the start and end locations
  * of a section of highlighted text *)
-val get_highlighted_region : state -> (location*location)
+val get_highlighted_region : state -> (int * int)
 
 (* [select_text st l1 l2] selects text from [l1] to [l2] in the open file of [st].
  * Raises Invalid_argument if [l2] comes before [l1]. *)
-val select_text : state -> location -> location -> state
+val select_text : state -> int -> int -> state
 
 (* [insert_text st s l] inserts string [s] into the contents the open
  * file of [st] at location [l]. *)
-val insert_text : state -> string -> location -> state
+val insert_text : state -> string -> int -> state
 
 (* [delete_text l1 l2] deletes all the text in the currently held
  * file from location [l1] to [l2]. *)
-val delete_text : state -> location -> location -> state
+val delete_text : state -> int -> int -> state
 
 (* [undo st] undoes the last change recorded in the open file of [st].
  * If there is nothing left to undo, [undo st] will return [st] unchanged. *)
@@ -120,9 +114,8 @@ val get_search_term : state -> string
 
 (* [get_search_locations st] returns the list of regions in which
  * the search term has been found in the currently selected file in [st]. *)
-val get_search_locations : state -> (location*location) list
+val get_search_locations : state -> (int *int ) list
 
 (* [find st s] updates [st] so that it holds [s] as its current
  * search term in its currently selected file. *)
 val find :  string -> state -> state
-
