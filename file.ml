@@ -117,13 +117,13 @@ let rec compute_line_num lls l = failwith "Unimplemented"
  * [ln1] line number of previous cursor location
  * [c1] column number of previous cursor location
  * [i2] index of new cursor location
- * returns: line number [ln2] of new cursor location 
+ * returns: line number and column [(ln2, c2)] of new cursor location
  * raises: Invalid_argument if any of the following happens
  * * [i1] or [i2] are out of bounds of contents
  * * [ln1] is not a valid index of [lla]
  * * [c1] is not a valid column in its corresponding line
  *)
-let rec get_new_line_num lla i1 ln1 c1 i2 = 
+let rec get_line_num_col lla i1 ln1 c1 i2 = 
   (* line number exceptions *)
   if ln1 < 0 || ln1 >= Array.length lla
   then raise (Invalid_argument ("invalid line number " ^ (string_of_int ln1)))
@@ -136,13 +136,15 @@ let rec get_new_line_num lla i1 ln1 c1 i2 =
   then raise (Invalid_argument ("invalid column " ^ (string_of_int ln1)))
   else
   (* if i1 and i2 on same line, return ln1 *)
-  if i2 >= line_start && i2 < line_start + line_len then ln1
+  if i2 >= line_start && i2 < line_start + line_len then (ln1, i2-line_start)
   (* if i2 not on i1's line, recursively call with previous or next line *)
   else
   let new_ln = if i2 < line_start then ln1 - 1 else ln1 + 1 in
-  let prev_len = Array.get lla new_ln in 
-  let prev_start = i1 - c1 - prev_len in
-  get_new_line_num lla prev_start new_ln 0 i2
+  let new_len = Array.get lla new_ln in 
+  let new_start = 
+    if i2 < line_start then i1 - c1 - new_len 
+    else i1 - c1 + line_len in
+  get_line_num_col lla new_start new_ln 0 i2
 
 (* [move_cursor f l] moves the cursor location in [f] to [l]. The cursor
  * index, line number, and column number are all updated. If [l] is an 
@@ -152,12 +154,12 @@ let move_cursor f l =
   let l' = if l < 0 then 0
     else if l >= Rope.length f.contents then Rope.length f.contents - 1
     else l in
-  let new_line_num = get_new_line_num lla f.cursor 
+  let (new_line_num, new_col) = get_line_num_col lla f.cursor 
     f.cursor_line_num f.cursor_column l' in
   { f with 
     cursor = l';
     cursor_line_num = new_line_num;
-    cursor_column = l' - (Array.get lla new_line_num);
+    cursor_column = new_col;
   }
 
 (* [scroll_to f n] changes the line number of the scrolled view
