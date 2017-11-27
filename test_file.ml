@@ -49,6 +49,17 @@ let insert_test test_name orig_f s l exp_s exp_ls =
     ~printer: (fun (s, ls) -> "\"" ^ s ^ "\", " ^ (int_list_printer ls))
   )
 
+(* [delete_test test_name f l1 l2 exp_s exp_ls] creates a test case with 
+ * name [test_name] that deletes contents of [f] from [l1] to [l2]. [exp_s] 
+ * is the expected string contents of [f], and [exp_ls] is the expected 
+ * list of line lengths in [f]. *)
+ let delete_test test_name orig_f l1 l2 exp_s exp_ls = 
+  let f = delete_text orig_f l1 l2 in
+  test_name >:: (fun _ -> assert_equal (exp_s, exp_ls)
+    (get_all_text f, get_line_lengths f)
+    ~printer: (fun (s, ls) -> "\"" ^ s ^ "\", " ^ (int_list_printer ls))
+  )
+
 (* Test cases for File module. *)
 let tests = [
   "read_file" >:: (fun _ -> assert_equal "test file\n"
@@ -142,4 +153,15 @@ let tests = [
     "hello\nworld\n\n!!!\nyo" [6; 6; 1; 4; 2];
   insert_test "insert5" somelines "ok\n" 20
     "hello\nworld\n\n!!!\nok\n" [6; 6; 1; 4; 3];
+
+  (* deleting text *)
+  delete_test "delete0" somelines 0 3
+    "lo\nworld\n\n!!!\n" [3; 6; 1; 4];
+  delete_test "delete1" somelines 4 7
+    "hellorld\n\n!!!\n" [9; 1; 4];
+  delete_test "delete2" somelines 12 6
+    "hello\n\n!!!\n" [6; 1; 4];
+  delete_test "delete3" somelines 0 17 "" [];
+  delete_test "delete4" somelines (-1) 18 "" [];
+  delete_test "delete5" somelines 0 16 "\n" [1];
 ]
