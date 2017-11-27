@@ -203,9 +203,19 @@ let tests = [
   "sel_search5" >:: (fun _ -> assert_equal (Some (9,10))
     ((find somelines "l") |> select_search_term |> select_search_term |> select_search_term |> get_selected_range));
 
-  (* tests for setting and getting the search term of a file *)
-  "find0" >:: (fun _ -> assert_equal None
+  (* tests for removing the search term of a file *)
+  "rem_find0" >:: (fun _ -> assert_equal None
     ((find somelines "hello") |> remove_search_term |> get_search_term));
-  "find1" >:: (fun _ -> assert_equal None
+  "rem_find1" >:: (fun _ -> assert_equal None
     ((find somelines " ") |> remove_search_term |> get_search_term));
+
+  (* tests for setting, getting, and removing the replace term of a file *)
+  "rep0" >:: (fun _ -> assert_equal None
+    (somelines |> get_replace_term));
+  "rep1" >:: (fun _ -> assert_equal (Some "H")
+    ((set_replace_term somelines "H") |> get_replace_term));
+  "rep1" >:: (fun _ -> assert_equal None
+    ((set_replace_term somelines "H") |> remove_replace_term |> get_replace_term));
+  "rep1" >:: (fun _ -> assert_equal None
+    ((set_replace_term somelines "") |> get_replace_term));
 ]

@@ -46,6 +46,9 @@ type file = {
   (* the string that the user is currently searching for *)
   search_term : string option;
 
+  (* the string that will replace the search term *)
+  replace_term : string option;
+
   (* clipboard : string;
   was_saved : bool; *)
 }
@@ -105,12 +108,13 @@ let open_file s =
     scroll_line_num = 0;
     selected_range = None;
     search_term = None;
+    replace_term = None;
   }
 
 (* [save_file f] saves [f] at relative path [s].
  * Raises Sys_error if file write failed. *)
-let save_file f s = 
-  let ch_out = open_out s in 
+let save_file f s =
+  let ch_out = open_out s in
   Printf.fprintf ch_out "%s" (Rope.to_string f.contents);
   close_out ch_out
 
@@ -411,3 +415,16 @@ let find f s =
 
 (* [remove_search_term f] removes the search_term of file [f] *)
 let remove_search_term f = { f with search_term = None; }
+
+(* [set_replace_term f s] sets the replace term of file [f] to [Some s] *)
+let set_replace_term f s =
+  match s with
+  | "" -> { f with replace_term = None; }
+  | term -> { f with replace_term = Some term; }
+
+(* [remove_replace_term f] sets the replace term of file [f] to [None]*)
+let remove_replace_term f = { f with replace_term = None; }
+
+(* [get_replace_term f] returns [Some s] where [r] is the replacement term
+ * if the is no replacement term returns [None] *)
+let get_replace_term f = f.replace_term
