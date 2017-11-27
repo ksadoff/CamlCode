@@ -1,7 +1,7 @@
 open OUnit2
 open File
 
-let int_list_printer l = List.fold_left 
+let int_list_printer l = List.fold_left
   (fun acc x -> acc ^ (string_of_int x) ^ "; ") "" l
   |> fun s -> "[" ^ s ^ "]"
 
@@ -13,47 +13,47 @@ let somelines_moved2 = move_cursor somelines 8
  * the cursor in file [f] is moved to index [l]. [exp] is
  * the expected (index, line num, column) tuple. [test_name] is
  * name of the test, used by OUnit. *)
-let move_cursor_test test_name orig_f l exp = 
-  let f = orig_f |> fun f' -> move_cursor f' l in 
-  test_name >:: (fun _ -> assert_equal exp 
-    (get_cursor_location f, 
-    get_cursor_line_num f, 
+let move_cursor_test test_name orig_f l exp =
+  let f = orig_f |> fun f' -> move_cursor f' l in
+  test_name >:: (fun _ -> assert_equal exp
+    (get_cursor_location f,
+    get_cursor_line_num f,
     get_cursor_column f)
-    ~printer: (fun (i,l,c) -> "(" ^ (string_of_int i) ^ ", " ^ 
-      (string_of_int l) ^ ", " ^ 
+    ~printer: (fun (i,l,c) -> "(" ^ (string_of_int i) ^ ", " ^
+      (string_of_int l) ^ ", " ^
       (string_of_int c) ^ ")")
   )
 
 (* [modify_file_test test_name f ffun exp] returns a test case where
- * [f] is acted on by [ffun]. [exp] is the expected (index, line num, 
+ * [f] is acted on by [ffun]. [exp] is the expected (index, line num,
  * column) tuple. [test_name] is name of the test, used by OUnit. *)
 let modify_file_test test_name orig_f ffun exp =
-  let f = ffun orig_f in 
-  test_name >:: (fun _ -> assert_equal exp 
-    (get_cursor_location f, 
-    get_cursor_line_num f, 
+  let f = ffun orig_f in
+  test_name >:: (fun _ -> assert_equal exp
+    (get_cursor_location f,
+    get_cursor_line_num f,
     get_cursor_column f)
-    ~printer: (fun (i,l,c) -> "(" ^ (string_of_int i) ^ ", " ^ 
-      (string_of_int l) ^ ", " ^ 
+    ~printer: (fun (i,l,c) -> "(" ^ (string_of_int i) ^ ", " ^
+      (string_of_int l) ^ ", " ^
       (string_of_int c) ^ ")")
   )
 
-(* [insert_test test_name f s l exp_s exp_ls] creates a test case with name 
+(* [insert_test test_name f s l exp_s exp_ls] creates a test case with name
  * [test_name] that inserts string [s] into the contents of [f] at
- * location [l]. [exp_s] is the expected string contents of [f], and 
+ * location [l]. [exp_s] is the expected string contents of [f], and
  * [exp_ls] is the expected list of line lengths in [f]. *)
-let insert_test test_name orig_f s l exp_s exp_ls = 
+let insert_test test_name orig_f s l exp_s exp_ls =
   let f = insert_text orig_f s l in
   test_name >:: (fun _ -> assert_equal (exp_s, exp_ls)
     (get_all_text f, get_line_lengths f)
     ~printer: (fun (s, ls) -> "\"" ^ s ^ "\", " ^ (int_list_printer ls))
   )
 
-(* [delete_test test_name f l1 l2 exp_s exp_ls] creates a test case with 
- * name [test_name] that deletes contents of [f] from [l1] to [l2]. [exp_s] 
- * is the expected string contents of [f], and [exp_ls] is the expected 
+(* [delete_test test_name f l1 l2 exp_s exp_ls] creates a test case with
+ * name [test_name] that deletes contents of [f] from [l1] to [l2]. [exp_s]
+ * is the expected string contents of [f], and [exp_ls] is the expected
  * list of line lengths in [f]. *)
- let delete_test test_name orig_f l1 l2 exp_s exp_ls = 
+ let delete_test test_name orig_f l1 l2 exp_s exp_ls =
   let f = delete_text orig_f l1 l2 in
   test_name >:: (fun _ -> assert_equal (exp_s, exp_ls)
     (get_all_text f, get_line_lengths f)
@@ -65,14 +65,14 @@ let tests = [
   "read_file" >:: (fun _ -> assert_equal "test file\n"
     (open_file "testtxts/easy.txt" |> get_all_text)
   );
-  "read_somelines" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n" 
+  "read_somelines" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
     (open_file "testtxts/somelines.txt" |> get_all_text)
     ~printer: (fun x -> x)
   );
-  "line_lengths" >:: (fun _ -> assert_equal [6; 6; 1; 4] 
+  "line_lengths" >:: (fun _ -> assert_equal [6; 6; 1; 4]
     (somelines |> get_line_lengths)
     ~printer: int_list_printer);
-  
+
   (* cursor moving tests *)
   move_cursor_test "cursor0" somelines 1 (1, 0, 1);
   move_cursor_test "cursor1" somelines 5 (5, 0, 5);
@@ -109,19 +109,19 @@ let tests = [
   modify_file_test "cursor30" (move_cursor somelines 11) cursor_down (12, 2, 0);
 
   (* scrolling tests *)
-  "scroll0" >:: (fun _ -> assert_equal 3 
+  "scroll0" >:: (fun _ -> assert_equal 3
     (scroll_to somelines 3 |> get_scroll_line));
-  "scroll1" >:: (fun _ -> assert_equal 0 
+  "scroll1" >:: (fun _ -> assert_equal 0
     (scroll_to somelines (-1) |> get_scroll_line));
-  "scroll2" >:: (fun _ -> assert_equal 3 
+  "scroll2" >:: (fun _ -> assert_equal 3
     (scroll_to somelines 4 |> get_scroll_line));
-  "scroll3" >:: (fun _ -> assert_equal 0 
+  "scroll3" >:: (fun _ -> assert_equal 0
     (scroll_to somelines 0 |> get_scroll_line));
 
   (* substring *)
   "substr0" >:: (fun _ -> assert_equal "llo\nwo"
     (get_text somelines 2 8));
-  "substr1" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n" 
+  "substr1" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
     (get_text somelines 0 17) ~printer: (fun s -> "\"" ^ s ^ "\""));
   "substr2" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
     (get_text somelines (-1) 18));
@@ -141,9 +141,9 @@ let tests = [
     (select_text somelines 5 0 |> unselect_text |> get_selected_range));
 
   (* inserting text *)
-  insert_test "insert0" somelines "oh, " 0 
+  insert_test "insert0" somelines "oh, " 0
     "oh, hello\nworld\n\n!!!\n" [10; 6; 1; 4];
-  insert_test "insert1" somelines "n" 2 
+  insert_test "insert1" somelines "n" 2
     "henllo\nworld\n\n!!!\n" [7; 6; 1; 4];
   insert_test "insert2" somelines "o\nk" 3
     "helo\nklo\nworld\n\n!!!\n" [5; 4; 6; 1; 4];
@@ -164,4 +164,15 @@ let tests = [
   delete_test "delete3" somelines 0 17 "" [];
   delete_test "delete4" somelines (-1) 18 "" [];
   delete_test "delete5" somelines 0 16 "\n" [1];
+
+  (* tests for setting and getting the search term of a file *)
+  "find0" >:: (fun _ -> assert_equal "hello"
+    (get_search_term (find somelines "hello")));
+  "find1" >:: (fun _ -> assert_equal " "
+    (get_search_term (find somelines " ")));
+  "find2" >:: (fun _ -> assert_equal ""
+    (get_search_term (find somelines "")));
+  "find3" >:: (fun _ -> assert_equal ""
+    (get_search_term somelines));
+
 ]
