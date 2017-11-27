@@ -65,6 +65,14 @@ val get_all_text : file -> string
  * Raises Invalid_argument if [l2] comes before [l1]. *)
 val select_text : file -> int -> int -> file
 
+(* Returns [f] with no selected text. *)
+val unselect_text : file -> file
+
+(* [get_selected_range f] returns the [None] if no text is selected,
+ * or [Some (i1, i2)] if there is currently text selected from index 
+ * [i1] to [i2]. *)
+val get_selected_range : file -> (int * int) option
+
 (* [insert_text f s l] inserts string [s] into the contents
  * of [f] at location [l]. *)
 val insert_text : file -> string -> int -> file

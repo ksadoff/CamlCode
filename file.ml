@@ -40,11 +40,16 @@ type file = {
   (* top line that view is currently scrolled to *)
   scroll_line_num : int;
 
-  (* selected_range : location * location;
-  clipboard : string;
+  (* range of currently selected text *)
+  selected_range : (int * int) option;
+
+  (* clipboard : string;
   was_saved : bool;
   search_term : string; *)
 }
+
+(* [get_cont_length f] returns the length of the contents of [f]. *)
+let cont_length f = Rope.length f.contents
 
 (* [find_newlines cont i0] returns a list [l] (not an array)
  * such that the ith element of [l] is the length of the ith line
@@ -86,10 +91,11 @@ let open_file s =
     cursor = 0;
     cursor_line_num = 0;
     cursor_column = 0;
-    scroll_line_num = 0;
-    line_lengths = find_newlines contents 0 
+    line_lengths = (find_newlines contents 0 
       |> fun nls -> get_line_lengths nls 0
-      |> Array.of_list;
+      |> Array.of_list);
+    scroll_line_num = 0;
+    selected_range = None;
   }
 
 (* [save_file f] saves [f] at its corresponding path.
@@ -150,7 +156,7 @@ let rec get_line_num_col lla i1 ln1 c1 i2 =
 let move_cursor f l = 
   let lla = f.line_lengths in
   let l' = if l < 0 then 0
-    else if l >= Rope.length f.contents then Rope.length f.contents - 1
+    else if l >= cont_length f then cont_length f - 1
     else l in
   let (new_line_num, new_col) = get_line_num_col lla f.cursor 
     f.cursor_line_num f.cursor_column l' in
@@ -175,18 +181,47 @@ let scroll_to f n =
  * scrolled to *)
 let get_scroll_line f = f.scroll_line_num
 
+(* [make_range_valid (i1, i2) cont_len] returns a new pair (i1', i2') 
+ * such that:
+ * if [i1 < 0] or [i2 < 0], then [i1'] or [i2'] is 0
+ * if [i1 > cont_len] or [i2 > cont_len], then [i1'] or [i2'] is [cont_len]
+ * if [i1 > i2], then i1' is i2 and i2' is i1 *)
+let make_range_valid (i1, i2) cont_len = 
+  let i1' = 
+    if i1 < 0 then 0
+    else if i1 > cont_len then cont_len
+    else if i1 > i2 then i2
+    else i1 in
+  let i2' = 
+    if i2 < 0 then 0
+    else if i2 > cont_len then cont_len
+    else if i1 > i2 then i1
+    else i2 in
+  (i1', i2')
+
 (* [get_text f l1 l2] returns all text in [f] from [l1] to [l2].
- * Raises Invalid_argument if [l2] comes before [l1] or if [l1] or 
- * [l2] is out of bounds. *)
-let get_text f l1 l2 = Rope.sub f.contents l1 (l2 - l1) 
-  |> Rope.to_string
+ * This function forces [l1] and [l2] to be in order and in bounds. *)
+let get_text f l1 l2 =
+  let (l1', l2') = make_range_valid (l1, l2) (cont_length f) in
+  Rope.sub f.contents l1' (l2' - l1') |> Rope.to_string
 
 (* [get_all_text f] returns a string representing all of the text in [f] *)
 let get_all_text f = Rope.to_string f.contents
 
 (* [select_text f l1 l2] selects text from [l1] to [l2].
- * Raises Invalid_argument if [l2] comes before [l1]. *)
-let select_text f l1 l2 = failwith "Unimplemented" 
+ * This function forces [l1] and [l2] to be in order and in bounds. *)
+let select_text f l1 l2 =
+  let cont_len = cont_length f in
+  let (l1', l2') = make_range_valid (l1, l2) cont_len in
+  {f with selected_range = Some (l1', l2')}
+
+(* Returns [f] with no selected text. *)
+let unselect_text f = {f with selected_range = None}
+
+(* [get_selected_range f] returns [None] if no text is selected,
+ * or [Some (i1, i2)] if there is currently text selected from
+ * index [i1] to [i2]. *)
+let get_selected_range f = f.selected_range
 
 (* [insert_text f s l] inserts string [s] into the contents
  * of [f] at location [l]. *)

@@ -68,5 +68,19 @@ let tests = [
   "substr0" >:: (fun _ -> assert_equal "llo\nwo"
     (get_text somelines 2 8));
   "substr1" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n" 
-    (get_text somelines 0 17));
+    (get_text somelines 0 17) ~printer: (fun s -> "\"" ^ s ^ "\""));
+  "substr2" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    (get_text somelines (-1) 18));
+  "substr3" >:: (fun _ -> assert_equal "hello"
+    (get_text somelines 5 0));
+
+  (* selecting text *)
+  "select0" >:: (fun _ -> assert_equal None
+    (get_selected_range somelines));
+  "select1" >:: (fun _ -> assert_equal (Some (3,9))
+    (select_text somelines 3 9 |> get_selected_range));
+  "select2" >:: (fun _ -> assert_equal (Some (0,17))
+    (select_text somelines (-1) 18 |> get_selected_range));
+  "select3" >:: (fun _ -> assert_equal (Some (0,5))
+    (select_text somelines 5 0 |> get_selected_range));
 ]
