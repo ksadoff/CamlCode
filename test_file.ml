@@ -63,4 +63,10 @@ let tests = [
     (scroll_to somelines 4 |> get_scroll_line));
   "scroll3" >:: (fun _ -> assert_equal 0 
     (scroll_to somelines 0 |> get_scroll_line));
+
+  (* substring *)
+  "substr0" >:: (fun _ -> assert_equal "llo\nwo"
+    (get_text somelines 2 8));
+  "substr1" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n" 
+    (get_text somelines 0 17));
 ]

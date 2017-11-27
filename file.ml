@@ -176,8 +176,10 @@ let scroll_to f n =
 let get_scroll_line f = f.scroll_line_num
 
 (* [get_text f l1 l2] returns all text in [f] from [l1] to [l2].
- * Raises Invalid_argument if [l2] comes before [l1].  *)
-let get_text f l1 l2 = failwith "Unimplemented" 
+ * Raises Invalid_argument if [l2] comes before [l1] or if [l1] or 
+ * [l2] is out of bounds. *)
+let get_text f l1 l2 = Rope.sub f.contents l1 (l2 - l1) 
+  |> Rope.to_string
 
 (* [get_all_text f] returns a string representing all of the text in [f] *)
 let get_all_text f = Rope.to_string f.contents
