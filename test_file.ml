@@ -164,4 +164,13 @@ let tests = [
   delete_test "delete3" somelines 0 17 "" [];
   delete_test "delete4" somelines (-1) 18 "" [];
   delete_test "delete5" somelines 0 16 "\n" [1];
+
+  (* saving a file *)
+  "save" >:: (fun _ -> assert_equal "abcde\n" (
+    somelines
+    |> fun f -> delete_text f 0 17
+    |> fun f -> insert_text f "abcde" 0
+    |> fun f -> save_file f "testtxts/temp.txt";
+    open_file "testtxts/temp.txt" |> get_all_text
+  ) ~printer: (fun s -> s));
 ]
