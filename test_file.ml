@@ -115,4 +115,6 @@ let tests = [
     (select_text somelines (-1) 18 |> get_selected_range));
   "select3" >:: (fun _ -> assert_equal (Some (0,5))
     (select_text somelines 5 0 |> get_selected_range));
+  "select4" >:: (fun _ -> assert_equal None
+    (select_text somelines 5 0 |> unselect_text |> get_selected_range));
 ]
