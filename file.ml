@@ -33,12 +33,14 @@ type file = {
   (* column number of cursor *)
   cursor_column : int;
 
-  (* [get f.line_lengths i] is the number of characters in line [i]
-   * of [f.contents] *)
+  (* [Array.get f.line_lengths i] is the number of characters in 
+   * line [i] of [f.contents] *)
   line_lengths : int array; 
   
-  (* view_line_num : int;
-  selected_range : location * location;
+  (* top line that view is currently scrolled to *)
+  scroll_line_num : int;
+
+  (* selected_range : location * location;
   clipboard : string;
   was_saved : bool;
   search_term : string; *)
@@ -63,7 +65,7 @@ let rec get_line_lengths nls nl0 =
   | [] -> []
   | h :: t -> (h - nl0 + 1) :: (get_line_lengths t (h + 1))
 
-(* [open_file s] reads the contents of the file sored at
+(* [open_file s] reads the contents of the file stored at
  * relative path [s] and uses that to construct a new file type.
  * Raises Sys_error if opening file failed. *)
 let open_file s = 
@@ -84,13 +86,14 @@ let open_file s =
     cursor = 0;
     cursor_line_num = 0;
     cursor_column = 0;
+    scroll_line_num = 0;
     line_lengths = find_newlines contents 0 
       |> fun nls -> get_line_lengths nls 0
       |> Array.of_list;
   }
 
 (* [save_file f] saves [f] at its corresponding path.
- * Rasis Sys_error if file write failed. *)
+ * Raises Sys_error if file write failed. *)
 let save_file f = failwith "Unimplemented" 
 
 (* [get_cursor_location f] gets the location of the cursor in [f]. *)
@@ -105,11 +108,6 @@ let get_cursor_column f = f.cursor_column
 (* [get_line_lengths f] returns the list of the lengths of lines
  * in the contents of [f], in order from top of file to bottom. *)
 let get_line_lengths f = f.line_lengths |> Array.to_list
-
-(* [compute_cursor_line_num lls l] computes the line number that
- * location [l] is currently on by using the list of line lenghts [lls].
- * Note that [lls] is a list, not an array. *)
-let rec compute_line_num lls l = failwith "Unimplemented"
 
 (* requires:
  * [lla] array of line lengths in a file
@@ -163,8 +161,19 @@ let move_cursor f l =
   }
 
 (* [scroll_to f n] changes the line number of the scrolled view
- * to [n]. *)
-let scroll_to f n = failwith "Unimplemented" 
+ * to [n]. If [n] is less than 0 or greater than the number of lines in
+ * contents, then the closest line number is chosen. *)
+let scroll_to f n = 
+  {f with scroll_line_num = 
+    let num_lines = Array.length f.line_lengths in
+    if n < 0 then 0
+    else if n >= num_lines then num_lines - 1
+    else n
+  }
+
+(* [get_scroll_line f] returns the highest line that view is currently 
+ * scrolled to *)
+let get_scroll_line f = f.scroll_line_num
 
 (* [get_text f l1 l2] returns all text in [f] from [l1] to [l2].
  * Raises Invalid_argument if [l2] comes before [l1].  *)

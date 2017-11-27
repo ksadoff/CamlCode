@@ -6,8 +6,8 @@ let int_list_printer l = List.fold_left
   |> fun s -> "[" ^ s ^ "]"
 
 let somelines = File.open_file "testtxts/somelines.txt"
-
 let somelines_moved = move_cursor somelines 12
+let somelines_moved2 = move_cursor somelines 8
 
 (* [move_cursor_test f exp] returns a test case where
  * the cursor in file [f] is moved to index [l]. [exp] is
@@ -51,4 +51,16 @@ let tests = [
   move_cursor_test "cursor10" somelines_moved 0 (0, 0, 0);
   move_cursor_test "cursor11" somelines_moved 5 (5, 0, 5);
   move_cursor_test "cursor12" somelines_moved 6 (6, 1, 0);
+  move_cursor_test "cursor13" somelines_moved2 11 (11, 1, 5);
+  move_cursor_test "cursor14" somelines_moved2 6 (6, 1, 0);
+
+  (* scrolling tests *)
+  "scroll0" >:: (fun _ -> assert_equal 3 
+    (scroll_to somelines 3 |> get_scroll_line));
+  "scroll1" >:: (fun _ -> assert_equal 0 
+    (scroll_to somelines (-1) |> get_scroll_line));
+  "scroll2" >:: (fun _ -> assert_equal 3 
+    (scroll_to somelines 4 |> get_scroll_line));
+  "scroll3" >:: (fun _ -> assert_equal 0 
+    (scroll_to somelines 0 |> get_scroll_line));
 ]

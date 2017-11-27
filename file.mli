@@ -50,6 +50,10 @@ val move_cursor : file -> int -> file
  * to [n]. *)
 val scroll_to : file -> int -> file
 
+(* [get_scroll_line f] returns the highest line that view is currently 
+ * scrolled to *)
+val get_scroll_line : file -> int
+
 (* [get_text f l1 l2] returns all text in [f] from [l1] to [l2].
  * Raises Invalid_argument if [l2] comes before [l1].  *)
 val get_text : file -> int -> int -> string
