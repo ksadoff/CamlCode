@@ -75,7 +75,7 @@ val cursor_down : file -> file
  * to [n]. *)
 val scroll_to : file -> int -> file
 
-(* [get_scroll_line f] returns the highest line that view is currently 
+(* [get_scroll_line f] returns the highest line that view is currently
  * scrolled to *)
 val get_scroll_line : file -> int
 
@@ -94,7 +94,7 @@ val select_text : file -> int -> int -> file
 val unselect_text : file -> file
 
 (* [get_selected_range f] returns the [None] if no text is selected,
- * or [Some (i1, i2)] if there is currently text selected from index 
+ * or [Some (i1, i2)] if there is currently text selected from index
  * [i1] to [i2]. *)
 val get_selected_range : file -> (int * int) option
 
@@ -104,7 +104,7 @@ val get_selected_range : file -> (int * int) option
  * valid location will be used. *)
 val insert_text : file -> string -> int -> file
 
-(* [delete_text l1 l2] deletes all text in [f] from location 
+(* [delete_text l1 l2] deletes all text in [f] from location
  * [l1] to [l2]. *)
 val delete_text : file -> int -> int -> file
 
@@ -125,9 +125,11 @@ val get_coloring : file -> color_mapping
 (* [get_search_term f] gets the current search term in [f]. *)
 val get_search_term : file -> string
 
-(* [get_search_locations f] returns the list of regions in which
- * the search term has been found in [f]. *)
-val get_search_locations : file -> (int * int) list
+(* [select_search_term f] returns an updated version of [f] with
+ * with the next instance of the search term selected. The next instance is
+ * defined as from the currently selected text. If no text is selected the
+ * new version of [f] will have the first instance of its search term selected *)
+val select_search_term : file -> file
 
 (* [find f s] updates [f] so that it holds [s] as its current
  * search term. *)
