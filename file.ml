@@ -30,6 +30,9 @@ type file = {
   (* line number of cursor *)
   cursor_line_num : int;
 
+  (* column number of cursor *)
+  cursor_column : int;
+
   (* [get f.line_lengths i] is the number of characters in line [i]
    * of [f.contents] *)
   line_lengths : int array; 
@@ -80,6 +83,7 @@ let open_file s =
     contents = contents;
     cursor = 0;
     cursor_line_num = 0;
+    cursor_column = 0;
     line_lengths = find_newlines contents 0 
       |> fun nls -> get_line_lengths nls 0
       |> Array.of_list;
@@ -95,20 +99,66 @@ let get_cursor_location f = f.cursor
 (* [get_cursor_line_num f] gets the line number of the cursor in [f]. *)
 let get_cursor_line_num f = f.cursor_line_num
 
+(* [get_cursor_column f] gets the column number of the cursor in [f]. *)
+let get_cursor_column f = f.cursor_column
+
 (* [get_line_lengths f] returns the list of the lengths of lines
  * in the contents of [f], in order from top of file to bottom. *)
 let get_line_lengths f = f.line_lengths |> Array.to_list
 
-(* [move_cursor f l] moves the cursor location in [f] to [l].
- * If [l] is an invalid location, the cursor becomes the closest
- * value to [l]. *)
-let move_cursor f l = { f 
-  with cursor = 
-    if l < 0 then 0
+(* [compute_cursor_line_num lls l] computes the line number that
+ * location [l] is currently on by using the list of line lenghts [lls].
+ * Note that [lls] is a list, not an array. *)
+let rec compute_line_num lls l = failwith "Unimplemented"
+
+(* requires:
+ * [lla] array of line lengths in a file
+ * [i1] character index of previous cursor location
+ * [ln1] line number of previous cursor location
+ * [c1] column number of previous cursor location
+ * [i2] index of new cursor location
+ * returns: line number [ln2] of new cursor location 
+ * raises: Invalid_argument if any of the following happens
+ * * [i1] or [i2] are out of bounds of contents
+ * * [ln1] is not a valid index of [lla]
+ * * [c1] is not a valid column in its corresponding line
+ *)
+let rec get_new_line_num lla i1 ln1 c1 i2 = 
+  (* line number exceptions *)
+  if ln1 < 0 || ln1 >= Array.length lla
+  then raise (Invalid_argument ("invalid line number " ^ (string_of_int ln1)))
+  else
+  (* get length of current line and index where it starts *)
+  let line_len = Array.get lla ln1 in
+  let line_start = i1 - c1 in
+  (* column number exceptions *)
+  if c1 < 0 || c1 >= line_len
+  then raise (Invalid_argument ("invalid column " ^ (string_of_int ln1)))
+  else
+  (* if i1 and i2 on same line, return ln1 *)
+  if i2 >= line_start && i2 < line_start + line_len then ln1
+  (* if i2 not on i1's line, recursively call with previous or next line *)
+  else
+  let new_ln = if i2 < line_start then ln1 - 1 else ln1 + 1 in
+  let prev_len = Array.get lla new_ln in 
+  let prev_start = i1 - c1 - prev_len in
+  get_new_line_num lla prev_start new_ln 0 i2
+
+(* [move_cursor f l] moves the cursor location in [f] to [l]. The cursor
+ * index, line number, and column number are all updated. If [l] is an 
+ * invalid location, the cursor becomes the closest value to [l]. *)
+let move_cursor f l = 
+  let lla = f.line_lengths in
+  let l' = if l < 0 then 0
     else if l >= Rope.length f.contents then Rope.length f.contents - 1
-    else l
-    (* TODO: calculate cursor_line_num *)
-}
+    else l in
+  let new_line_num = get_new_line_num lla f.cursor 
+    f.cursor_line_num f.cursor_column l' in
+  { f with 
+    cursor = l';
+    cursor_line_num = new_line_num;
+    cursor_column = l' - (Array.get lla new_line_num);
+  }
 
 (* [scroll_to f n] changes the line number of the scrolled view
  * to [n]. *)

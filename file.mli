@@ -36,6 +36,9 @@ val get_cursor_location : file -> int
 (* [get_cursor_line_num f] gets the line number of the cursor in [f]. *)
 val get_cursor_line_num : file -> int
 
+(* [get_cursor_column f] gets the column number of the cursor in [f]. *)
+val get_cursor_column : file -> int
+
 (* [get_line_lengths f] returns the list of the lengths of lines
  * in the contents of [f], in order from top of file to bottom. *)
 val get_line_lengths : file -> int list

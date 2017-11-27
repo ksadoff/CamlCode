@@ -7,6 +7,21 @@ let int_list_printer l = List.fold_left
 
 let somelines = File.open_file "testtxts/somelines.txt"
 
+(* [move_cursor_test f exp] returns a test case where
+ * the cursor in file [f] is moved to index [l]. [exp] is
+ * the expected (index, line num, column) tuple. [test_name] is
+ * name of the test, used by OUnit. *)
+let move_cursor_test test_name orig_f l exp = 
+  let f = orig_f |> fun f' -> move_cursor f' l in 
+  test_name >:: (fun _ -> assert_equal exp 
+    (File.get_cursor_location f, 
+    File.get_cursor_line_num f, 
+    File.get_cursor_column f)
+    ~printer: (fun (i,l,c) -> "(" ^ (string_of_int i) ^ ", " ^ 
+      (string_of_int l) ^ ", " ^ 
+      (string_of_int c) ^ ")")
+  )
+
 (* Test cases for File module. *)
 let tests = [
   "read_file" >:: (fun _ -> assert_equal "test file\n"
@@ -18,5 +33,6 @@ let tests = [
   );
   "line_lengths" >:: (fun _ -> assert_equal [6; 6; 1; 4] 
     (somelines |> File.get_line_lengths)
-    ~printer: int_list_printer)
+    ~printer: int_list_printer);
+  move_cursor_test "cursor0" somelines 1 (1, 0, 1);
 ]
