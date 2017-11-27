@@ -195,3 +195,12 @@ let tests = [
   "sel_search5" >:: (fun _ -> assert_equal (Some (9,10))
     ((find somelines "l") |> select_search_term |> select_search_term |> select_search_term |> get_selected_range));
 ]
+  (* saving a file *)
+  "save" >:: (fun _ -> assert_equal "abcde\n" (
+    somelines
+    |> fun f -> delete_text f 0 17
+    |> fun f -> insert_text f "abcde" 0
+    |> fun f -> save_file f "testtxts/temp.txt";
+    open_file "testtxts/temp.txt" |> get_all_text
+  ) ~printer: (fun s -> s));
+]

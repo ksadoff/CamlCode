@@ -26,9 +26,12 @@ type file
  * Raises Sys_error if opening file failed. *)
 val open_file : string -> file
 
-(* [save_file f] saves [f] at its corresponding path.
- * Rasis Sys_error if file write failed. *)
-val save_file : file -> unit
+(* [save_file f s] saves [f] at relative path [s].
+ * Raises Sys_error if file write failed. *)
+val save_file : file -> string -> unit
+
+(* [get_name f] is the relative path of [f]. *)
+val get_name : file -> string
 
 (* [get_cursor_location f] gets the location of the cursor in [f]. *)
 val get_cursor_location : file -> int
