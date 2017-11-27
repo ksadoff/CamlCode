@@ -166,13 +166,13 @@ let tests = [
   delete_test "delete5" somelines 0 16 "\n" [1];
 
   (* tests for setting and getting the search term of a file *)
-  "find0" >:: (fun _ -> assert_equal "hello"
-    (get_search_term (find somelines "hello")));
-  "find1" >:: (fun _ -> assert_equal " "
+  "find0" >:: (fun _ -> assert_equal (Some "hello")
+    (get_search_term (find somelines ("hello"))));
+  "find1" >:: (fun _ -> assert_equal (Some " ")
     (get_search_term (find somelines " ")));
-  "find2" >:: (fun _ -> assert_equal ""
+  "find2" >:: (fun _ -> assert_equal None
     (get_search_term (find somelines "")));
-  "find3" >:: (fun _ -> assert_equal ""
+  "find3" >:: (fun _ -> assert_equal None
     (get_search_term somelines));
 
 
@@ -194,4 +194,10 @@ let tests = [
   (* third location *)
   "sel_search5" >:: (fun _ -> assert_equal (Some (9,10))
     ((find somelines "l") |> select_search_term |> select_search_term |> select_search_term |> get_selected_range));
+
+  (* tests for setting and getting the search term of a file *)
+  "find0" >:: (fun _ -> assert_equal None
+    ((find somelines "hello") |> remove_search_term |> get_search_term));
+  "find1" >:: (fun _ -> assert_equal None
+    ((find somelines " ") |> remove_search_term |> get_search_term));
 ]
