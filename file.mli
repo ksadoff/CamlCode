@@ -137,3 +137,13 @@ val find :  file -> string -> file
 
 (* [remove_search_term f] removes the search_term of file [f] *)
 val remove_search_term: file -> file
+
+(* [set_replace_term f s] sets the replace term of file [f] to [Some s] *)
+val set_replace_term: file -> string -> file
+
+(* [remove_replace_term f] sets the replace term of file [f] to [None]*)
+val remove_replace_term: file -> file
+
+(* [get_replace_term f] returns [Some s] where [r] is the replacement term
+ * if the is no replacement term returns [None] *)
+val get_replace_term: file -> string option
