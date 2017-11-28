@@ -15,6 +15,7 @@ type clipboard = rope
 
 (* State of the program. Contains the following information:
  * * List of files currently open
+ * * List of files displayed on screen (split screen)
  * * The typing area that is currently being edited
  * * List of most recently used commands
  * * Clipboard for copy/paste
@@ -27,7 +28,7 @@ type state = {
   files: (string * File.file) list;
   (* associative list mapping file name to file, used for determining which
    files will appear for split screen *)
-  screens: string list;
+  screens: (string * File.file) list;
   (* currently open file *)
   current_file: typing_area;
   (* clipboard *)
@@ -152,11 +153,9 @@ let close_file st =
 (* [change_selected_file s st] changes the selected file in [st]
  * to the file with name [s].
  * Raises Not_found if [s] is not one of the files open in [st]. *)
-(* val change_selected_file : string -> state -> state *)
-
-let unwrap_opt = function
-  | Some x -> x
-  | None -> None
+let change_selected_file s st =
+  let new_file = List.assoc s st.files in
+  {st with current_file = Some new_file }
 
 (* [copy st] returns a copy of state with the text selected in the open file of
  * [st] saved to the clipboard *)
