@@ -5,7 +5,7 @@ open Color
 
 (* Represents the area where user is typing, i.e. in a file or
  * in the command line. *)
-type typing_area
+type typing_area = unit
 
 (* State of the program. Contains the following information:
  * * List of files currently open
@@ -16,109 +16,138 @@ type typing_area
  * * First (top) visible line of text
  * * Start and end locations for a block of selected text
  * * Current search term *)
-type state
+type state = {
+  (* associative list mapping file name to file *)
+  files: (string * File.file) list;
+
+  (* currently open file *)
+  current_file: File.file option;
+}
+
+(* [file_to_state_fun f_fun st] takes a function that acts on a file
+ * [f_fun : file -> 'a] and returns a function of type [state -> 'a]
+ * that calls to [f_fun] but uses [st.current_file] as input. *)
+let file_to_state_fun f_fun st = 
+  match st.current_file with 
+  | Some f -> f_fun f
+  | None -> raise (Invalid_argument "no file selected")
 
 (* [new_file s] creates a new, empty file at path [s].
  * Raises Sys_error creating file failed. *)
-val new_file : string -> unit
+let new_file s = let ch_out = open_out s in close_out ch_out
 
 (* New state with no files open yet *)
-val empty_state : state
+let empty_state = 
+  {
+    files = [];
+    current_file = None;
+  }
 
 (* [open_file st s] constructs the file at path [s] and adds it
  * to the list of files in state [st].
  * Raises Sys_error if file read failed. *)
-val open_file : state -> string -> state
+let open_file st s = 
+  let new_file = File.open_file s in 
+  {
+    files = (s, new_file) :: st.files;
+    current_file = Some new_file;
+  }
 
-(*[is_filed_saved st] returns true if the file is saved and false if not*)
-val is_file_saved : state -> bool
+(* [is_filed_saved st] returns true if the file is saved and false if not*)
+let is_file_saved st = failwith "Unimplemented"
 
-(* [save_file st s] saves the currently selected file in [st] at
- * relative path [s].
+(* [save_file st] saves the currently selected file in [st] at
+ * its corresponding path.
  * Raises Sys_error if file write failed. *)
-val save_file : state -> string -> unit
+let save_file = file_to_state_fun File.save_file
 
 (* [close_file st] removes the currently selected file [f]
  * from the list of open files in [st]. The newly selected file
  * becomes the file that occurs before [f] in the list in [st]. *)
-val close_file : state -> state
+let close_file st = failwith "Unimplemented"
 
 (* [change_selected_file s st] changes the selected file in [st]
  * to the file with name [s].
  * Raises Not_found if [s] is not one of the files open in [st]. *)
-val change_selected_file : string -> state -> state
+let change_selected_file s st = failwith "Unimplemented"
 
 (* [copy st] returns a copy of state with the text selected in the open file of
  * [st] saved to the clipboard *)
-val copy : state -> state
+let copy st = failwith "Unimplemented"
 
 (* [paste st] returns a copy of state with the text from the clipboard of [st]
  * inserted at the cursor location in the open flie of [st] *)
-val paste : state -> state
+let paste st = failwith "Unimplemented"
 
 (* [get_cursor_location st] gets the location of the cursor in the file open
  * in [st]. *)
-val get_cursor_location : state -> int
+let get_cursor_location st = failwith "Unimplemented"
 
 (* [move_cursor st l] moves the cursor of the open file in [st] to [l] *)
-val move_cursor : state -> int -> state
+let move_cursor st l = failwith "Unimplemented"
 
 (* [scroll_to st n] changes the line number of the scrolled view of
  * the file open in [st] to to [n]. *)
-val scroll_to : state -> int -> state
+let scroll_to st n = failwith "Unimplemented"
 
 (* [get_scroll_line_number st] returns the first visible line in the
  * currently selected file in [st]. *)
-val get_scroll_line_number : state -> int
+let get_scroll_line_number st = failwith "Unimplemented"
 
 (* [get_text st l1 l2] returns all text in the open file of [st] from
  * [l1] to [l2]. Raises Invalid_argument if [l2] comes before [l1].  *)
-val get_text : state -> int -> int -> string
+let get_text = file_to_state_fun File.get_text
 
 (* [get_all_text st] returns a string representing all of the text in
  * the file opened in [st] *)
-val get_all_text : state -> string
+let get_all_text = file_to_state_fun File.get_all_text
 
 (* [get_highlighted_region st] returns a tuple of the start and end locations
  * of a section of highlighted text *)
-val get_highlighted_region : state -> (int * int)
+let get_highlighted_region st = failwith "Unimplemented"
 
 (* [select_text st l1 l2] selects text from [l1] to [l2] in the open file of [st].
  * Raises Invalid_argument if [l2] comes before [l1]. *)
-val select_text : state -> int -> int -> state
+let select_text st l1 l2 = failwith "Unimplemented"
 
 (* [insert_text st s l] inserts string [s] into the contents the open
  * file of [st] at location [l]. *)
-val insert_text : state -> string -> int -> state
+let insert_text st s l = (file_to_state_fun File.insert_text) st s l
+  |> fun f -> {
+    files = 
+      let fname = File.get_name f in 
+      (fname, f) :: (List.remove_assoc fname);
+    current_file = Some f;
+  }
 
-(* [delete_text l1 l2] deletes all the text in the currently held
+(* [delete_text st l1 l2] deletes all the text in the currently held
  * file from location [l1] to [l2]. *)
-val delete_text : state -> int -> int -> state
+let delete_text st l1 l2 = failwith "Unimplemented"
 
 (* [undo st] undoes the last change recorded in the open file of [st].
  * If there is nothing left to undo, [undo st] will return [st] unchanged. *)
-val undo : state -> state
+let undo st = failwith "Unimplemented"
 
 (* [redo st] redoes the last change that was undone in the open file of
  * [st]. If there is nothing left to redo, [redo st] will return [st]
  * unchanged. *)
-val redo : state -> state
+let redo st = failwith "Unimplemented"
 
 (* [color_text st lst] returns a copy of [st] with the open file now
  * having the color mappings of [lst] *)
-val color_text : state -> color_mapping -> state
+let color_text st lst = failwith "Unimplemented"
 
 (* [get_coloring st] gets the coloring scheme of the currently 
  * open file in [st]. *)
-val get_coloring : state -> color_mapping
+let get_coloring st = failwith "Unimplemented"
 
 (* [get_search_term st] gets the current search term in [st]. *)
-val get_search_term : state -> string
+let get_search_term st = failwith "Unimplemented"
 
 (* [get_search_locations st] returns the list of regions in which
  * the search term has been found in the currently selected file in [st]. *)
-val get_search_locations : state -> (int *int ) list
+let get_search_locations st = failwith "Unimplemented"
 
 (* [find st s] updates [st] so that it holds [s] as its current
  * search term in its currently selected file. *)
-val find :  string -> state -> state
+let find st s = failwith "Unimplemented"
