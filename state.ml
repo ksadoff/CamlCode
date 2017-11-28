@@ -9,6 +9,7 @@ type typing_area = unit
 
 (* State of the program. Contains the following information:
  * * List of files currently open
+ * * List of files displayed on screen (split screen)
  * * The typing area that is currently being edited
  * * List of most recently used commands
  * * Clipboard for copy/paste
@@ -19,10 +20,18 @@ type typing_area = unit
 type state = {
   (* associative list mapping file name to file *)
   files: (string * File.file) list;
-
+  (* associative list mapping file name to file, used for determining which
+   files will appear for split screen *)
+  screens: (string * File.file) list;
   (* currently open file *)
   current_file: File.file option;
 }
+
+(* [extract file_opt] takes in an 'a option and returns the 'a. *)
+let extract file_opt = 
+  match file_opt with
+  |Some f -> f
+  |None -> failwith "Unused"
 
 (* [file_to_state_fun f_fun st] takes a function that acts on a file
  * [f_fun : file -> 'a] and returns a function of type [state -> 'a]
@@ -52,8 +61,25 @@ let new_file s = let ch_out = open_out s in close_out ch_out
 let empty_state = 
   {
     files = [];
+    screens = [];
     current_file = None;
   }
+
+
+(* [get_file_names st] returns a list of strings that represent the names of
+ * the currently open files. *)
+let get_file_names st = 
+  List.map (fun x -> fst x) st.files
+ 
+ (* [get_current_file st] returns the file that is currently being manipulated *)
+let get_current_file st = 
+extract st.current_file
+
+ (* [get_current_file_name st] returns the string of the name of the file being 
+  * manipulated. *)
+let get_current_file_name st = 
+    let f = get_current_file st in
+    File.get_name f
 
 (* [open_file st s] constructs the file at path [s] and adds it
  * to the list of files in state [st].
@@ -62,6 +88,7 @@ let open_file st s =
   let new_file = File.open_file s in 
   {
     files = (s, new_file) :: st.files;
+    screens = [];
     current_file = Some new_file;
   }
 
@@ -76,12 +103,17 @@ let save_file = file_to_state_fun File.save_file
 (* [close_file st] removes the currently selected file [f]
  * from the list of open files in [st]. The newly selected file
  * becomes the file that occurs before [f] in the list in [st]. *)
-let close_file st = failwith "Unimplemented"
+let close_file st = 
+  let f = st.current_file |> extract in
+  let file_name = File.get_name f in
+  {st with files = List.remove_assoc file_name st.files}
 
 (* [change_selected_file s st] changes the selected file in [st]
  * to the file with name [s].
  * Raises Not_found if [s] is not one of the files open in [st]. *)
-let change_selected_file s st = failwith "Unimplemented"
+let change_selected_file s st = 
+  let new_file = List.assoc s st.files in 
+  {st with current_file = Some new_file }
 
 (* [copy st] returns a copy of state with the text selected in the open file of
  * [st] saved to the clipboard *)
