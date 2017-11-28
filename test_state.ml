@@ -23,12 +23,12 @@ let tests = [
 
   (* new file, modify file, save file *)
   "save" >:: (fun _ -> assert_equal "fghij\n" (
-      new_file "statetest.txt";
+      new_file "testtxts/statetest.txt";
       let fghij_state = empty_state
-      |> fun st -> open_file st "statetest.txt"
+      |> fun st -> open_file st "testtxts/statetest.txt"
       |> fun st -> insert_text st "fghij" 0 in
-      save_file fghij_state "statetemp.txt";
-      open_file fghij_state "statetemp.txt" |> get_all_text
+      save_file fghij_state "testtxts/statetemp.txt";
+      open_file fghij_state "testtxts/statetemp.txt" |> get_all_text
     )
   );
 ]
