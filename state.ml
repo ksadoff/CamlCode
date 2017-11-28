@@ -112,13 +112,14 @@ let select_text st l1 l2 = failwith "Unimplemented"
 
 (* [insert_text st s l] inserts string [s] into the contents the open
  * file of [st] at location [l]. *)
-let insert_text st s l = (file_to_state_fun File.insert_text) st s l
+let insert_text st s l = failwith "Unimplemented"
+  (*(file_to_state_fun File.insert_text) st s l
   |> fun f -> {
     files = 
       let fname = File.get_name f in 
       (fname, f) :: (List.remove_assoc fname);
     current_file = Some f;
-  }
+  } *)
 
 (* [delete_text st l1 l2] deletes all the text in the currently held
  * file from location [l1] to [l2]. *)
