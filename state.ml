@@ -82,6 +82,7 @@ let replace_current_file st f =
     screens = st.screens;
     current_file = Fname file_name;
     clipboard = st.clipboard
+
   }
 
 (* [new_file s] creates a new, empty file at path [s].
