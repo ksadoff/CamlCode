@@ -25,6 +25,17 @@ val new_file : string -> unit
 (* New state with no files open yet *)
 val empty_state : state
 
+(* [get_file_names st] returns a list of strings that represent the names of
+ * the currently open files. *)
+ val get_file_names : state -> string list 
+ 
+ (* [get_current_file st] returns the file that is currently being manipulated *)
+ val get_current_file : state -> File.file 
+ 
+ (* [get_current_file_name st] returns the string of the name of the file being 
+  * manipulated. *)
+ val get_current_file_name : state -> string
+
 (* [open_file st s] constructs the file at path [s] and adds it
  * to the list of files in state [st].
  * Raises Sys_error if file read failed. *)
