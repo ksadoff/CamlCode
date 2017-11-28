@@ -50,6 +50,7 @@ let replace_current_file st f =
       let fname = File.get_name f in 
       (fname, f) :: (List.remove_assoc fname st.files)
     end;
+    screens = st.screens;
     current_file = Some f;
   }
 
