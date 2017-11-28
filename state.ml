@@ -32,6 +32,18 @@ let file_to_state_fun f_fun st =
   | Some f -> f_fun f
   | None -> raise (Invalid_argument "no file selected")
 
+(* [replace_current_file st f] replaces the current file in [st] with [f]
+ * and searches through the list of files in [st] and replaces the 
+ * the instance with [f]'s name in the list. *)
+let replace_current_file st f = 
+  {
+    files = begin
+      let fname = File.get_name f in 
+      (fname, f) :: (List.remove_assoc fname st.files)
+    end;
+    current_file = Some f;
+  }
+
 (* [new_file s] creates a new, empty file at path [s].
  * Raises Sys_error creating file failed. *)
 let new_file s = let ch_out = open_out s in close_out ch_out
@@ -113,17 +125,12 @@ let select_text st l1 l2 = failwith "Unimplemented"
 (* [insert_text st s l] inserts string [s] into the contents the open
  * file of [st] at location [l]. *)
 let insert_text st s l = (file_to_state_fun File.insert_text) st s l
-  |> fun f -> {
-    files = begin
-      let fname = File.get_name f in 
-      (fname, f) :: (List.remove_assoc fname st.files)
-    end;
-    current_file = Some f;
-  }
+  |> replace_current_file st
 
 (* [delete_text st l1 l2] deletes all the text in the currently held
  * file from location [l1] to [l2]. *)
-let delete_text st l1 l2 = failwith "Unimplemented"
+let delete_text st l1 l2 = (file_to_state_fun File.delete_text) st l1 l2
+  |> replace_current_file st
 
 (* [undo st] undoes the last change recorded in the open file of [st].
  * If there is nothing left to undo, [undo st] will return [st] unchanged. *)

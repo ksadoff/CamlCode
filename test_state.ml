@@ -1,23 +1,19 @@
 open OUnit2
 open State
 
+let slstate = empty_state |> fun st -> open_file st "testtxts/somelines.txt"
+
 (* Test cases for File module. *)
 let tests = [
   (* open and read file *)
   "read_somelines" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
-    (empty_state 
-      |> fun st -> open_file st "testtxts/somelines.txt" 
-      |> get_all_text
-    )
+    (slstate |> get_all_text)
     ~printer: (fun x -> x)
   );
 
   (* get_text *)
   "read_somelines" >:: (fun _ -> assert_equal "hello"
-    (empty_state 
-      |> fun st -> open_file st "testtxts/somelines.txt" 
-      |> fun st -> get_text st 0 5
-    )
+    (slstate |> fun st -> get_text st 0 5)
     ~printer: (fun x -> x)
   );
 
@@ -31,4 +27,8 @@ let tests = [
       open_file fghij_state "testtxts/statetemp.txt" |> get_all_text
     )
   );
+
+  (* delete text *)
+  "delete" >:: (fun _ -> assert_equal "h" 
+    (delete_text slstate 1 17 |> get_all_text));
 ]
