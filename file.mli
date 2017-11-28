@@ -123,14 +123,38 @@ val color_text : file -> (int * int * color) list -> file
 val get_coloring : file -> color_mapping
 
 (* [get_search_term f] gets the current search term in [f]. *)
-val get_search_term : file -> string
+val get_search_term : file -> string option
 
 (* [select_search_term f] returns an updated version of [f] with
  * with the next instance of the search term selected. The next instance is
  * defined as from the currently selected text. If no text is selected the
- * new version of [f] will have the first instance of its search term selected *)
+ * new version of [f] will have the first instance of its search term selected.
+ * If there is no search term or it is not found, returns [f] with no text
+ * selected *)
 val select_search_term : file -> file
 
 (* [find f s] updates [f] so that it holds [s] as its current
  * search term. *)
 val find :  file -> string -> file
+
+(* [remove_search_term f] removes the search_term of file [f] *)
+val remove_search_term: file -> file
+
+(* [set_replace_term f s] sets the replace term of file [f] to [Some s] *)
+val set_replace_term: file -> string -> file
+
+(* [remove_replace_term f] sets the replace term of file [f] to [None]*)
+val remove_replace_term: file -> file
+
+(* [get_replace_term f] returns [Some s] where [r] is the replacement term
+ * if the is no replacement term returns [None] *)
+val get_replace_term: file -> string option
+
+(* [replace_next f] returns an updated copy of [f] where the next instance
+ * of the search term is replaced by the replace term, which is now selected
+ * in the file. The next instance is
+ * defined as from the currently selected text. If no text is selected the
+ * new version of [f] will replace the first instance of its search term.
+ * If there is no instance of the search term or either the search or replace
+ * term does not exist, returns [f] with no text selected *)
+val replace_next: file -> file

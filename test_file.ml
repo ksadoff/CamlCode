@@ -175,13 +175,13 @@ let tests = [
   ) ~printer: (fun s -> s));
 
   (* tests for setting and getting the search term of a file *)
-  "find0" >:: (fun _ -> assert_equal "hello"
-    (get_search_term (find somelines "hello")));
-  "find1" >:: (fun _ -> assert_equal " "
+  "find0" >:: (fun _ -> assert_equal (Some "hello")
+    (get_search_term (find somelines ("hello"))));
+  "find1" >:: (fun _ -> assert_equal (Some " ")
     (get_search_term (find somelines " ")));
-  "find2" >:: (fun _ -> assert_equal ""
+  "find2" >:: (fun _ -> assert_equal None
     (get_search_term (find somelines "")));
-  "find3" >:: (fun _ -> assert_equal ""
+  "find3" >:: (fun _ -> assert_equal None
     (get_search_term somelines));
 
   (* tests for selecting the search term of a file *)
@@ -202,4 +202,34 @@ let tests = [
   (* third location *)
   "sel_search5" >:: (fun _ -> assert_equal (Some (9,10))
     ((find somelines "l") |> select_search_term |> select_search_term |> select_search_term |> get_selected_range));
+
+  (* tests for removing the search term of a file *)
+  "rem_find0" >:: (fun _ -> assert_equal None
+    ((find somelines "hello") |> remove_search_term |> get_search_term));
+  "rem_find1" >:: (fun _ -> assert_equal None
+    ((find somelines " ") |> remove_search_term |> get_search_term));
+
+  (* tests for setting, getting, and removing the replace term of a file *)
+  "rep0" >:: (fun _ -> assert_equal None
+    (somelines |> get_replace_term));
+  "rep1" >:: (fun _ -> assert_equal (Some "H")
+    ((set_replace_term somelines "H") |> get_replace_term));
+  "rep2" >:: (fun _ -> assert_equal None
+    ((set_replace_term somelines "H") |> remove_replace_term |> get_replace_term));
+  "rep3" >:: (fun _ -> assert_equal (Some "")
+    ((set_replace_term somelines "") |> get_replace_term));
+
+  (* tests for replacing the next search term *)
+  "rep_next0" >:: (fun _ -> assert_equal "Hello\nworld\n\n!!!\n"
+    ((set_replace_term (find somelines "h") "H") |> replace_next |> get_all_text));
+  "rep_next5" >:: (fun _ -> assert_equal (Some (0,1))
+    ((set_replace_term (find somelines "h") "H") |> replace_next |> get_selected_range));
+  "rep_next1" >:: (fun _ -> assert_equal "Hello\nHorld\n\n!!!\n"
+    ((find ((set_replace_term (find somelines "h") "H") |> replace_next) "w") |> replace_next |> get_all_text));
+  "rep_next2" >:: (fun _ -> assert_equal "helloworld!!!"
+    ((set_replace_term (find somelines "\n") "") |> replace_next |> replace_next |> replace_next |> replace_next |> get_all_text));
+  "rep_next3" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((set_replace_term (find somelines "") "H") |> replace_next |> get_all_text));
+  "rep_next4" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((find somelines "h") |> replace_next |> get_all_text));
 ]

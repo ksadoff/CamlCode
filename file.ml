@@ -44,7 +44,10 @@ type file = {
   selected_range : (int * int) option;
 
   (* the string that the user is currently searching for *)
-  search_term : string;
+  search_term : string option;
+
+  (* the string that will replace the search term *)
+  replace_term : string option;
 
   (* clipboard : string;
   was_saved : bool; *)
@@ -104,13 +107,14 @@ let open_file s =
     line_lengths = line_lengths_arr contents;
     scroll_line_num = 0;
     selected_range = None;
-    search_term = "";
+    search_term = None;
+    replace_term = None;
   }
 
 (* [save_file f] saves [f] at relative path [s].
  * Raises Sys_error if file write failed. *)
-let save_file f s = 
-  let ch_out = open_out s in 
+let save_file f s =
+  let ch_out = open_out s in
   Printf.fprintf ch_out "%s" (Rope.to_string f.contents);
   close_out ch_out
 
@@ -368,15 +372,22 @@ let get_search_term f = f.search_term
 (* [select_search_term f] returns an updated version of [f] with
  * with the next instance of the search term selected. The next instance is
  * defined as from the currently selected text. If no text is selected the
- * new version of [f] will have the first instance of its search term selected *)
+ * new version of [f] will have the first instance of its search term selected.
+ * If there is no search term or it is not found, returns [f] with no text
+ * selected *)
 let rec select_search_term f =
   match f.selected_range with
   | None ->
     begin
       try begin
-        let next_loc = Rope.search_forward_string f.search_term f.contents 0 in
-        let next_loc_end = next_loc + (String.length f.search_term) in
-        select_text f next_loc next_loc_end
+        match f.search_term with
+        | Some term ->
+          begin
+            let next_loc = Rope.search_forward_string term f.contents 0 in
+            let next_loc_end = next_loc + (String.length term) in
+            select_text f next_loc next_loc_end
+          end
+        | None -> {f with selected_range = None;}
       end
       with
       | Not_found -> f
@@ -384,9 +395,14 @@ let rec select_search_term f =
   | Some (curr, _) ->
     begin
       try begin
-        let next_loc = Rope.search_forward_string f.search_term f.contents (curr+1) in
-        let next_loc_end = next_loc + (String.length f.search_term) in
-        select_text f next_loc next_loc_end
+        match f.search_term with
+        | Some term ->
+          begin
+            let next_loc = Rope.search_forward_string term f.contents (curr+1) in
+            let next_loc_end = next_loc + (String.length term) in
+            select_text f next_loc next_loc_end
+          end
+        | None -> {f with selected_range = None;}
       end
       with
       | Not_found -> select_search_term {f with selected_range = None;}
@@ -394,6 +410,41 @@ let rec select_search_term f =
 
 (* [find f s] updates [f] so that it holds [s] as its current
  * search term. *)
-let find f s = { f with
-                 search_term = s;
-               }
+let find f s =
+  match s with
+  | "" -> { f with search_term = None; }
+  | term -> { f with search_term = Some term; }
+
+(* [remove_search_term f] removes the search_term of file [f] *)
+let remove_search_term f = { f with search_term = None; }
+
+(* [set_replace_term f s] sets the replace term of file [f] to [Some s] *)
+let set_replace_term f s = { f with replace_term = Some s; }
+
+(* [remove_replace_term f] sets the replace term of file [f] to [None]*)
+let remove_replace_term f = { f with replace_term = None; }
+
+(* [get_replace_term f] returns [Some s] where [r] is the replacement term
+ * if the is no replacement term returns [None] *)
+let get_replace_term f = f.replace_term
+
+(* [replace_next f] returns an updated copy of [f] where the next instance
+ * of the search term is replaced by the replace term, which is now selected
+ * in the file. The next instance is
+ * defined as from the currently selected text. If no text is selected the
+ * new version of [f] will replace the first instance of its search term.
+ * If there is no instance of the search term or there is no replace term,
+ * the returned file will have the same text and no text selected *)
+let replace_next f =
+  match f.replace_term with
+  | None -> {f with selected_range = None;}
+  | Some rep_term ->
+    let to_replace = select_search_term f in
+    match to_replace.selected_range with
+    | None -> to_replace
+    | Some (st, en) ->
+      begin
+        let nf = delete_text to_replace st en in
+        let nf = insert_text nf rep_term st in
+        {nf with selected_range = Some (st, (String.length rep_term));}
+      end
