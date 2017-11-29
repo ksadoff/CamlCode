@@ -157,7 +157,7 @@ let close_file st =
 let change_selected_file s st =
   {st with current_file = Fname s }
 
-(* [copy st] returns a copy of state with the text selected in the open file of
+(* (* [copy st] returns a copy of state with the text selected in the open file of
  * [st] saved to the clipboard *)
 let copy st =
   let curr = get_current_file st in
@@ -178,13 +178,10 @@ let paste st =
   let new_rope = st.clipboard in
   let new_rope' = concat2 rope_before new_rope |> concat2 rope_after in
   let new_contents = File.set_contents curr new_rope' in
-  {st with current_file = Fname (File.get_name new_contents)}
-
+  {st with current_file = Fname (File.get_name new_contents)} *)
 
 let change_selected_file s st =
   {st with current_file = Fname s }
-
-
 
 (* [get_cursor_location st] gets the location of the cursor in the file open
  * in [st]. *)

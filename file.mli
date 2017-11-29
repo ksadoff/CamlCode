@@ -101,10 +101,6 @@ val unselect_text : file -> file
  * [i1] to [i2]. *)
 val get_selected_range : file -> (int * int) option
 
-(* [set_selected_range f (i1,i2)] returns a new file with the same fields as f
- *  except with selected_range set to (i1, i2) *)
-val set_selected_range : file -> (int * int) -> file
-
 (* [insert_text f s] inserts string [s] into the contents
  * of [f] at location [l]. The beginning of the inserted string
  * will be at index [l]. If [l] is an invalid location, the closest
