@@ -2,14 +2,14 @@
  * a single file. It is technically part of the "model" in the MVC
  * architecture, but it only includes file-specific things. *)
 
-(* A contents variable represents the entire contents of a file,
+(* A file_contents variable represents the entire file_contents of a file,
  * including all characters. *)
 type contents = Rope.t
 
 (* A file variable represents all the state that is recorded
  * for one file. It should contain the following information:
  * * file name/relative path
- * * file contents
+ * * file file_contents
  * * location of cursor
  * * line number of where current view begins
  * * beginning and end locations of highlighted text
@@ -19,13 +19,13 @@ type contents = Rope.t
  * * current search term (used in find/replace) *)
 type file = {
   (* relative file path *)
-  name : string; 
+  name : string;
 
-  (* file contents *)
-  contents : contents; 
+  (* file file_contents *)
+  file_contents : contents;
 
-  (* index of cursor in contents *)
-  cursor : int; 
+  (* index of cursor in file_contents *)
+  cursor : int;
 
   (* line number of cursor *)
   cursor_line_num : int;
@@ -33,74 +33,83 @@ type file = {
   (* column number of cursor *)
   cursor_column : int;
 
-  (* [Array.get f.line_lengths i] is the number of characters in 
-   * line [i] of [f.contents] *)
-  line_lengths : int array; 
-  
+  (* [Array.get f.line_lengths i] is the number of characters in
+   * line [i] of [f.file_contents] *)
+  line_lengths : int array;
+
   (* top line that view is currently scrolled to *)
   scroll_line_num : int;
 
   (* range of currently selected text *)
   selected_range : (int * int) option;
 
-  (* clipboard : string;
+  clipboard : string;
+
   was_saved : bool;
-  search_term : string; *)
+
+  search_term : string;
 }
 
-(* [get_cont_length f] returns the length of the contents of [f]. *)
-let cont_length f = Rope.length f.contents
+(* [get_cont_length f] returns the length of the file_contents of [f]. *)
+let cont_length f = Rope.length f.file_contents
+
+let get_file_contents f = f.file_contents
+
+let set_file_contents f r = {f with file_contents = r}
 
 (* [find_newlines cont i0] returns a list [l] (not an array)
  * such that the ith element of [l] is the length of the ith line
- * in [cont], starting at contents location [i0]. *)
-let rec find_newlines cont i0 = 
-  try 
+ * in [cont], starting at file_contents location [i0]. *)
+let rec find_newlines cont i0 =
+  try
     let linepos = Rope.search_forward_string "\n" cont i0 in
     linepos :: (find_newlines cont (linepos+1))
   with Not_found -> []
 
-(* [get_line_lengths nls nl0] takes a list of of newline characters 
+(* [get_line_lengths nls nl0] takes a list of of newline characters
  * [nls] and returns a list of lengths of lines. [nl0] is the number
  * of characters up to the beginning of the first line, so it is
- * 0 for the first call. The length of the line includes the newline 
+ * 0 for the first call. The length of the line includes the newline
  * character at the end. *)
-let rec get_line_lengths nls nl0 = 
-  match nls with 
+let rec get_line_lengths nls nl0 =
+  match nls with
   | [] -> []
   | h :: t -> (h - nl0 + 1) :: (get_line_lengths t (h + 1))
 
-(* [open_file s] reads the contents of the file stored at
+(* [open_file s] reads the file_contents of the file stored at
  * relative path [s] and uses that to construct a new file type.
  * Raises Sys_error if opening file failed. *)
-let open_file s = 
-  let rec append_lines channel rope_acc = 
-    try begin 
-      let line = input_line channel in 
-      let rope_line = Rope.concat2 
-        (Rope.of_string line) (Rope.of_string "\n") in 
+let open_file s =
+  let rec append_lines channel rope_acc =
+    try begin
+      let line = input_line channel in
+      let rope_line = Rope.concat2
+        (Rope.of_string line) (Rope.of_string "\n") in
       Rope.concat2 rope_acc rope_line
         |> append_lines channel
-    end 
+    end
     with End_of_file -> rope_acc in
-  let channel = open_in s in 
-  let contents = append_lines channel Rope.empty in 
+  let channel = open_in s in
+  let file_contents = append_lines channel Rope.empty in
   {
     name = s;
-    contents = contents;
+    file_contents = file_contents;
     cursor = 0;
     cursor_line_num = 0;
     cursor_column = 0;
-    line_lengths = (find_newlines contents 0 
+    line_lengths = (find_newlines file_contents 0
       |> fun nls -> get_line_lengths nls 0
       |> Array.of_list);
     scroll_line_num = 0;
     selected_range = None;
+    clipboard = "";
+    was_saved = false;
+    search_term = "";
   }
 
 (* [save_file f] saves [f] at its corresponding path.
  * Raises Sys_error if file write failed. *)
-let save_file f = failwith "Unimplemented" 
+let save_file f = failwith "Unimplemented"
 
 (* [get_cursor_location f] gets the location of the cursor in [f]. *)
 let get_cursor_location f = f.cursor
@@ -112,7 +121,7 @@ let get_cursor_line_num f = f.cursor_line_num
 let get_cursor_column f = f.cursor_column
 
 (* [get_line_lengths f] returns the list of the lengths of lines
- * in the contents of [f], in order from top of file to bottom. *)
+ * in the file_contents of [f], in order from top of file to bottom. *)
 let get_line_lengths f = f.line_lengths |> Array.to_list
 
 (* requires:
@@ -123,11 +132,11 @@ let get_line_lengths f = f.line_lengths |> Array.to_list
  * [i2] index of new cursor location
  * returns: line number and column [(ln2, c2)] of new cursor location
  * raises: Invalid_argument if any of the following happens
- * * [i1] or [i2] are out of bounds of contents
+ * * [i1] or [i2] are out of bounds of file_contents
  * * [ln1] is not a valid index of [lla]
  * * [c1] is not a valid column in its corresponding line
  *)
-let rec get_line_num_col lla i1 ln1 c1 i2 = 
+let rec get_line_num_col lla i1 ln1 c1 i2 =
   (* line number exceptions *)
   if ln1 < 0 || ln1 >= Array.length lla
   then raise (Invalid_argument ("invalid line number " ^ (string_of_int ln1)))
@@ -144,23 +153,23 @@ let rec get_line_num_col lla i1 ln1 c1 i2 =
   (* if i2 not on i1's line, recursively call with previous or next line *)
   else
   let new_ln = if i2 < line_start then ln1 - 1 else ln1 + 1 in
-  let new_len = Array.get lla new_ln in 
-  let new_start = 
-    if i2 < line_start then i1 - c1 - new_len 
+  let new_len = Array.get lla new_ln in
+  let new_start =
+    if i2 < line_start then i1 - c1 - new_len
     else i1 - c1 + line_len in
   get_line_num_col lla new_start new_ln 0 i2
 
 (* [move_cursor f l] moves the cursor location in [f] to [l]. The cursor
- * index, line number, and column number are all updated. If [l] is an 
+ * index, line number, and column number are all updated. If [l] is an
  * invalid location, the cursor becomes the closest value to [l]. *)
-let move_cursor f l = 
+let move_cursor f l =
   let lla = f.line_lengths in
   let l' = if l < 0 then 0
     else if l >= cont_length f then cont_length f - 1
     else l in
-  let (new_line_num, new_col) = get_line_num_col lla f.cursor 
+  let (new_line_num, new_col) = get_line_num_col lla f.cursor
     f.cursor_line_num f.cursor_column l' in
-  { f with 
+  { f with
     cursor = l';
     cursor_line_num = new_line_num;
     cursor_column = new_col;
@@ -169,7 +178,7 @@ let move_cursor f l =
 (* [cursor_left f] returns [f] with cursor moved one position left.
  * If the end of the line is reached, cursor moves to end of previous
  * line. If cursor at index 0, it doesn't move. *)
-let cursor_left f = 
+let cursor_left f =
   if f.cursor = 0 then f
   else if f.cursor_column = 0 then { f with
     cursor = f.cursor - 1;
@@ -180,11 +189,11 @@ let cursor_left f =
     cursor = f.cursor - 1;
     cursor_column = f.cursor_column - 1;
   }
- 
+
  (* [cursor_right f] returns [f] with cursor moved one position right.
   * If the end of the line is reached, cursor moves to beginning
   * of next line. If cursor at the end of file, it doesn't move. *)
-let cursor_right f = 
+let cursor_right f =
   let line_len = Array.get f.line_lengths f.cursor_line_num in
   if f.cursor = cont_length f - 1 then f
   else if f.cursor_column = line_len - 1 then { f with
@@ -196,21 +205,21 @@ let cursor_right f =
     cursor = f.cursor + 1;
     cursor_column = f.cursor_column + 1;
   }
- 
+
  (* [cursor_up f] returns [f] with cursor moved one line up.
   * If the cursor is farther right then the length of the line it
   * moved to, then the cursor goes at the end of the line.
   * If on first line, cursor goes to farthest left position. *)
-let cursor_up f = 
-  let lnum = 
-    if f.cursor_line_num = 0 then 0 
+let cursor_up f =
+  let lnum =
+    if f.cursor_line_num = 0 then 0
     else f.cursor_line_num - 1 in
-  let line_len = Array.get f.line_lengths lnum in 
-  let col = 
+  let line_len = Array.get f.line_lengths lnum in
+  let col =
     if f.cursor_line_num = 0 then 0
     else if f.cursor_column < line_len then f.cursor_column
     else line_len - 1 in
-  let new_cursor = 
+  let new_cursor =
     if f.cursor_line_num = 0 then 0
     else f.cursor - f.cursor_column - line_len + col in
   { f with
@@ -218,23 +227,23 @@ let cursor_up f =
     cursor_line_num = lnum;
     cursor_column = col;
   }
- 
+
  (* [cursor_down f] returns [f] with cursor moved one line down.
   * If the cursor is farther right then the length of the line it
   * moved to, then the cursor goes at the end of the line.
   * If on last line, cursor goes to farthest right position. *)
-let cursor_down f = 
-  let num_lines = Array.length f.line_lengths in 
+let cursor_down f =
+  let num_lines = Array.length f.line_lengths in
   let lnum =
     if f.cursor_line_num = num_lines - 1 then num_lines - 1
     else f.cursor_line_num + 1 in
   let prev_line_len = Array.get f.line_lengths f.cursor_line_num in
   let line_len = Array.get f.line_lengths lnum in
-  let col = 
+  let col =
     if f.cursor_line_num = num_lines - 1 then line_len - 1
     else if f.cursor_column < line_len then f.cursor_column
-    else line_len - 1 in 
-  let new_cursor = 
+    else line_len - 1 in
+  let new_cursor =
     if f.cursor_line_num = num_lines - 1 then cont_length f - 1
     else f.cursor - f.cursor_column + prev_line_len + col in
   { f with
@@ -245,31 +254,31 @@ let cursor_down f =
 
 (* [scroll_to f n] changes the line number of the scrolled view
  * to [n]. If [n] is less than 0 or greater than the number of lines in
- * contents, then the closest line number is chosen. *)
-let scroll_to f n = 
-  {f with scroll_line_num = 
+ * file_contents, then the closest line number is chosen. *)
+let scroll_to f n =
+  {f with scroll_line_num =
     let num_lines = Array.length f.line_lengths in
     if n < 0 then 0
     else if n >= num_lines then num_lines - 1
     else n
   }
 
-(* [get_scroll_line f] returns the highest line that view is currently 
+(* [get_scroll_line f] returns the highest line that view is currently
  * scrolled to *)
 let get_scroll_line f = f.scroll_line_num
 
-(* [make_range_valid (i1, i2) cont_len] returns a new pair (i1', i2') 
+(* [make_range_valid (i1, i2) cont_len] returns a new pair (i1', i2')
  * such that:
  * if [i1 < 0] or [i2 < 0], then [i1'] or [i2'] is 0
  * if [i1 > cont_len] or [i2 > cont_len], then [i1'] or [i2'] is [cont_len]
  * if [i1 > i2], then i1' is i2 and i2' is i1 *)
-let make_range_valid (i1, i2) cont_len = 
-  let i1' = 
+let make_range_valid (i1, i2) cont_len =
+  let i1' =
     if i1 < 0 then 0
     else if i1 > cont_len then cont_len
     else if i1 > i2 then i2
     else i1 in
-  let i2' = 
+  let i2' =
     if i2 < 0 then 0
     else if i2 > cont_len then cont_len
     else if i1 > i2 then i1
@@ -280,10 +289,10 @@ let make_range_valid (i1, i2) cont_len =
  * This function forces [l1] and [l2] to be in order and in bounds. *)
 let get_text f l1 l2 =
   let (l1', l2') = make_range_valid (l1, l2) (cont_length f) in
-  Rope.sub f.contents l1' (l2' - l1') |> Rope.to_string
+  Rope.sub f.file_contents l1' (l2' - l1') |> Rope.to_string
 
 (* [get_all_text f] returns a string representing all of the text in [f] *)
-let get_all_text f = Rope.to_string f.contents
+let get_all_text f = Rope.to_string f.file_contents
 
 (* [select_text f l1 l2] selects text from [l1] to [l2].
  * This function forces [l1] and [l2] to be in order and in bounds. *)
@@ -300,35 +309,39 @@ let unselect_text f = {f with selected_range = None}
  * index [i1] to [i2]. *)
 let get_selected_range f = f.selected_range
 
-(* [insert_text f s l] inserts string [s] into the contents
- * of [f] at location [l]. *)
-let insert_text f s l = failwith "Unimplemented" 
+let set_selected_range f (i1, i2) = {f with selected_range = Some (i1, i2)}
 
-(* [delete_text l1 l2] deletes all text in [f] from location 
+(* [insert_text f s l] inserts string [s] into the file_contents
+ * of [f] at location [l]. *)
+let insert_text f s l = failwith "Unimplemented"
+
+(* [delete_text l1 l2] deletes all text in [f] from location
  * [l1] to [l2]. *)
-let delete_text l1 l2 = failwith "Unimplemented" 
+let delete_text l1 l2 = failwith "Unimplemented"
 
 (* [undo f] undoes the last change recorded in [f]. If there
  * is nothing left to undo, [undo f] will return [f] unchanged. *)
-let undo f = failwith "Unimplemented" 
+let undo f = failwith "Unimplemented"
 
 (* [redo f] redoes the last change that was undone in [f]. If there
  * is nothing left to redo, [redo f] will return [f] unchanged. *)
-let redo f = failwith "Unimplemented" 
+let redo f = failwith "Unimplemented"
 
 (* [color_text f lst] returns a copy of [f] with the color mappings of [lst] *)
-let color_text f lst = failwith "Unimplemented" 
+let color_text f lst = failwith "Unimplemented"
 
 (* [get_coloring f] gets the coloring scheme of [f]. *)
-let get_coloring f = failwith "Unimplemented" 
+let get_coloring f = failwith "Unimplemented"
 
 (* [get_search_term f] gets the current search term in [f]. *)
-let get_search_term f = failwith "Unimplemented" 
+let get_search_term f = failwith "Unimplemented"
 
 (* [get_search_locations f] returns the list of regions in which
  * the search term has been found in [f]. *)
-let get_search_locations f = failwith "Unimplemented" 
+let get_search_locations f = failwith "Unimplemented"
 
 (* [find f s] updates [f] so that it holds [s] as its current
  * search term. *)
-let find f s = failwith "Unimplemented" 
+let find f s = failwith "Unimplemented"
+
+let get_name f = failwith "Unimplemented"
