@@ -10,8 +10,11 @@ open Rope
 (* Represents the area where user is typing, i.e. in a file or
  * in the command line. *)
 type typing_area = Nofile | Command | Fname of string
+<<<<<<< bf097e16084b12e6213d71fe42fcf0b198c949e2
 
 type clipboard = rope
+=======
+>>>>>>> changed how screens and current_file are represented
 
 (* State of the program. Contains the following information:
  * * List of files currently open
@@ -28,11 +31,14 @@ type state = {
   files: (string * File.file) list;
   (* associative list mapping file name to file, used for determining which
    files will appear for split screen *)
-  screens: (string * File.file) list;
+  screens: string list;
   (* currently open file *)
   current_file: typing_area;
+<<<<<<< bf097e16084b12e6213d71fe42fcf0b198c949e2
   (* clipboard *)
 clipboard: clipboard
+=======
+>>>>>>> changed how screens and current_file are represented
 }
 
 (* [extract file_opt] takes in an 'a option and returns the 'a. *)
@@ -147,7 +153,6 @@ let close_file st =
         | [] -> Nofile
         | (s,_)::_ -> Fname s
       end;
-      clipboard = st.clipboard
     }
   | _ -> st
 
@@ -155,8 +160,7 @@ let close_file st =
  * to the file with name [s].
  * Raises Not_found if [s] is not one of the files open in [st]. *)
 let change_selected_file s st =
-  let new_file = List.assoc s st.files in
-  {st with current_file = Some new_file }
+  {st with current_file = Fname s }
 
 (* [copy st] returns a copy of state with the text selected in the open file of
  * [st] saved to the clipboard *)

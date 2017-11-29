@@ -51,7 +51,8 @@ val save_file : state -> string -> unit
 
 (* [close_file st] removes the currently selected file [f]
  * from the list of open files in [st]. The newly selected file
- * becomes the file that occurs before [f] in the list in [st]. *)
+ * becomes the file at the beginning of the list of files in [st].
+ * If no file is currently selected, returns [st]. *)
 val close_file : state -> state
 
 (* [change_selected_file s st] changes the selected file in [st]
