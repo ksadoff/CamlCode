@@ -5,7 +5,7 @@ open Color
 
 (* Represents the area where user is typing, i.e. in a file or
  * in the command line. *)
-type typing_area = unit
+type typing_area = Nofile | Command | Fname of string
 
 (* State of the program. Contains the following information:
  * * List of files currently open
@@ -22,40 +22,51 @@ type state = {
   files: (string * File.file) list;
   (* associative list mapping file name to file, used for determining which
    files will appear for split screen *)
-  screens: (string * File.file) list;
+  screens: string list;
   (* currently open file *)
-  current_file: File.file option;
+  current_file: typing_area;
 }
 
 (* [extract file_opt] takes in an 'a option and returns the 'a. *)
 let extract file_opt = 
   match file_opt with
-  |Some f -> f
-  |None -> failwith "Unused"
+  | Some f -> f
+  | None -> failwith "Unused"
+ 
+(* [get_current_file st] returns the file that is currently being manipulated.
+ * Raises [Invalid_argument] if no file currently selected and [Not_found] 
+ * if [st.current_file] holds a string that is not a file being used. *)
+let get_current_file st = 
+  match st.current_file with 
+  | Fname s -> List.assoc s st.files
+  | _ -> raise (Invalid_argument "no file selected")
 
 (* [file_to_state_fun f_fun st] takes a function that acts on a file
  * [f_fun : file -> 'a] and returns a function of type [state -> 'a]
- * that calls to [f_fun] but uses [st.current_file] as input. *)
+ * that calls to [f_fun] but uses the current file in [st] as input.
+ * Raises [Invalid_argument] if no file currently selected and [Not_found] 
+ * if [st.current_file] holds a string that is not a file being used. *)
 let file_to_state_fun f_fun st = 
   match st.current_file with 
-  | Some f -> f_fun f
-  | None -> raise (Invalid_argument "no file selected")
+  | Fname s -> f_fun (get_current_file st)
+  | _ -> raise (Invalid_argument "no file selected")
 
 (* [replace_current_file st f] replaces the current file in [st] with [f]
  * and searches through the list of files in [st] and replaces the 
  * the instance with [f]'s name in the list. *)
 let replace_current_file st f = 
+  let file_name = File.get_name f in
   {
     files = begin
-      let fname = File.get_name f in 
+      let fname = file_name in 
       (fname, f) :: (List.remove_assoc fname st.files)
     end;
     screens = st.screens;
-    current_file = Some f;
+    current_file = Fname file_name;
   }
 
 (* [new_file s] creates a new, empty file at path [s].
- * Raises Sys_error creating file failed. *)
+ * Raises [Sys_error] if creating file failed. *)
 let new_file s = let ch_out = open_out s in close_out ch_out
 
 (* New state with no files open yet *)
@@ -63,18 +74,13 @@ let empty_state =
   {
     files = [];
     screens = [];
-    current_file = None;
+    current_file = Nofile;
   }
-
 
 (* [get_file_names st] returns a list of strings that represent the names of
  * the currently open files. *)
 let get_file_names st = 
   List.map (fun x -> fst x) st.files
- 
- (* [get_current_file st] returns the file that is currently being manipulated *)
-let get_current_file st = 
-extract st.current_file
 
  (* [get_current_file_name st] returns the string of the name of the file being 
   * manipulated. *)
@@ -90,7 +96,7 @@ let open_file st s =
   {
     files = (s, new_file) :: st.files;
     screens = [];
-    current_file = Some new_file;
+    current_file = Fname s;
   }
 
 (* [is_filed_saved st] returns true if the file is saved and false if not*)
@@ -103,18 +109,27 @@ let save_file = file_to_state_fun File.save_file
 
 (* [close_file st] removes the currently selected file [f]
  * from the list of open files in [st]. The newly selected file
- * becomes the file that occurs before [f] in the list in [st]. *)
+ * becomes the file at the beginning of the list of files in [st].
+ * If no file is currently selected, returns [st]. *)
 let close_file st = 
-  let f = st.current_file |> extract in
-  let file_name = File.get_name f in
-  {st with files = List.remove_assoc file_name st.files}
+  match st.current_file with 
+  | Fname s -> 
+    let newfiles = List.remove_assoc s st.files in { 
+      files = newfiles;
+      screens = List.filter (fun x -> x <> s) st.screens;
+      current_file = begin 
+        match newfiles with 
+        | [] -> Nofile
+        | (s,_)::_ -> Fname s
+      end;
+    }
+  | _ -> st
 
 (* [change_selected_file s st] changes the selected file in [st]
  * to the file with name [s].
  * Raises Not_found if [s] is not one of the files open in [st]. *)
 let change_selected_file s st = 
-  let new_file = List.assoc s st.files in 
-  {st with current_file = Some new_file }
+  {st with current_file = Fname s }
 
 (* [copy st] returns a copy of state with the text selected in the open file of
  * [st] saved to the clipboard *)
