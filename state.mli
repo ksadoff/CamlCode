@@ -31,7 +31,16 @@ val empty_state : state
 
 (* [get_file_names st] returns a list of strings that represent the names of
  * the currently open files. *)
- val get_file_names : state -> string list
+val get_file_names : state -> string list
+
+(* [get_current_file st] returns the file that is currently being manipulated *)
+val get_current_file : state -> File.file
+
+(* [set_current_file st f] sets the current file in [st] to [f]. *)
+val set_current_file : state -> File.file -> state
+
+(* [get_current_file_name st] returns the string of the name of the file being *)
+val get_file_names : state -> string list
 
  (* [get_current_file st] returns the file that is currently being manipulated *)
 val get_current_file : state -> File.file
@@ -39,9 +48,9 @@ val get_current_file : state -> File.file
 (* [set_current_file st f] returns a new state with the same fields as st except
  * with the current file set to f*)
 
- (* [get_current_file_name st] returns the string of the name of the file being
-  * manipulated. *)
- val get_current_file_name : state -> string
+(* [get_current_file_name st] returns the string of the name of the file being
+ * manipulated. *)
+val get_current_file_name : state -> string
 
 (* [open_file st s] constructs the file at path [s] and adds it
  * to the list of files in state [st].
@@ -78,11 +87,11 @@ val paste : state -> state
 (* [get_cursor_location st] gets the location of the cursor in the file open
  * in [st]. *)
 val get_cursor_location : state -> int
- 
+
 (* [get_cursor_line_num st] returns the line number of the cursor in
  * the file that is currently open in [st]. *)
 val get_cursor_line_num : state -> int
- 
+
 (* [get_cursor_line_num st] returns the column of the cursor in
  * the file that is currently open in [st]. *)
 val get_cursor_column : state -> int
@@ -123,15 +132,15 @@ val get_text : state -> int -> int -> string
 val get_all_text : state -> string
 
 (* [select_text st l1 l2] selects text from [l1] to [l2] in the currently
- * selected file in [st]. This function forces [l1] and [l2] to be in order 
+ * selected file in [st]. This function forces [l1] and [l2] to be in order
  * and in bounds. *)
 val select_text : state -> int -> int -> state
 
 (* Returns [st] with no selected text in its current file. *)
 val unselect_text : state -> state
 
-(* [get_selected_range st] returns [None] if no text is selected in the 
- * current file in [st], or [Some (i1, i2)] if there is currently text 
+(* [get_selected_range st] returns [None] if no text is selected in the
+ * current file in [st], or [Some (i1, i2)] if there is currently text
  * selected from index [i1] to [i2]. *)
 val get_selected_range : state -> (int * int) option
 

@@ -3,9 +3,11 @@ open State
 
 let slstate = empty_state |> fun st -> open_file st "testtxts/somelines.txt"
 
-let basic_clipboard = Rope.make 10 'a'
+(* If [f st] returns [st'], this function returns a test case with
+ * name [tname] that checks that [(get_cursor_location st', *)
+let basic_clipboard = String.make 10 'a'
 
-let basic_state = empty_state |> fun sr -> open_file st "testtxts/clipboardtest.txt"
+let basic_state = empty_state |> fun st -> open_file st "testtxts/clipboardtest.txt"
 let basic_state_file = File.set_selected_range (get_current_file basic_state) (0, 9)
 let basic_state' = set_current_file basic_state basic_state_file
 let basic_state_paste_file = File.move_cursor basic_state_file 10
@@ -67,11 +69,14 @@ let tests = [
   "select" >:: (fun _ -> assert_equal (Some (3, 9))
     (select_text slstate 3 9 |> get_selected_range));
   "unselect" >:: (fun _ -> assert_equal None
+    (select_text slstate 3 9 |> unselect_text |> get_selected_range));
+
+  "unselect" >:: (fun _ -> assert_equal None
                      (select_text slstate 3 9 |> unselect_text |> get_selected_range));
 
   (*clipboard*)
   "clipboard empty" >:: (fun _ -> assert_equal Rope.empty (new_clipboard));
-  "clipboard copy" >:: (fun _ -> assert_equal basic_clipboard (copy basic_state'));
-  "clipboard paste" >:: (fun _ -> assert_equal Rope.concat2 basic_clipboard basic_clipboard
-                            (paste basic_state_paste))
+  "clipboard copy" >:: (fun _ -> assert_equal basic_clipboard (copy basic_state' |> get_all_text));
+  (* "clipboard paste" >:: (fun _ -> assert_equal Rope.concat2 basic_clipboard basic_clipboard
+                            (paste basic_state_paste)); *)
 ]

@@ -15,6 +15,7 @@ type clipboard = rope
 
 (* State of the program. Contains the following information:
  * * List of files currently open
+ * * List of files displayed on screen (split screen)
  * * The typing area that is currently being edited
  * * List of most recently used commands
  * * Clipboard for copy/paste
@@ -48,6 +49,7 @@ let get_current_file st =
   | Fname s -> List.assoc s st.files
   | _ -> raise (Invalid_argument "no file selected")
 
+(* [set_current_file st f] sets the current file in [st] to [f]. *)
 let set_current_file st f = {st with current_file = Fname (get_name f)}
 
 (* [file_to_state_fun f_fun st] takes a function that acts on a file
@@ -81,6 +83,7 @@ let replace_current_file st f =
     screens = st.screens;
     current_file = Fname file_name;
     clipboard = st.clipboard
+
   }
 
 (* [new_file s] creates a new, empty file at path [s].
@@ -88,7 +91,6 @@ let replace_current_file st f =
 let new_file s = let ch_out = open_out s in close_out ch_out
 
 let new_clipboard = empty
-
 
 (* New state with no files open yet *)
 let empty_state =
@@ -145,18 +147,15 @@ let close_file st =
         | [] -> Nofile
         | (s,_)::_ -> Fname s
       end;
-      clipboard = st.clipboard
+      clipboard = st.clipboard;
     }
   | _ -> st
 
 (* [change_selected_file s st] changes the selected file in [st]
  * to the file with name [s].
  * Raises Not_found if [s] is not one of the files open in [st]. *)
-(* val change_selected_file : string -> state -> state *)
-
-let unwrap_opt = function
-  | Some x -> x
-  | None -> None
+let change_selected_file s st =
+  {st with current_file = Fname s }
 
 (* [copy st] returns a copy of state with the text selected in the open file of
  * [st] saved to the clipboard *)
@@ -167,7 +166,6 @@ let copy st =
   | Some (loc1, loc2) ->
     let new_clipboard = sub (File.get_contents curr) loc1 loc2 in
   {st with clipboard = new_clipboard}
-
 
 (* [paste st] returns a copy of state with the text from the clipboard of [st]
  * inserted at the cursor location in the open flie of [st] *)
@@ -269,13 +267,11 @@ let redo st = failwith "Unimplemented"
 
 (* [color_text st lst] returns a copy of [st] with the open file now
  * having the color mappings of [lst] *)
-let color_text st lst = (*{st with current_file = Some (File.color_text (st.current_file |> extract) lst)}*)
-  failwith "Unimplemented"
+let color_text st lst = {st with current_file = Some (File.color_text (st.current_file |> extract) lst)}
 
 (* [get_coloring st] gets the color mapping of the currently
  * open file in [st]. *)
-let get_coloring st = (*File.get_coloring (st.current_file |> extract)*)
-  failwith "Unimplemented"
+let get_coloring st = File.get_coloring (st.current_file |> extract)
 
 (* [get_search_term st] gets the current search term in [st]. *)
 let get_search_term st = failwith "Unimplemented"

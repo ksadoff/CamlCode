@@ -30,15 +30,8 @@ val open_file : string -> file
  * Raises Sys_error if file write failed. *)
 val save_file : file -> string -> unit
 
-(* [get_file_contents f] returns the rope that represents the context of the file *)
-val get_file_contents : file -> Rope.t
-
 (* [get_cont_length f] returns the length of the file_contents of [f]. *)
 val cont_length : file -> int
-
-(* [set_file_contents f r] returns a new file with all the old fields of f
- * except with file_contents now set to r *)
-val set_file_contents : file -> Rope.t -> file
 
 (* [get_name f] is the relative path of [f]. *)
 val get_name : file -> string
@@ -139,7 +132,7 @@ val color_text : file -> color_mapping -> file
 
 (* [get_coloring f] gets the coloring scheme of [f]. *)
 val get_coloring : file -> color_mapping
-(*
+
 (* [get_search_term f] gets the current search term in [f]. *)
 val get_search_term : file -> string option
 
@@ -149,7 +142,7 @@ val get_search_term : file -> string option
  * new version of [f] will have the first instance of its search term selected.
  * If there is no search term or it is not found, returns [f] with no text
  * selected *)
-val select_search_term : file -> file *)
+val select_search_term : file -> file
 
 (* [find f s] updates [f] so that it holds [s] as its current
  * search term. *)
