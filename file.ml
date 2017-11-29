@@ -49,6 +49,10 @@ type file = {
   (* the string that will replace the search term *)
   replace_term : string option;
 
+  (* a list of tuples that represent the beginning location of a color, and
+   * the color that characters starting at that location should be. *)
+  color_mapping : Color.color_mapping
+
   (* clipboard : string;
   was_saved : bool; *)
 }
@@ -109,6 +113,7 @@ let open_file s =
     selected_range = None;
     search_term = None;
     replace_term = None;
+    color_mapping = Color.empty_cm;
   }
 
 (* [save_file f] saves [f] at relative path [s].
@@ -361,10 +366,10 @@ let undo f = failwith "Unimplemented"
 let redo f = failwith "Unimplemented"
 
 (* [color_text f lst] returns a copy of [f] with the color mappings of [lst] *)
-let color_text f lst = failwith "Unimplemented"
+let color_text f lst = {f with color_mapping = lst}
 
 (* [get_coloring f] gets the coloring scheme of [f]. *)
-let get_coloring f = failwith "Unimplemented"
+let get_coloring f = f.color_mapping
 
 (* [get_search_term f] gets the current search term in [f]. *)
 let get_search_term f = f.search_term

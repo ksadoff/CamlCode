@@ -117,7 +117,7 @@ val undo : file -> file
 val redo : file -> file
 
 (* [color_text f lst] returns a copy of [f] with the color mappings of [lst] *)
-val color_text : file -> (int * int * color) list -> file
+val color_text : file -> color_mapping -> file
 
 (* [get_coloring f] gets the coloring scheme of [f]. *)
 val get_coloring : file -> color_mapping
