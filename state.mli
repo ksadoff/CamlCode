@@ -71,9 +71,33 @@ val paste : state -> state
 (* [get_cursor_location st] gets the location of the cursor in the file open
  * in [st]. *)
 val get_cursor_location : state -> int
+ 
+(* [get_cursor_line_num st] returns the line number of the cursor in
+ * the file that is currently open in [st]. *)
+val get_cursor_line_num : state -> int
+ 
+(* [get_cursor_line_num st] returns the column of the cursor in
+ * the file that is currently open in [st]. *)
+val get_cursor_column : state -> int
 
 (* [move_cursor st l] moves the cursor of the open file in [st] to [l] *)
 val move_cursor : state -> int -> state
+
+(* [cursor_left st] moves the cursor left on the currently selected
+ * file in [st]. *)
+val cursor_left : state -> state
+
+(* [cursor_right st] moves the cursor right on the currently selected
+ * file in [st]. *)
+val cursor_right : state -> state
+
+(* [cursor_up st] moves the cursor up on the currently selected file
+ * in [st]. *)
+val cursor_up : state -> state
+
+(* [cursor_down st] moves the cursor down on the currently selected file
+ * in [st]. *)
+val cursor_down : state -> state
 
 (* [scroll_to st n] changes the line number of the scrolled view of
  * the file open in [st] to to [n]. *)

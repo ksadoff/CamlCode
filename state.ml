@@ -10,11 +10,8 @@ open Rope
 (* Represents the area where user is typing, i.e. in a file or
  * in the command line. *)
 type typing_area = Nofile | Command | Fname of string
-<<<<<<< bf097e16084b12e6213d71fe42fcf0b198c949e2
 
 type clipboard = rope
-=======
->>>>>>> changed how screens and current_file are represented
 
 (* State of the program. Contains the following information:
  * * List of files currently open
@@ -34,11 +31,8 @@ type state = {
   screens: string list;
   (* currently open file *)
   current_file: typing_area;
-<<<<<<< bf097e16084b12e6213d71fe42fcf0b198c949e2
   (* clipboard *)
 clipboard: clipboard
-=======
->>>>>>> changed how screens and current_file are represented
 }
 
 (* [extract file_opt] takes in an 'a option and returns the 'a. *)
@@ -153,6 +147,7 @@ let close_file st =
         | [] -> Nofile
         | (s,_)::_ -> Fname s
       end;
+      clipboard = st.clipboard;
     }
   | _ -> st
 
