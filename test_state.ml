@@ -38,7 +38,7 @@ let tests = [
   );
 
   (* delete text *)
-  "delete" >:: (fun _ -> assert_equal "h" 
+  "delete" >:: (fun _ -> assert_equal "h\n" 
     (delete_text slstate 1 17 |> get_all_text));
 
   (* test cursor *)

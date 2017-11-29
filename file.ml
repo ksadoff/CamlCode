@@ -319,21 +319,62 @@ let unselect_text f = {f with selected_range = None}
  * index [i1] to [i2]. *)
 let get_selected_range f = f.selected_range
 
+(* [concat_with_newline ropes] concatenates a list of ropes
+ * and appends a newline character to the end if it doesn't exist. *)
+let concat_with_newline ropes =
+  let combo = Rope.concat Rope.empty ropes in 
+  if (Rope.length combo = 0) || Rope.get combo (Rope.length combo - 1) <> '\n'
+  then Rope.concat2 combo (Rope.of_string "\n")
+  else combo
+
 (* [insert_text f s] inserts string [s] into the contents
  * of [f] at location [l]. The beginning of the inserted string
  * will be at index [l]. If [l] is an invalid location, the closest
- * valid location will be used. *)
+ * valid location will be used. If text append causes there to be
+ * no newline character at the end of the contents, a newline is added. *)
 let insert_text f s l' =
-  let clen = cont_length f in
-  let l = if l' < 0 then 0 else if l' > clen then clen else l' in
-  let begin_rope = Rope.sub f.contents 0 l in
   let len_rope = cont_length f in
+  let l = if l' < 0 then 0 else if l' > len_rope then len_rope else l' in
+  let begin_rope = Rope.sub f.contents 0 l in
   let end_rope = Rope.sub f.contents l (len_rope - l) in
   let insert_rope = Rope.of_string s in
-  let new_rope = Rope.concat Rope.empty [begin_rope; insert_rope; end_rope] in
+  let new_rope = concat_with_newline [begin_rope; insert_rope; end_rope] in
   { f with
     contents = new_rope;
     line_lengths = line_lengths_arr new_rope;
+  }
+
+(* [insert_char f c] inserts a character [c] into the contents of [f] 
+ * at the cursor location in [f]. *)
+let insert_char f c = 
+  let len_rope = cont_length f in
+  let l = f.cursor in
+  let begin_rope = Rope.sub f.contents 0 l in 
+  let end_rope = Rope.sub f.contents l (len_rope - l) in 
+  let insert_rope = String.make 1 c |> Rope.of_string in
+  let new_rope = Rope.concat Rope.empty [begin_rope; insert_rope; end_rope] in
+  { f with
+    contents = new_rope;
+    line_lengths = 
+      if c <> '\n' then 
+        let prev_len = Array.get f.line_lengths f.cursor_line_num in
+        let new_lls = Array.copy f.line_lengths in
+        Array.set new_lls f.cursor_line_num (prev_len + 1);
+        new_lls
+      else 
+        let len_arr = Array.length f.line_lengths in
+        let line_len = Array.get f.line_lengths f.cursor_line_num in
+        Array.concat [
+          if f.cursor_line_num > 0 
+          then (Array.sub f.line_lengths 0 f.cursor_line_num)
+          else [||];
+          [|f.cursor_column + 1|];
+          [|line_len - f.cursor_column|];
+          if f.cursor_line_num < len_arr - 1
+          then let ln = f.cursor_line_num + 1 in
+            Array.sub f.line_lengths ln (len_arr - ln)
+          else [||];
+        ];
   }
 
 (* [delete_text l1 l2] deletes all text in [f] from location
@@ -346,7 +387,7 @@ let delete_text f l1' l2' =
   let begin_rope = Rope.sub f.contents 0 l1 in
   let len_rope = cont_length f in
   let end_rope = Rope.sub f.contents l2 (len_rope - l2) in
-  let new_rope = Rope.concat2 begin_rope end_rope in
+  let new_rope = concat_with_newline [begin_rope; end_rope] in
   { f with
     contents = new_rope;
     line_lengths = line_lengths_arr new_rope;

@@ -104,6 +104,10 @@ val get_selected_range : file -> (int * int) option
  * valid location will be used. *)
 val insert_text : file -> string -> int -> file
 
+(* [insert_char f c] inserts a character [c] into the contents of [f] 
+ * at the cursor location in [f]. *)
+val insert_char : file -> char -> file
+
 (* [delete_text l1 l2] deletes all text in [f] from location
  * [l1] to [l2]. *)
 val delete_text : file -> int -> int -> file
