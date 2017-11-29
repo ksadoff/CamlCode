@@ -268,13 +268,11 @@ let redo st = failwith "Unimplemented"
 
 (* [color_text st lst] returns a copy of [st] with the open file now
  * having the color mappings of [lst] *)
-let color_text st lst = (*{st with current_file = Some (File.color_text (st.current_file |> extract) lst)}*)
-  failwith "Unimplemented"
+let color_text st lst = {st with current_file = Some (File.color_text (st.current_file |> extract) lst)}
 
 (* [get_coloring st] gets the color mapping of the currently
  * open file in [st]. *)
-let get_coloring st = (*File.get_coloring (st.current_file |> extract)*)
-  failwith "Unimplemented"
+let get_coloring st = File.get_coloring (st.current_file |> extract)
 
 (* [get_search_term st] gets the current search term in [st]. *)
 let get_search_term st = failwith "Unimplemented"
