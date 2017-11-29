@@ -9,6 +9,10 @@ let somelines = File.open_file "testtxts/somelines.txt"
 let somelines_moved = move_cursor somelines 12
 let somelines_moved2 = move_cursor somelines 8
 
+(* Converts a tuple of 3 ints to a string *)
+let three_tuple_to_string (a, b, c) = "(" ^ (string_of_int a)
+  ^ ", " ^ (string_of_int b) ^ ", " ^ (string_of_int c) ^ ")"
+
 (* [move_cursor_test test_name f l exp] returns a test case where
  * the cursor in file [f] is moved to index [l]. [exp] is
  * the expected (index, line num, column) tuple. [test_name] is
@@ -19,9 +23,7 @@ let move_cursor_test test_name orig_f l exp =
     (get_cursor_location f,
     get_cursor_line_num f,
     get_cursor_column f)
-    ~printer: (fun (i,l,c) -> "(" ^ (string_of_int i) ^ ", " ^
-      (string_of_int l) ^ ", " ^
-      (string_of_int c) ^ ")")
+    ~printer: three_tuple_to_string
   )
 
 (* [modify_file_test test_name f ffun exp] returns a test case where
@@ -33,9 +35,7 @@ let modify_file_test test_name orig_f ffun exp =
     (get_cursor_location f,
     get_cursor_line_num f,
     get_cursor_column f)
-    ~printer: (fun (i,l,c) -> "(" ^ (string_of_int i) ^ ", " ^
-      (string_of_int l) ^ ", " ^
-      (string_of_int c) ^ ")")
+    ~printer: three_tuple_to_string
   )
 
 (* [insert_test test_name f s l exp_s exp_ls] creates a test case with name
@@ -52,12 +52,15 @@ let insert_test test_name orig_f s l exp_s exp_ls =
 (* [ins_ch_test test_name f s l exp_s exp_ls] creates a test case with name
  * [test_name] that inserts char [c] into the contents of [f] at
  * location [l]. [exp_s] is the expected string contents of [f], and
- * [exp_ls] is the expected list of line lengths in [f]. *)
- let ins_ch_test test_name orig_f c l exp_s exp_ls =
+ * [exp_ls] is the expected list of line lengths in [f]. [exp_cur]
+ * is the tuple of the expected cursor index, line number, and column. *)
+ let ins_ch_test test_name orig_f c l exp_s exp_ls exp_cur =
   let f = let f' = move_cursor orig_f l in insert_char f' c in
-  test_name >:: (fun _ -> assert_equal (exp_s, exp_ls)
-    (get_all_text f, get_line_lengths f)
-    ~printer: (fun (s, ls) -> "\"" ^ s ^ "\", " ^ (int_list_printer ls))
+  test_name >:: (fun _ -> assert_equal (exp_s, exp_ls, exp_cur)
+    (get_all_text f, get_line_lengths f, 
+      (get_cursor_location f, get_cursor_line_num f ,get_cursor_column f))
+    ~printer: (fun (s, ls, cur) -> "\"" ^ s ^ "\", " ^ 
+      (int_list_printer ls) ^ (three_tuple_to_string cur))
   )
 
 (* [delete_test test_name f l1 l2 exp_s exp_ls] creates a test case with
@@ -167,21 +170,21 @@ let tests = [
 
   (* inserting char *)
   ins_ch_test "insch0" somelines 'a' 0
-    "ahello\nworld\n\n!!!\n" [7; 6; 1; 4];
+    "ahello\nworld\n\n!!!\n" [7; 6; 1; 4] (1, 0, 1);
   ins_ch_test "insch1" somelines 'o' 17
-    "hello\nworld\n\n!!!o\n" [6; 6; 1; 5];
+    "hello\nworld\n\n!!!o\n" [6; 6; 1; 5] (17, 3, 4);
   ins_ch_test "insch2" (delete_text somelines 16 17) 'o' 16
-    "hello\nworld\n\n!!!o\n" [6; 6; 1; 5];
+    "hello\nworld\n\n!!!o\n" [6; 6; 1; 5] (17, 3, 4);
   ins_ch_test "insch3" somelines ' ' 8
-    "hello\nwo rld\n\n!!!\n" [6; 7; 1; 4];
+    "hello\nwo rld\n\n!!!\n" [6; 7; 1; 4] (9, 1, 3);
   ins_ch_test "insch4" somelines '\n' 8
-    "hello\nwo\nrld\n\n!!!\n" [6; 3; 4; 1; 4];
+    "hello\nwo\nrld\n\n!!!\n" [6; 3; 4; 1; 4] (9, 2, 0);
   ins_ch_test "insch5" somelines '\n' 2
-    "he\nllo\nworld\n\n!!!\n" [3; 4; 6; 1; 4];
+    "he\nllo\nworld\n\n!!!\n" [3; 4; 6; 1; 4] (3, 1, 0);
   ins_ch_test "insch6" somelines '\n' 16
-    "hello\nworld\n\n!!!\n\n" [6; 6; 1; 4; 1];
+    "hello\nworld\n\n!!!\n\n" [6; 6; 1; 4; 1] (17, 4, 0);
   ins_ch_test "insch7" somelines '\n' 14
-    "hello\nworld\n\n!\n!!\n" [6; 6; 1; 2; 3];
+    "hello\nworld\n\n!\n!!\n" [6; 6; 1; 2; 3] (15, 4, 0);
 
   (* deleting text *)
   delete_test "delete0" somelines 0 3

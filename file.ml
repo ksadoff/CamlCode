@@ -345,7 +345,8 @@ let insert_text f s l' =
   }
 
 (* [insert_char f c] inserts a character [c] into the contents of [f] 
- * at the cursor location in [f]. *)
+ * at the cursor location in [f] and moves the cursor one character 
+ * to the right. *)
 let insert_char f c = 
   let len_rope = cont_length f in
   let l = f.cursor in
@@ -375,7 +376,7 @@ let insert_char f c =
             Array.sub f.line_lengths ln (len_arr - ln)
           else [||];
         ];
-  }
+  } |> cursor_right
 
 (* [delete_text l1 l2] deletes all text in [f] from location
  * [l1] to [l2]. The new file contents contains everything up
