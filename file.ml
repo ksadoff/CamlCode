@@ -2,14 +2,14 @@
  * a single file. It is technically part of the "model" in the MVC
  * architecture, but it only includes file-specific things. *)
 
-(* A file_contents variable represents the entire file_contents of a file,
+(* A contents variable represents the entire contents of a file,
  * including all characters. *)
 type contents = Rope.t
 
 (* A file variable represents all the state that is recorded
  * for one file. It should contain the following information:
  * * file name/relative path
- * * file file_contents
+ * * file contents
  * * location of cursor
  * * line number of where current view begins
  * * beginning and end locations of highlighted text
@@ -21,10 +21,10 @@ type file = {
   (* relative file path *)
   name : string;
 
-  (* file file_contents *)
-  file_contents : contents;
+  (* file contents *)
+  contents : contents;
 
-  (* index of cursor in file_contents *)
+  (* index of cursor in contents *)
   cursor : int;
 
   (* line number of cursor *)
@@ -34,7 +34,7 @@ type file = {
   cursor_column : int;
 
   (* [Array.get f.line_lengths i] is the number of characters in
-   * line [i] of [f.file_contents] *)
+   * line [i] of [f.contents] *)
   line_lengths : int array;
 
   (* top line that view is currently scrolled to *)
@@ -43,23 +43,31 @@ type file = {
   (* range of currently selected text *)
   selected_range : (int * int) option;
 
-  clipboard : string;
+  (* the string that the user is currently searching for *)
+  search_term : string option;
+
+  (* the string that will replace the search term *)
+  replace_term : string option;
+
+  (* a list of tuples that represent the beginning location of a color, and
+   * the color that characters starting at that location should be. *)
+  color_mapping : Color.color_mapping;
+
+  (* clipboard : string; *)
 
   was_saved : bool;
-
-  search_term : string;
 }
 
-(* [get_cont_length f] returns the length of the file_contents of [f]. *)
-let cont_length f = Rope.length f.file_contents
+(* [get_cont_length f] returns the length of the contents of [f]. *)
+let cont_length f = Rope.length f.contents
 
-let get_file_contents f = f.file_contents
+let get_contents f = f.contents
 
-let set_file_contents f r = {f with file_contents = r}
+let set_contents f r = {f with contents = r}
 
 (* [find_newlines cont i0] returns a list [l] (not an array)
  * such that the ith element of [l] is the length of the ith line
- * in [cont], starting at file_contents location [i0]. *)
+ * in [cont], starting at contents location [i0]. *)
 let rec find_newlines cont i0 =
   try
     let linepos = Rope.search_forward_string "\n" cont i0 in
@@ -76,7 +84,14 @@ let rec get_line_lengths nls nl0 =
   | [] -> []
   | h :: t -> (h - nl0 + 1) :: (get_line_lengths t (h + 1))
 
-(* [open_file s] reads the file_contents of the file stored at
+  (* [line_lengths_arr cont] returns an array [a] where
+   * [Array.get a i] is the length of the ith line in [cont]. *)
+  let line_lengths_arr cont =
+    find_newlines cont 0
+    |> fun nls -> get_line_lengths nls 0
+    |> Array.of_list
+
+(* [open_file s] reads the contents of the file stored at
  * relative path [s] and uses that to construct a new file type.
  * Raises Sys_error if opening file failed. *)
 let open_file s =
@@ -84,27 +99,26 @@ let open_file s =
     try begin
       let line = input_line channel in
       let rope_line = Rope.concat2
-        (Rope.of_string line) (Rope.of_string "\n") in
+          (Rope.of_string line) (Rope.of_string "\n") in
       Rope.concat2 rope_acc rope_line
-        |> append_lines channel
+      |> append_lines channel
     end
     with End_of_file -> rope_acc in
   let channel = open_in s in
-  let file_contents = append_lines channel Rope.empty in
+  let contents = append_lines channel Rope.empty in
   {
     name = s;
-    file_contents = file_contents;
+    contents = contents;
     cursor = 0;
     cursor_line_num = 0;
     cursor_column = 0;
-    line_lengths = (find_newlines file_contents 0
-      |> fun nls -> get_line_lengths nls 0
-      |> Array.of_list);
+    line_lengths = line_lengths_arr contents;
     scroll_line_num = 0;
     selected_range = None;
-    clipboard = "";
-    was_saved = false;
-    search_term = "";
+    search_term = None;
+    replace_term = None;
+    color_mapping = Color.empty_cm;
+    was_saved = false
   }
 
 (* [save_file f] saves [f] at its corresponding path.
@@ -121,7 +135,7 @@ let get_cursor_line_num f = f.cursor_line_num
 let get_cursor_column f = f.cursor_column
 
 (* [get_line_lengths f] returns the list of the lengths of lines
- * in the file_contents of [f], in order from top of file to bottom. *)
+ * in the contents of [f], in order from top of file to bottom. *)
 let get_line_lengths f = f.line_lengths |> Array.to_list
 
 (* requires:
@@ -132,7 +146,7 @@ let get_line_lengths f = f.line_lengths |> Array.to_list
  * [i2] index of new cursor location
  * returns: line number and column [(ln2, c2)] of new cursor location
  * raises: Invalid_argument if any of the following happens
- * * [i1] or [i2] are out of bounds of file_contents
+ * * [i1] or [i2] are out of bounds of contents
  * * [ln1] is not a valid index of [lla]
  * * [c1] is not a valid column in its corresponding line
  *)
@@ -254,7 +268,7 @@ let cursor_down f =
 
 (* [scroll_to f n] changes the line number of the scrolled view
  * to [n]. If [n] is less than 0 or greater than the number of lines in
- * file_contents, then the closest line number is chosen. *)
+ * contents, then the closest line number is chosen. *)
 let scroll_to f n =
   {f with scroll_line_num =
     let num_lines = Array.length f.line_lengths in
@@ -289,10 +303,10 @@ let make_range_valid (i1, i2) cont_len =
  * This function forces [l1] and [l2] to be in order and in bounds. *)
 let get_text f l1 l2 =
   let (l1', l2') = make_range_valid (l1, l2) (cont_length f) in
-  Rope.sub f.file_contents l1' (l2' - l1') |> Rope.to_string
+  Rope.sub f.contents l1' (l2' - l1') |> Rope.to_string
 
 (* [get_all_text f] returns a string representing all of the text in [f] *)
-let get_all_text f = Rope.to_string f.file_contents
+let get_all_text f = Rope.to_string f.contents
 
 (* [select_text f l1 l2] selects text from [l1] to [l2].
  * This function forces [l1] and [l2] to be in order and in bounds. *)
@@ -311,7 +325,7 @@ let get_selected_range f = f.selected_range
 
 let set_selected_range f (i1, i2) = {f with selected_range = Some (i1, i2)}
 
-(* [insert_text f s l] inserts string [s] into the file_contents
+(* [insert_text f s l] inserts string [s] into the contents
  * of [f] at location [l]. *)
 let insert_text f s l = failwith "Unimplemented"
 
@@ -328,10 +342,10 @@ let undo f = failwith "Unimplemented"
 let redo f = failwith "Unimplemented"
 
 (* [color_text f lst] returns a copy of [f] with the color mappings of [lst] *)
-let color_text f lst = failwith "Unimplemented"
+let color_text f lst = {f with color_mapping = lst}
 
 (* [get_coloring f] gets the coloring scheme of [f]. *)
-let get_coloring f = failwith "Unimplemented"
+let get_coloring f = f.color_mapping
 
 (* [get_search_term f] gets the current search term in [f]. *)
 let get_search_term f = failwith "Unimplemented"

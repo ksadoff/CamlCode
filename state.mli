@@ -78,17 +78,41 @@ val paste : state -> state
 (* [get_cursor_location st] gets the location of the cursor in the file open
  * in [st]. *)
 val get_cursor_location : state -> int
+ 
+(* [get_cursor_line_num st] returns the line number of the cursor in
+ * the file that is currently open in [st]. *)
+val get_cursor_line_num : state -> int
+ 
+(* [get_cursor_line_num st] returns the column of the cursor in
+ * the file that is currently open in [st]. *)
+val get_cursor_column : state -> int
 
 (* [move_cursor st l] moves the cursor of the open file in [st] to [l] *)
 val move_cursor : state -> int -> state
+
+(* [cursor_left st] moves the cursor left on the currently selected
+ * file in [st]. *)
+val cursor_left : state -> state
+
+(* [cursor_right st] moves the cursor right on the currently selected
+ * file in [st]. *)
+val cursor_right : state -> state
+
+(* [cursor_up st] moves the cursor up on the currently selected file
+ * in [st]. *)
+val cursor_up : state -> state
+
+(* [cursor_down st] moves the cursor down on the currently selected file
+ * in [st]. *)
+val cursor_down : state -> state
 
 (* [scroll_to st n] changes the line number of the scrolled view of
  * the file open in [st] to to [n]. *)
 val scroll_to : state -> int -> state
 
-(* [get_scroll_line_number st] returns the first visible line in the
+(* [get_scroll_line st] returns the first visible line in the
  * currently selected file in [st]. *)
-val get_scroll_line_number : state -> int
+val get_scroll_line : state -> int
 
 (* [get_text st l1 l2] returns all text in the open file of [st] from
  * [l1] to [l2]. Raises Invalid_argument if [l2] comes before [l1].  *)
@@ -98,13 +122,18 @@ val get_text : state -> int -> int -> string
  * the file opened in [st] *)
 val get_all_text : state -> string
 
-(* [get_highlighted_region st] returns a tuple of the start and end locations
- * of a section of highlighted text *)
-val get_highlighted_region : state -> (int * int)
-
-(* [select_text st l1 l2] selects text from [l1] to [l2] in the open file of [st].
- * Raises Invalid_argument if [l2] comes before [l1]. *)
+(* [select_text st l1 l2] selects text from [l1] to [l2] in the currently
+ * selected file in [st]. This function forces [l1] and [l2] to be in order 
+ * and in bounds. *)
 val select_text : state -> int -> int -> state
+
+(* Returns [st] with no selected text in its current file. *)
+val unselect_text : state -> state
+
+(* [get_selected_range st] returns [None] if no text is selected in the 
+ * current file in [st], or [Some (i1, i2)] if there is currently text 
+ * selected from index [i1] to [i2]. *)
+val get_selected_range : state -> (int * int) option
 
 (* [insert_text st s l] inserts string [s] into the contents the open
  * file of [st] at location [l]. *)
