@@ -184,6 +184,7 @@ let tests = [
   "find3" >:: (fun _ -> assert_equal None
     (get_search_term somelines));
 
+
   (* tests for selecting the search term of a file *)
   "sel_search0" >:: (fun _ -> assert_equal (Some (0,1))
     ((find somelines "h") |> select_search_term |> get_selected_range));
@@ -232,4 +233,13 @@ let tests = [
     ((set_replace_term (find somelines "") "H") |> replace_next |> get_all_text));
   "rep_next4" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
     ((find somelines "h") |> replace_next |> get_all_text));
+
+  (* saving a file *)
+  "save" >:: (fun _ -> assert_equal "abcde\n" (
+    somelines
+    |> fun f -> delete_text f 0 17
+    |> fun f -> insert_text f "abcde" 0
+    |> fun f -> save_file f "testtxts/temp.txt";
+    open_file "testtxts/temp.txt" |> get_all_text
+  ) ~printer: (fun s -> s));
 ]

@@ -53,7 +53,7 @@ type file = {
    * the color that characters starting at that location should be. *)
   color_mapping : Color.color_mapping;
 
-  (* clipboard : string; *)
+  clipboard : Rope.t;
 
   was_saved : bool;
 }
@@ -72,7 +72,8 @@ let rec find_newlines cont i0 =
   try
     let linepos = Rope.search_forward_string "\n" cont i0 in
     linepos :: (find_newlines cont (linepos+1))
-  with Not_found -> []
+  with Not_found ->
+    if Rope.length cont = i0 then [] else [Rope.length cont - 1]
 
 (* [get_line_lengths nls nl0] takes a list of of newline characters
  * [nls] and returns a list of lengths of lines. [nl0] is the number
@@ -84,12 +85,12 @@ let rec get_line_lengths nls nl0 =
   | [] -> []
   | h :: t -> (h - nl0 + 1) :: (get_line_lengths t (h + 1))
 
-  (* [line_lengths_arr cont] returns an array [a] where
-   * [Array.get a i] is the length of the ith line in [cont]. *)
-  let line_lengths_arr cont =
-    find_newlines cont 0
-    |> fun nls -> get_line_lengths nls 0
-    |> Array.of_list
+(* [line_lengths_arr cont] returns an array [a] where
+ * [Array.get a i] is the length of the ith line in [cont]. *)
+let line_lengths_arr cont =
+  find_newlines cont 0
+  |> fun nls -> get_line_lengths nls 0
+  |> Array.of_list
 
 (* [open_file s] reads the contents of the file stored at
  * relative path [s] and uses that to construct a new file type.
@@ -99,9 +100,9 @@ let open_file s =
     try begin
       let line = input_line channel in
       let rope_line = Rope.concat2
-          (Rope.of_string line) (Rope.of_string "\n") in
+        (Rope.of_string line) (Rope.of_string "\n") in
       Rope.concat2 rope_acc rope_line
-      |> append_lines channel
+        |> append_lines channel
     end
     with End_of_file -> rope_acc in
   let channel = open_in s in
@@ -118,12 +119,19 @@ let open_file s =
     search_term = None;
     replace_term = None;
     color_mapping = Color.empty_cm;
+    clipboard = Rope.empty;
     was_saved = false
   }
 
-(* [save_file f] saves [f] at its corresponding path.
+(* [save_file f] saves [f] at relative path [s].
  * Raises Sys_error if file write failed. *)
-let save_file f = failwith "Unimplemented"
+let save_file f s =
+  let ch_out = open_out s in
+  Printf.fprintf ch_out "%s" (Rope.to_string f.contents);
+  close_out ch_out
+
+(* [get_name f] is the relative path of [f]. *)
+let get_name f = f.name
 
 (* [get_cursor_location f] gets the location of the cursor in [f]. *)
 let get_cursor_location f = f.cursor
@@ -325,13 +333,38 @@ let get_selected_range f = f.selected_range
 
 let set_selected_range f (i1, i2) = {f with selected_range = Some (i1, i2)}
 
-(* [insert_text f s l] inserts string [s] into the contents
- * of [f] at location [l]. *)
-let insert_text f s l = failwith "Unimplemented"
+(* [insert_text f s] inserts string [s] into the contents
+ * of [f] at location [l]. The beginning of the inserted string
+ * will be at index [l]. If [l] is an invalid location, the closest
+ * valid location will be used. *)
+let insert_text f s l' =
+  let clen = cont_length f in
+  let l = if l' < 0 then 0 else if l' > clen then clen else l' in
+  let begin_rope = Rope.sub f.contents 0 l in
+  let len_rope = cont_length f in
+  let end_rope = Rope.sub f.contents l (len_rope - l) in
+  let insert_rope = Rope.of_string s in
+  let new_rope = Rope.concat Rope.empty [begin_rope; insert_rope; end_rope] in
+  { f with
+    contents = new_rope;
+    line_lengths = line_lengths_arr new_rope;
+  }
 
 (* [delete_text l1 l2] deletes all text in [f] from location
- * [l1] to [l2]. *)
-let delete_text l1 l2 = failwith "Unimplemented"
+ * [l1] to [l2]. The new file contents contains everything up
+ * to and not including [l1] and everything including [l2]
+ * up to the end. [l1] and [l2] are automatically forced by
+ * this function to be in bounds and in order. *)
+let delete_text f l1' l2' =
+  let (l1, l2) = make_range_valid (l1', l2') (cont_length f) in
+  let begin_rope = Rope.sub f.contents 0 l1 in
+  let len_rope = cont_length f in
+  let end_rope = Rope.sub f.contents l2 (len_rope - l2) in
+  let new_rope = Rope.concat2 begin_rope end_rope in
+  { f with
+    contents = new_rope;
+    line_lengths = line_lengths_arr new_rope;
+  }
 
 (* [undo f] undoes the last change recorded in [f]. If there
  * is nothing left to undo, [undo f] will return [f] unchanged. *)
@@ -348,14 +381,84 @@ let color_text f lst = {f with color_mapping = lst}
 let get_coloring f = f.color_mapping
 
 (* [get_search_term f] gets the current search term in [f]. *)
-let get_search_term f = failwith "Unimplemented"
+let get_search_term f = f.search_term
 
-(* [get_search_locations f] returns the list of regions in which
- * the search term has been found in [f]. *)
-let get_search_locations f = failwith "Unimplemented"
+(* [select_search_term f] returns an updated version of [f] with
+ * with the next instance of the search term selected. The next instance is
+ * defined as from the currently selected text. If no text is selected the
+ * new version of [f] will have the first instance of its search term selected.
+ * If there is no search term or it is not found, returns [f] with no text
+ * selected *)
+let rec select_search_term f =
+  match f.selected_range with
+  | None ->
+    begin
+      try begin
+        match f.search_term with
+        | Some term ->
+          begin
+            let next_loc = Rope.search_forward_string term f.contents 0 in
+            let next_loc_end = next_loc + (String.length term) in
+            select_text f next_loc next_loc_end
+          end
+        | None -> {f with selected_range = None;}
+      end
+      with
+      | Not_found -> f
+    end
+  | Some (curr, _) ->
+    begin
+      try begin
+        match f.search_term with
+        | Some term ->
+          begin
+            let next_loc = Rope.search_forward_string term f.contents (curr+1) in
+            let next_loc_end = next_loc + (String.length term) in
+            select_text f next_loc next_loc_end
+          end
+        | None -> {f with selected_range = None;}
+      end
+      with
+      | Not_found -> select_search_term {f with selected_range = None;}
+    end
 
 (* [find f s] updates [f] so that it holds [s] as its current
  * search term. *)
-let find f s = failwith "Unimplemented"
+let find f s =
+  match s with
+  | "" -> { f with search_term = None; }
+  | term -> { f with search_term = Some term; }
 
-let get_name f = failwith "Unimplemented"
+(* [remove_search_term f] removes the search_term of file [f] *)
+let remove_search_term f = { f with search_term = None; }
+
+(* [set_replace_term f s] sets the replace term of file [f] to [Some s] *)
+let set_replace_term f s = { f with replace_term = Some s; }
+
+(* [remove_replace_term f] sets the replace term of file [f] to [None]*)
+let remove_replace_term f = { f with replace_term = None; }
+
+(* [get_replace_term f] returns [Some s] where [r] is the replacement term
+ * if the is no replacement term returns [None] *)
+let get_replace_term f = f.replace_term
+
+(* [replace_next f] returns an updated copy of [f] where the next instance
+ * of the search term is replaced by the replace term, which is now selected
+ * in the file. The next instance is
+ * defined as from the currently selected text. If no text is selected the
+ * new version of [f] will replace the first instance of its search term.
+ * If there is no instance of the search term or there is no replace term,
+ * the returned file will have the same text and no text selected *)
+let replace_next f =
+  match f.replace_term with
+  | None -> {f with selected_range = None;}
+  | Some rep_term ->
+    let to_replace = select_search_term f in
+    match to_replace.selected_range with
+    | None -> to_replace
+    | Some (st, en) ->
+      begin
+        let nf = delete_text to_replace st en in
+        let nf = insert_text nf rep_term st in
+        {nf with selected_range = Some (st, (String.length rep_term));}
+      end

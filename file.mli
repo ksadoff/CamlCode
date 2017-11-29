@@ -135,7 +135,7 @@ val color_text : file -> color_mapping -> file
 
 (* [get_coloring f] gets the coloring scheme of [f]. *)
 val get_coloring : file -> color_mapping
-(*
+
 (* [get_search_term f] gets the current search term in [f]. *)
 val get_search_term : file -> string option
 
@@ -145,12 +145,12 @@ val get_search_term : file -> string option
  * new version of [f] will have the first instance of its search term selected.
  * If there is no search term or it is not found, returns [f] with no text
  * selected *)
-val select_search_term : file -> file *)
+val select_search_term : file -> file
 
 (* [find f s] updates [f] so that it holds [s] as its current
  * search term. *)
 val find :  file -> string -> file
-(*
+
 (* [remove_search_term f] removes the search_term of file [f] *)
 val remove_search_term: file -> file
 
@@ -171,4 +171,4 @@ val get_replace_term: file -> string option
  * new version of [f] will replace the first instance of its search term.
  * If there is no instance of the search term or either the search or replace
  * term does not exist, returns [f] with no text selected *)
-val replace_next: file -> file *)
+val replace_next: file -> file
