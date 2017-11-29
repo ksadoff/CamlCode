@@ -53,5 +53,11 @@ let tests = [
 
   (* scrolling *)
   "scroll" >:: (fun _ -> assert_equal 2 
-    (scroll_to slstate 2 |> get_scroll_line))
+    (scroll_to slstate 2 |> get_scroll_line));
+
+  (* test selection *)
+  "select" >:: (fun _ -> assert_equal (Some (3, 9))
+    (select_text slstate 3 9 |> get_selected_range));
+  "unselect" >:: (fun _ -> assert_equal None 
+    (select_text slstate 3 9 |> unselect_text |> get_selected_range));
 ]

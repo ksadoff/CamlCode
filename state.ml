@@ -194,13 +194,18 @@ let get_text = file_to_state_fun File.get_text
  * the file opened in [st] *)
 let get_all_text = file_to_state_fun File.get_all_text
 
-(* [get_highlighted_region st] returns a tuple of the start and end locations
- * of a section of highlighted text *)
-let get_highlighted_region st = failwith "Unimplemented"
+(* [select_text st l1 l2] selects text from [l1] to [l2] in the currently
+ * selected file in [st]. This function forces [l1] and [l2] to be in order 
+ * and in bounds. *)
+let select_text st l1 l2 = fmap_st_f (fun f -> File.select_text f l1 l2) st
 
-(* [select_text st l1 l2] selects text from [l1] to [l2] in the open file of [st].
- * Raises Invalid_argument if [l2] comes before [l1]. *)
-let select_text st l1 l2 = failwith "Unimplemented"
+(* Returns [st] with no selected text in its current file. *)
+let unselect_text = fmap_st_f File.unselect_text
+
+(* [get_selected_range f] returns [None] if no text is selected,
+ * or [Some (i1, i2)] if there is currently text selected from
+ * index [i1] to [i2]. *)
+let get_selected_range = file_to_state_fun File.get_selected_range
 
 (* [insert_text st s l] inserts string [s] into the contents the open
  * file of [st] at location [l]. *)

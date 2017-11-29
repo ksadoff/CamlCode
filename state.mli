@@ -115,13 +115,18 @@ val get_text : state -> int -> int -> string
  * the file opened in [st] *)
 val get_all_text : state -> string
 
-(* [get_highlighted_region st] returns a tuple of the start and end locations
- * of a section of highlighted text *)
-val get_highlighted_region : state -> (int * int)
-
-(* [select_text st l1 l2] selects text from [l1] to [l2] in the open file of [st].
- * Raises Invalid_argument if [l2] comes before [l1]. *)
+(* [select_text st l1 l2] selects text from [l1] to [l2] in the currently
+ * selected file in [st]. This function forces [l1] and [l2] to be in order 
+ * and in bounds. *)
 val select_text : state -> int -> int -> state
+
+(* Returns [st] with no selected text in its current file. *)
+val unselect_text : state -> state
+
+(* [get_selected_range st] returns [None] if no text is selected in the 
+ * current file in [st], or [Some (i1, i2)] if there is currently text 
+ * selected from index [i1] to [i2]. *)
+val get_selected_range : state -> (int * int) option
 
 (* [insert_text st s l] inserts string [s] into the contents the open
  * file of [st] at location [l]. *)
