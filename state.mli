@@ -103,9 +103,9 @@ val cursor_down : state -> state
  * the file open in [st] to to [n]. *)
 val scroll_to : state -> int -> state
 
-(* [get_scroll_line_number st] returns the first visible line in the
+(* [get_scroll_line st] returns the first visible line in the
  * currently selected file in [st]. *)
-val get_scroll_line_number : state -> int
+val get_scroll_line : state -> int
 
 (* [get_text st l1 l2] returns all text in the open file of [st] from
  * [l1] to [l2]. Raises Invalid_argument if [l2] comes before [l1].  *)

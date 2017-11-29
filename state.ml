@@ -180,14 +180,14 @@ let cursor_down = fmap_st_f File.cursor_down
 
 (* [scroll_to st n] changes the line number of the scrolled view of
  * the file open in [st] to to [n]. *)
-let scroll_to st n = failwith "Unimplemented"
+let scroll_to st n = fmap_st_f (fun f -> File.scroll_to f n) st
 
-(* [get_scroll_line_number st] returns the first visible line in the
+(* [get_scroll_line st] returns the first visible line in the
  * currently selected file in [st]. *)
-let get_scroll_line_number st = failwith "Unimplemented"
+let get_scroll_line = file_to_state_fun File.get_scroll_line
 
 (* [get_text st l1 l2] returns all text in the open file of [st] from
- * [l1] to [l2]. Raises Invalid_argument if [l2] comes before [l1].  *)
+ * [l1] to [l2]. Raises Invalid_argument if [l2] comes before [l1]. *)
 let get_text = file_to_state_fun File.get_text
 
 (* [get_all_text st] returns a string representing all of the text in
