@@ -3,11 +3,6 @@ open State
 
 let slstate = empty_state |> fun st -> open_file st "testtxts/somelines.txt"
 
-(* [test_state tname f st exp] creates a test case with name [tname]
- * that checks if [f st] is equal to [exp]. *)
-let test_state tname f st exp = 
-  tname >:: (fun _ -> assert_equal exp (f st))
-
 (* If [f st] returns [st'], this function returns a test case with
  * name [tname] that checks that [(get_cursor_location st', 
  * get_cursor_line_num st', get_cursor_column st')] equals [exp]. *)
@@ -55,4 +50,8 @@ let tests = [
   test_cursor "cursor4" (fun st -> move_cursor st 8 |> cursor_up) 
     slstate (2, 0, 2);
   test_cursor "cursor5" cursor_down slstate (6, 1, 0);
+
+  (* scrolling *)
+  "scroll" >:: (fun _ -> assert_equal 2 
+    (scroll_to slstate 2 |> get_scroll_line))
 ]
