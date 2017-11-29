@@ -51,6 +51,14 @@ let file_to_state_fun f_fun st =
   | Fname s -> f_fun (get_current_file st)
   | _ -> raise (Invalid_argument "no file selected")
 
+(* [fmap_st_f f_fun st] takes a function [f_fun : file -> file],
+ * executes it on the currently selected file in [st] to get [f'], 
+ * and returns a new state with [f'] replacing [f]. *)
+let fmap_st_f f_fun st = 
+  let f' = file_to_state_fun f_fun st in
+  let s = File.get_name f' in
+  { st with files = (s, f') :: (List.remove_assoc s st.files) }
+
 (* [replace_current_file st f] replaces the current file in [st] with [f]
  * and searches through the list of files in [st] and replaces the 
  * the instance with [f]'s name in the list. *)
@@ -141,10 +149,34 @@ let paste st = failwith "Unimplemented"
 
 (* [get_cursor_location st] gets the location of the cursor in the file open
  * in [st]. *)
-let get_cursor_location st = failwith "Unimplemented"
+let get_cursor_location = file_to_state_fun File.get_cursor_location
+
+(* [get_cursor_line_num st] returns the line number of the cursor in
+ * the file that is currently open in [st]. *)
+let get_cursor_line_num = file_to_state_fun File.get_cursor_line_num
+
+(* [get_cursor_line_num st] returns the column of the cursor in
+ * the file that is currently open in [st]. *)
+let get_cursor_column = file_to_state_fun File.get_cursor_column
 
 (* [move_cursor st l] moves the cursor of the open file in [st] to [l] *)
-let move_cursor st l = failwith "Unimplemented"
+let move_cursor st l = fmap_st_f (fun f -> File.move_cursor f l) st
+
+(* [cursor_left st] moves the cursor left on the currently selected
+ * file in [st]. *)
+let cursor_left = fmap_st_f File.cursor_left
+ 
+(* [cursor_right st] moves the cursor right on the currently selected
+ * file in [st]. *)
+let cursor_right = fmap_st_f File.cursor_right
+ 
+(* [cursor_up st] moves the cursor up on the currently selected file
+ * in [st]. *)
+let cursor_up = fmap_st_f File.cursor_up
+
+(* [cursor_down st] moves the cursor down on the currently selected file
+ * in [st]. *)
+let cursor_down = fmap_st_f File.cursor_down
 
 (* [scroll_to st n] changes the line number of the scrolled view of
  * the file open in [st] to to [n]. *)
