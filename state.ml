@@ -1,15 +1,20 @@
 (* The State module contains the entire state of the program,
  * including a list of all files being used. *)
 
+(* open Location *)
 open Color
+open File
+(* open Zed_edit *)
+open Rope
 
 (* Represents the area where user is typing, i.e. in a file or
  * in the command line. *)
 type typing_area = Nofile | Command | Fname of string
 
+type clipboard = rope
+
 (* State of the program. Contains the following information:
  * * List of files currently open
- * * List of files displayed on screen (split screen)
  * * The typing area that is currently being edited
  * * List of most recently used commands
  * * Clipboard for copy/paste
@@ -25,86 +30,96 @@ type state = {
   screens: string list;
   (* currently open file *)
   current_file: typing_area;
+  (* clipboard *)
+clipboard: clipboard
 }
 
 (* [extract file_opt] takes in an 'a option and returns the 'a. *)
-let extract file_opt = 
+let extract file_opt =
   match file_opt with
   | Some f -> f
   | None -> failwith "Unused"
- 
+
 (* [get_current_file st] returns the file that is currently being manipulated.
- * Raises [Invalid_argument] if no file currently selected and [Not_found] 
- * if [st.current_file] holds a string that is not a file being used. *)
-let get_current_file st = 
-  match st.current_file with 
+ * Raises [Invalid_argument] if no file currently selected and [Not_found]
+ * if [current_file] holds a string that is not a file being used. *)
+let get_current_file st =
+  match st.current_file with
   | Fname s -> List.assoc s st.files
   | _ -> raise (Invalid_argument "no file selected")
+
+let set_current_file st f = {st with current_file = Fname (get_name f)}
 
 (* [file_to_state_fun f_fun st] takes a function that acts on a file
  * [f_fun : file -> 'a] and returns a function of type [state -> 'a]
  * that calls to [f_fun] but uses the current file in [st] as input.
- * Raises [Invalid_argument] if no file currently selected and [Not_found] 
- * if [st.current_file] holds a string that is not a file being used. *)
-let file_to_state_fun f_fun st = 
-  match st.current_file with 
+ * Raises [Invalid_argument] if no file currently selected and [Not_found]
+ * if [current_file] holds a string that is not a file being used. *)
+let file_to_state_fun f_fun st =
+  match st.current_file with
   | Fname s -> f_fun (get_current_file st)
   | _ -> raise (Invalid_argument "no file selected")
 
 (* [fmap_st_f f_fun st] takes a function [f_fun : file -> file],
- * executes it on the currently selected file in [st] to get [f'], 
+ * executes it on the currently selected file in [st] to get [f'],
  * and returns a new state with [f'] replacing [f]. *)
-let fmap_st_f f_fun st = 
+let fmap_st_f f_fun st =
   let f' = file_to_state_fun f_fun st in
   let s = File.get_name f' in
   { st with files = (s, f') :: (List.remove_assoc s st.files) }
 
 (* [replace_current_file st f] replaces the current file in [st] with [f]
- * and searches through the list of files in [st] and replaces the 
+ * and searches through the list of files in [st] and replaces the
  * the instance with [f]'s name in the list. *)
-let replace_current_file st f = 
+let replace_current_file st f =
   let file_name = File.get_name f in
   {
     files = begin
-      let fname = file_name in 
+      let fname = file_name in
       (fname, f) :: (List.remove_assoc fname st.files)
     end;
     screens = st.screens;
     current_file = Fname file_name;
+    clipboard = st.clipboard
   }
 
 (* [new_file s] creates a new, empty file at path [s].
  * Raises [Sys_error] if creating file failed. *)
 let new_file s = let ch_out = open_out s in close_out ch_out
 
+let new_clipboard = empty
+
+
 (* New state with no files open yet *)
-let empty_state = 
+let empty_state =
   {
     files = [];
     screens = [];
     current_file = Nofile;
+    clipboard = new_clipboard
   }
 
 (* [get_file_names st] returns a list of strings that represent the names of
  * the currently open files. *)
-let get_file_names st = 
+let get_file_names st =
   List.map (fun x -> fst x) st.files
 
- (* [get_current_file_name st] returns the string of the name of the file being 
+ (* [get_current_file_name st] returns the string of the name of the file being
   * manipulated. *)
-let get_current_file_name st = 
+let get_current_file_name st =
     let f = get_current_file st in
     File.get_name f
 
 (* [open_file st s] constructs the file at path [s] and adds it
  * to the list of files in state [st].
  * Raises Sys_error if file read failed. *)
-let open_file st s = 
-  let new_file = File.open_file s in 
+let open_file st s =
+  let new_file = File.open_file s in
   {
     files = (s, new_file) :: st.files;
     screens = [];
     current_file = Fname s;
+    clipboard = st.clipboard
   }
 
 (* [is_filed_saved st] returns true if the file is saved and false if not*)
@@ -119,33 +134,59 @@ let save_file = file_to_state_fun File.save_file
  * from the list of open files in [st]. The newly selected file
  * becomes the file at the beginning of the list of files in [st].
  * If no file is currently selected, returns [st]. *)
-let close_file st = 
-  match st.current_file with 
-  | Fname s -> 
-    let newfiles = List.remove_assoc s st.files in { 
+let close_file st =
+  match st.current_file with
+  | Fname s ->
+    let newfiles = List.remove_assoc s st.files in {
       files = newfiles;
       screens = List.filter (fun x -> x <> s) st.screens;
-      current_file = begin 
-        match newfiles with 
+      current_file = begin
+        match newfiles with
         | [] -> Nofile
         | (s,_)::_ -> Fname s
       end;
+      clipboard = st.clipboard
     }
   | _ -> st
 
 (* [change_selected_file s st] changes the selected file in [st]
  * to the file with name [s].
  * Raises Not_found if [s] is not one of the files open in [st]. *)
-let change_selected_file s st = 
-  {st with current_file = Fname s }
+(* val change_selected_file : string -> state -> state *)
+
+let unwrap_opt = function
+  | Some x -> x
+  | None -> None
 
 (* [copy st] returns a copy of state with the text selected in the open file of
  * [st] saved to the clipboard *)
-let copy st = failwith "Unimplemented"
+let copy st =
+  let curr = get_current_file st in
+  match (get_selected_range curr) with
+  | None -> st
+  | Some (loc1, loc2) ->
+    let new_clipboard = sub (File.get_contents curr) loc1 loc2 in
+  {st with clipboard = new_clipboard}
+
 
 (* [paste st] returns a copy of state with the text from the clipboard of [st]
  * inserted at the cursor location in the open flie of [st] *)
-let paste st = failwith "Unimplemented"
+let paste st =
+  let curr = get_current_file st in
+  let paste_text = to_string st.clipboard in
+  let rope_before = sub (File.get_contents curr) 0 (File.get_cursor_location curr) in
+  let rope_after =  sub (File.get_contents curr) (File.get_cursor_location curr)
+      (File.cont_length curr) in
+  let new_rope = st.clipboard in
+  let new_rope' = concat2 rope_before new_rope |> concat2 rope_after in
+  let new_contents = File.set_contents curr new_rope' in
+  {st with current_file = Fname (File.get_name new_contents)}
+
+
+let change_selected_file s st =
+  {st with current_file = Fname s }
+
+
 
 (* [get_cursor_location st] gets the location of the cursor in the file open
  * in [st]. *)
@@ -165,11 +206,11 @@ let move_cursor st l = fmap_st_f (fun f -> File.move_cursor f l) st
 (* [cursor_left st] moves the cursor left on the currently selected
  * file in [st]. *)
 let cursor_left = fmap_st_f File.cursor_left
- 
+
 (* [cursor_right st] moves the cursor right on the currently selected
  * file in [st]. *)
 let cursor_right = fmap_st_f File.cursor_right
- 
+
 (* [cursor_up st] moves the cursor up on the currently selected file
  * in [st]. *)
 let cursor_up = fmap_st_f File.cursor_up
@@ -195,7 +236,7 @@ let get_text = file_to_state_fun File.get_text
 let get_all_text = file_to_state_fun File.get_all_text
 
 (* [select_text st l1 l2] selects text from [l1] to [l2] in the currently
- * selected file in [st]. This function forces [l1] and [l2] to be in order 
+ * selected file in [st]. This function forces [l1] and [l2] to be in order
  * and in bounds. *)
 let select_text st l1 l2 = fmap_st_f (fun f -> File.select_text f l1 l2) st
 
@@ -228,11 +269,13 @@ let redo st = failwith "Unimplemented"
 
 (* [color_text st lst] returns a copy of [st] with the open file now
  * having the color mappings of [lst] *)
-let color_text st lst = failwith "Unimplemented"
+let color_text st lst = (*{st with current_file = Some (File.color_text (st.current_file |> extract) lst)}*)
+  failwith "Unimplemented"
 
-(* [get_coloring st] gets the coloring scheme of the currently 
+(* [get_coloring st] gets the color mapping of the currently
  * open file in [st]. *)
-let get_coloring st = failwith "Unimplemented"
+let get_coloring st = (*File.get_coloring (st.current_file |> extract)*)
+  failwith "Unimplemented"
 
 (* [get_search_term st] gets the current search term in [st]. *)
 let get_search_term st = failwith "Unimplemented"

@@ -7,6 +7,8 @@ open Color
  * in the command line. *)
 type typing_area
 
+type clipboard
+
 (* State of the program. Contains the following information:
  * * List of files currently open
  * * The typing area that is currently being edited
@@ -18,6 +20,8 @@ type typing_area
  * * Current search term *)
 type state
 
+val new_clipboard : Rope.t
+
 (* [new_file s] creates a new, empty file at path [s].
  * Raises Sys_error creating file failed. *)
 val new_file : string -> unit
@@ -27,12 +31,15 @@ val empty_state : state
 
 (* [get_file_names st] returns a list of strings that represent the names of
  * the currently open files. *)
- val get_file_names : state -> string list 
- 
+ val get_file_names : state -> string list
+
  (* [get_current_file st] returns the file that is currently being manipulated *)
- val get_current_file : state -> File.file 
- 
- (* [get_current_file_name st] returns the string of the name of the file being 
+val get_current_file : state -> File.file
+
+(* [set_current_file st f] returns a new state with the same fields as st except
+ * with the current file set to f*)
+
+ (* [get_current_file_name st] returns the string of the name of the file being
   * manipulated. *)
  val get_current_file_name : state -> string
 
@@ -149,7 +156,7 @@ val redo : state -> state
  * having the color mappings of [lst] *)
 val color_text : state -> color_mapping -> state
 
-(* [get_coloring st] gets the coloring scheme of the currently 
+(* [get_coloring st] gets the coloring scheme of the currently
  * open file in [st]. *)
 val get_coloring : state -> color_mapping
 
