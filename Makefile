@@ -3,3 +3,8 @@ test:
 
 clean:
 	ocamlbuild -clean
+
+compile:
+	jbuilder build clview.exe
+	ocamlbuild -use-ocamlfind state.byte
+	ocamlbuild -use-ocamlfind file.byte

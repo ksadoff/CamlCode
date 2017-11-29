@@ -51,14 +51,19 @@ type file = {
 
   (* a list of tuples that represent the beginning location of a color, and
    * the color that characters starting at that location should be. *)
-  color_mapping : Color.color_mapping
+  color_mapping : Color.color_mapping;
 
-  (* clipboard : string;
-  was_saved : bool; *)
+  clipboard : Rope.t;
+
+  was_saved : bool;
 }
 
 (* [get_cont_length f] returns the length of the contents of [f]. *)
 let cont_length f = Rope.length f.contents
+
+let get_contents f = f.contents
+
+let set_contents f r = {f with contents = r}
 
 (* [find_newlines cont i0] returns a list [l] (not an array)
  * such that the ith element of [l] is the length of the ith line
@@ -114,6 +119,8 @@ let open_file s =
     search_term = None;
     replace_term = None;
     color_mapping = Color.empty_cm;
+    clipboard = Rope.empty;
+    was_saved = false
   }
 
 (* [save_file f] saves [f] at relative path [s].
@@ -323,6 +330,8 @@ let unselect_text f = {f with selected_range = None}
  * or [Some (i1, i2)] if there is currently text selected from
  * index [i1] to [i2]. *)
 let get_selected_range f = f.selected_range
+
+let set_selected_range f (i1, i2) = {f with selected_range = Some (i1, i2)}
 
 (* [insert_text f s] inserts string [s] into the contents
  * of [f] at location [l]. The beginning of the inserted string
