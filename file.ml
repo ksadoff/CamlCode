@@ -359,7 +359,8 @@ let insert_text f s l' =
   }
 
 (* [insert_char f c] inserts a character [c] into the contents of [f] 
- * at the cursor location in [f]. *)
+ * at the cursor location in [f] and moves the cursor one character 
+ * to the right. *)
 let insert_char f c = 
   let len_rope = cont_length f in
   let l = f.cursor in
@@ -389,7 +390,7 @@ let insert_char f c =
             Array.sub f.line_lengths ln (len_arr - ln)
           else [||];
         ];
-  }
+  } |> cursor_right
 
 (* [delete_text l1 l2] deletes all text in [f] from location
  * [l1] to [l2]. The new file contents contains everything up
@@ -405,6 +406,46 @@ let delete_text f l1' l2' =
   { f with
     contents = new_rope;
     line_lengths = line_lengths_arr new_rope;
+  }
+
+(* [delete_char f] deletes the character directly to the left of the 
+ * cursor in [f] and moves the cursor left one character. If there
+ * is no character before the cursor, the file is left unchanged. *)
+let delete_char f = 
+  if f.cursor = 0 then f else
+  let deleted_char = Rope.get f.contents (f.cursor - 1) in
+  let begin_rope = Rope.sub f.contents 0 (f.cursor - 1) in
+  let len_rope = Rope.length f.contents in 
+  let end_rope = Rope.sub f.contents f.cursor (len_rope - f.cursor) in
+  let new_rope = Rope.concat2 begin_rope end_rope in
+  { f with
+    contents = new_rope;
+    line_lengths = begin
+      if deleted_char <> '\n' then 
+        let prev_len = Array.get f.line_lengths f.cursor_line_num in
+        let new_lls = Array.copy f.line_lengths in
+        Array.set new_lls f.cursor_line_num (prev_len - 1);
+        new_lls
+      else 
+        let len_arr = Array.length f.line_lengths in
+        let p_line_len = Array.get f.line_lengths (f.cursor_line_num - 1) in
+        let line_len = Array.get f.line_lengths f.cursor_line_num in
+        Array.concat [
+          Array.sub f.line_lengths 0 (f.cursor_line_num - 1);
+          [|p_line_len + line_len - 1|];
+          if f.cursor_line_num < len_arr - 1
+          then let ln = f.cursor_line_num + 1 in
+            Array.sub f.line_lengths ln (len_arr - ln)
+          else [||];
+        ]
+      end;
+    cursor = f.cursor - 1;
+    cursor_line_num = 
+      if deleted_char <> '\n' then f.cursor_line_num 
+      else f.cursor_line_num - 1;
+    cursor_column = 
+      if deleted_char <> '\n' then f.cursor_column - 1
+      else Array.get f.line_lengths (f.cursor_line_num - 1) - 1;
   }
 
 (* [undo f] undoes the last change recorded in [f]. If there
