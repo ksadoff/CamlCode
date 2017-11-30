@@ -2,16 +2,18 @@ open OUnit2
 open State
 
 let slstate = empty_state |> fun st -> open_file st "testtxts/somelines.txt"
+let slstate' = select_text slstate 0 5
 
 (* If [f st] returns [st'], this function returns a test case with
  * name [tname] that checks that [(get_cursor_location st', *)
-let basic_clipboard = Rope.make 10 'a'
+let basic_clipboard = string_to_clipboard "hello"
+let basic_state = empty_state |> fun st -> open_file st "testtxts/clipboardtest.txt"
+let basic_state_file = File.select_text (get_current_file basic_state) 0 9
+let basic_state' = change_selected_file (File.get_name basic_state_file) basic_state
 
-let basic_state = empty_state |> fun sr -> open_file st "testtxts/clipboardtest.txt"
-let basic_state_file = File.set_selected_range (get_current_file basic_state) (0, 9)
-let basic_state' = set_current_file basic_state basic_state_file
-let basic_state_paste_file = File.move_cursor basic_state_file 10
-let basic_state_paste = set_current_file basic_state' basic_state_paste_file
+let basic_state_paste = move_cursor basic_state 4
+let paste_text = "aaaaaaaaaaaaaaaaaaaa\n\nhi"
+(* let basic_state_paste = change_selected_file (File.get_name basic_state_paste_file) basic_state' *)
 
 (* If [f st] returns [st'], this function returns a test case with
  * name [tname] that checks that [(get_cursor_location st',
@@ -70,14 +72,16 @@ let tests = [
     (select_text slstate 3 9 |> get_selected_range));
   "unselect" >:: (fun _ -> assert_equal None
     (select_text slstate 3 9 |> unselect_text |> get_selected_range));
-]
+
   "unselect" >:: (fun _ -> assert_equal None
                      (select_text slstate 3 9 |> unselect_text |> get_selected_range));
 
   (*clipboard*)
-  "clipboard empty" >:: (fun _ -> assert_equal Rope.empty (new_clipboard));
-  "clipboard copy" >:: (fun _ -> assert_equal basic_clipboard (copy basic_state'));
-  "clipboard paste" >:: (fun _ -> assert_equal Rope.concat2 basic_clipboard basic_clipboard
-                            (paste basic_state_paste));
+  "selected range" >:: (fun _ -> assert_equal (Some (0, 9)) (get_selected_range (select_text slstate 0 9)));
+  "clipboard empty" >:: (fun _ -> assert_equal (string_to_clipboard "") (new_clipboard));
+  "clipboard copy" >:: (fun _ -> assert_equal basic_clipboard (copy slstate' |>
+                                                               get_clipboard));
+  (* "clipboard paste" >:: (fun _ -> assert_equal (paste_text)
+                            (paste basic_state_paste |> get_all_text)); *)
 
 ]
