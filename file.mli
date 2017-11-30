@@ -112,6 +112,11 @@ val insert_char : file -> char -> file
  * [l1] to [l2]. *)
 val delete_text : file -> int -> int -> file
 
+(* [delete_char f] deletes the character directly to the left of the 
+ * cursor in [f] and moves the cursor left one character. If there
+ * is no character before the cursor, the file is left unchanged. *)
+val delete_char : file -> file
+
 (* [undo f] undoes the last change recorded in [f]. If there
  * is nothing left to undo, [undo f] will return [f] unchanged. *)
 val undo : file -> file

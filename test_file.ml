@@ -49,7 +49,7 @@ let insert_test test_name orig_f s l exp_s exp_ls =
     ~printer: (fun (s, ls) -> "\"" ^ s ^ "\", " ^ (int_list_printer ls))
   )
 
-(* [ins_ch_test test_name f s l exp_s exp_ls] creates a test case with name
+(* [ins_ch_test test_name f c l exp_s exp_ls] creates a test case with name
  * [test_name] that inserts char [c] into the contents of [f] at
  * location [l]. [exp_s] is the expected string contents of [f], and
  * [exp_ls] is the expected list of line lengths in [f]. [exp_cur]
@@ -72,6 +72,20 @@ let insert_test test_name orig_f s l exp_s exp_ls =
   test_name >:: (fun _ -> assert_equal (exp_s, exp_ls)
     (get_all_text f, get_line_lengths f)
     ~printer: (fun (s, ls) -> "\"" ^ s ^ "\", " ^ (int_list_printer ls))
+  )
+
+(* [del_ch_test test_name f l exp_s exp_ls] creates a test case with name
+ * [test_name] that deletes a char in the contents of [f] at
+ * location [l]. [exp_s] is the expected string contents of [f], and
+ * [exp_ls] is the expected list of line lengths in [f]. [exp_cur]
+ * is the tuple of the expected cursor index, line number, and column. *)
+let del_ch_test test_name orig_f l exp_s exp_ls exp_cur =
+  let f = let f' = move_cursor orig_f l in delete_char f' in
+  test_name >:: (fun _ -> assert_equal (exp_s, exp_ls, exp_cur)
+    (get_all_text f, get_line_lengths f, 
+      (get_cursor_location f, get_cursor_line_num f ,get_cursor_column f))
+    ~printer: (fun (s, ls, cur) -> "\"" ^ s ^ "\", " ^ 
+      (int_list_printer ls) ^ (three_tuple_to_string cur))
   )
 
 (* Test cases for File module. *)
@@ -198,6 +212,26 @@ let tests = [
   delete_test "delete5" somelines 0 16 "\n" [1];
   delete_test "delete6" somelines 15 17 
     "hello\nworld\n\n!!\n" [6; 6; 1; 3];
+
+  (* deleting char *)
+  del_ch_test "delch0" somelines 0
+    "hello\nworld\n\n!!!\n" [6; 6; 1; 4] (0, 0, 0);
+  del_ch_test "delch1" somelines 3
+    "helo\nworld\n\n!!!\n" [5; 6; 1; 4] (2, 0, 2);
+  del_ch_test "delch2" somelines 7
+    "hello\norld\n\n!!!\n" [6; 5; 1; 4] (6, 1, 0);
+  del_ch_test "delch3" somelines 16
+    "hello\nworld\n\n!!\n" [6; 6; 1; 3] (15, 3, 2);
+  del_ch_test "delch4" somelines 17
+    "hello\nworld\n\n!!\n" [6; 6; 1; 3] (15, 3, 2);
+  del_ch_test "delch5" somelines (-1)
+    "hello\nworld\n\n!!!\n" [6; 6; 1; 4] (0, 0, 0);
+  del_ch_test "delch6" somelines 6
+    "helloworld\n\n!!!\n" [11; 1; 4] (5, 0, 5);
+  del_ch_test "delch7" somelines 12
+    "hello\nworld\n!!!\n" [6; 6; 4] (11, 1, 5);
+  del_ch_test "delch8" somelines 13
+    "hello\nworld\n!!!\n" [6; 6; 4] (12, 2, 0);
 
   (* saving a file *)
   "save" >:: (fun _ -> assert_equal "abcde\n" (
