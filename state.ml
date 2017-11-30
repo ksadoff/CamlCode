@@ -91,6 +91,7 @@ let new_file s = let ch_out = open_out s in close_out ch_out
 
 let new_clipboard = empty
 
+let string_to_clipboard s = of_string s
 
 (* New state with no files open yet *)
 let empty_state =
@@ -157,14 +158,21 @@ let close_file st =
 let change_selected_file s st =
   {st with current_file = Fname s }
 
+
+let get_clipboard st = st.clipboard
+
 (* [copy st] returns a copy of state with the text selected in the open file of
  * [st] saved to the clipboard *)
 let copy st =
   let curr = get_current_file st in
+  (* Pervasives.print_endline (File.get_name curr);
+  Pervasives.print_endline ("what I want: "^(File.get_text curr 0 5)); *)
   match (get_selected_range curr) with
   | None -> st
   | Some (loc1, loc2) ->
-    let new_clipboard = sub (File.get_contents curr) loc1 loc2 in
+    (* Pervasives.print_endline ((string_of_int loc1)^(string_of_int loc2)); *)
+    let new_clipboard = (File.get_text curr loc1 loc2 |> of_string) in
+    (* let () = Pervasives.print_endline (to_string new_clipboard) in *)
   {st with clipboard = new_clipboard}
 
 
@@ -172,13 +180,15 @@ let copy st =
  * inserted at the cursor location in the open flie of [st] *)
 let paste st =
   let curr = get_current_file st in
-  let paste_text = to_string st.clipboard in
-  let rope_before = sub (File.get_contents curr) 0 (File.get_cursor_location curr) in
-  let rope_after =  sub (File.get_contents curr) (File.get_cursor_location curr)
+  (* let paste_text = to_string st.clipboard in *)
+  (* let rope_before = sub (File.get_all_text curr |> of_string) 0 (File.get_cursor_location curr) in
+  let rope_after =  sub (File.get_all_text curr |> of_string) (File.get_cursor_location curr)
       (File.cont_length curr) in
   let new_rope = st.clipboard in
-  let new_rope' = concat2 rope_before new_rope |> concat2 rope_after in
-  let new_contents = File.set_contents curr new_rope' in
+     let new_rope' = concat2 rope_before new_rope |> concat2 rope_after in *)
+  Pervasives.print_endline ("contents before: "^get_all_text curr);
+  let new_contents = File.insert_text curr (to_string st.clipboard) (File.get_cursor_location curr) in
+  Pervasives.print_endline ("contents after: "^File.get_all_text new_contents);
   {st with current_file = Fname (File.get_name new_contents)}
 
 
@@ -268,11 +278,11 @@ let redo st = failwith "Unimplemented"
 
 (* [color_text st lst] returns a copy of [st] with the open file now
  * having the color mappings of [lst] *)
-let color_text st lst = {st with current_file = Some (File.color_text (st.current_file |> extract) lst)}
+let color_text st lst = {st with current_file = Fname (File.get_name (File.color_text (get_current_file st) lst))}
 
 (* [get_coloring st] gets the color mapping of the currently
  * open file in [st]. *)
-let get_coloring st = File.get_coloring (st.current_file |> extract)
+let get_coloring st = File.get_coloring (get_current_file st)
 
 (* [get_search_term st] gets the current search term in [st]. *)
 let get_search_term st = failwith "Unimplemented"

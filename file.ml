@@ -331,7 +331,7 @@ let unselect_text f = {f with selected_range = None}
  * index [i1] to [i2]. *)
 let get_selected_range f = f.selected_range
 
-let set_selected_range f (i1, i2) = {f with selected_range = Some (i1, i2)}
+let set_selected_range f i_opt = {f with selected_range = i_opt}
 
 (* [insert_text f s] inserts string [s] into the contents
  * of [f] at location [l]. The beginning of the inserted string
