@@ -257,13 +257,21 @@ let get_selected_range = file_to_state_fun File.get_selected_range
 
 (* [insert_text st s l] inserts string [s] into the contents the open
  * file of [st] at location [l]. *)
-let insert_text st s l = (file_to_state_fun File.insert_text) st s l
-  |> replace_current_file st
+let insert_text st s l = fmap_st_f (fun f -> File.insert_text f s l) st
+
+(* [insert_char st c] inserts a character [c] at the cursor position
+ * in the currently selected file in [f] and moves the cursor one
+ * position to the right. *)
+let insert_char st c = fmap_st_f (fun f -> File.insert_char f c) st
 
 (* [delete_text st l1 l2] deletes all the text in the currently held
  * file from location [l1] to [l2]. *)
-let delete_text st l1 l2 = (file_to_state_fun File.delete_text) st l1 l2
-  |> replace_current_file st
+let delete_text st l1 l2 = fmap_st_f (fun f -> File.delete_text f l1 l2) st
+
+(* [delete_char st] deletes the character before the cursor postion
+ * in the currently selected file in [st] and moves the cursor 
+ * to the left accordingly. *)
+let delete_char = fmap_st_f File.delete_char
 
 (* [undo st] undoes the last change recorded in the open file of [st].
  * If there is nothing left to undo, [undo st] will return [st] unchanged. *)

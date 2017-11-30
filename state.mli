@@ -156,9 +156,19 @@ val get_selected_range : state -> (int * int) option
  * file of [st] at location [l]. *)
 val insert_text : state -> string -> int -> state
 
+(* [insert_char st c] inserts a character [c] at the cursor position
+ * in the currently selected file in [st] and moves the cursor one
+ * position to the right. *)
+val insert_char : state -> char -> state
+
 (* [delete_text l1 l2] deletes all the text in the currently held
  * file from location [l1] to [l2]. *)
 val delete_text : state -> int -> int -> state
+
+(* [delete_char st] deletes the character before the cursor postion
+ * in the currently selected file in [st] and moves the cursor 
+ * to the left accordingly. *)
+val delete_char : state -> state
 
 (* [undo st] undoes the last change recorded in the open file of [st].
  * If there is nothing left to undo, [undo st] will return [st] unchanged. *)

@@ -49,9 +49,23 @@ let tests = [
     )
   );
 
+  (* insert char *)
+  "ins_char" >:: (fun _ -> assert_equal "hello\nworld\na\n!!!\n" (
+    move_cursor slstate 12
+    |> fun st -> insert_char st 'a'
+    |> get_all_text
+  ));
+
   (* delete text *)
   "delete" >:: (fun _ -> assert_equal "h\n" 
     (delete_text slstate 1 17 |> get_all_text));
+
+  (* delete char *)
+  "del_char" >:: (fun _ -> assert_equal "hello\nworld\n!!!\n" (
+    move_cursor slstate 12
+    |> delete_char
+    |> get_all_text
+  ));
 
   (* test cursor *)
   test_cursor "cursor0" (fun x -> x) slstate (0, 0, 0);
