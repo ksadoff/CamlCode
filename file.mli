@@ -29,9 +29,17 @@ val open_file : string -> file
 (* [save_file f s] saves [f] at relative path [s].
  * Raises Sys_error if file write failed. *)
 val save_file : file -> string -> unit
+(*
+(* [get_file_contents f] returns the rope that represents the context of the file *)
+val get_file_contents : file -> Rope.t *)
 
 (* [get_cont_length f] returns the length of the file_contents of [f]. *)
 val cont_length : file -> int
+(*
+(* [get_contents f] returns the *)
+(* [set_file_contents f r] returns a new file with all the old fields of f
+ * except with file_contents now set to r *)
+val set_file_contents : file -> Rope.t -> file *)
 
 (* [get_name f] is the relative path of [f]. *)
 val get_name : file -> string
@@ -100,6 +108,10 @@ val unselect_text : file -> file
  * or [Some (i1, i2)] if there is currently text selected from index
  * [i1] to [i2]. *)
 val get_selected_range : file -> (int * int) option
+
+(* [set_selected_range f (i1,i2)] returns a new file with the same fields as f
+ *  except with selected_range set to (i1, i2) *)
+(* val set_selected_range : file -> (int * int) option -> file *)
 
 (* [insert_text f s] inserts string [s] into the contents
  * of [f] at location [l]. The beginning of the inserted string

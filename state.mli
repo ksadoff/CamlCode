@@ -20,7 +20,11 @@ type clipboard
  * * Current search term *)
 type state
 
-val new_clipboard : Rope.t
+val new_clipboard : clipboard
+
+(* [string_to_clipboard s] converts s into our representation type
+ * for clipboard *)
+val string_to_clipboard : string -> clipboard
 
 (* [new_file s] creates a new, empty file at path [s].
  * Raises Sys_error creating file failed. *)
@@ -75,6 +79,10 @@ val close_file : state -> state
  * to the file with name [s].
  * Raises Not_found if [s] is not one of the files open in [st]. *)
 val change_selected_file : string -> state -> state
+
+
+(* [get_clipboard st] returns the current clipboard of st *)
+val get_clipboard : state -> clipboard
 
 (* [copy st] returns a copy of state with the text selected in the open file of
  * [st] saved to the clipboard *)

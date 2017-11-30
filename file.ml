@@ -338,6 +338,8 @@ let concat_with_newline ropes =
   if (Rope.length combo = 0) || Rope.get combo (Rope.length combo - 1) <> '\n'
   then Rope.concat2 combo (Rope.of_string "\n")
   else combo
+  
+let set_selected_range f i_opt = {f with selected_range = i_opt}
 
 (* [insert_text f s] inserts string [s] into the contents
  * of [f] at location [l]. The beginning of the inserted string
