@@ -9,6 +9,10 @@ let somelines = File.open_file "testtxts/somelines.txt"
 let somelines_moved = move_cursor somelines 12
 let somelines_moved2 = move_cursor somelines 8
 
+(* Converts a tuple of 3 ints to a string *)
+let three_tuple_to_string (a, b, c) = "(" ^ (string_of_int a)
+  ^ ", " ^ (string_of_int b) ^ ", " ^ (string_of_int c) ^ ")"
+
 (* [move_cursor_test test_name f l exp] returns a test case where
  * the cursor in file [f] is moved to index [l]. [exp] is
  * the expected (index, line num, column) tuple. [test_name] is
@@ -19,9 +23,7 @@ let move_cursor_test test_name orig_f l exp =
     (get_cursor_location f,
     get_cursor_line_num f,
     get_cursor_column f)
-    ~printer: (fun (i,l,c) -> "(" ^ (string_of_int i) ^ ", " ^
-      (string_of_int l) ^ ", " ^
-      (string_of_int c) ^ ")")
+    ~printer: three_tuple_to_string
   )
 
 (* [modify_file_test test_name f ffun exp] returns a test case where
@@ -33,9 +35,7 @@ let modify_file_test test_name orig_f ffun exp =
     (get_cursor_location f,
     get_cursor_line_num f,
     get_cursor_column f)
-    ~printer: (fun (i,l,c) -> "(" ^ (string_of_int i) ^ ", " ^
-      (string_of_int l) ^ ", " ^
-      (string_of_int c) ^ ")")
+    ~printer: three_tuple_to_string
   )
 
 (* [insert_test test_name f s l exp_s exp_ls] creates a test case with name
@@ -49,16 +49,51 @@ let insert_test test_name orig_f s l exp_s exp_ls =
     ~printer: (fun (s, ls) -> "\"" ^ s ^ "\", " ^ (int_list_printer ls))
   )
 
+(* [ins_ch_test test_name f c l exp_s exp_ls] creates a test case with name
+ * [test_name] that inserts char [c] into the contents of [f] at
+ * location [l]. [exp_s] is the expected string contents of [f], and
+ * [exp_ls] is the expected list of line lengths in [f]. [exp_cur]
+ * is the tuple of the expected cursor index, line number, and column. *)
+let ins_ch_test test_name orig_f c l exp_s exp_ls exp_cur =
+  let f = let f' = move_cursor orig_f l in insert_char f' c in
+  test_name >:: (fun _ -> assert_equal (exp_s, exp_ls, exp_cur)
+    (get_all_text f, get_line_lengths f,
+      (get_cursor_location f, get_cursor_line_num f ,get_cursor_column f))
+    ~printer: (fun (s, ls, cur) -> "\"" ^ s ^ "\", " ^
+      (int_list_printer ls) ^ (three_tuple_to_string cur))
+  )
+
 (* [delete_test test_name f l1 l2 exp_s exp_ls] creates a test case with
  * name [test_name] that deletes contents of [f] from [l1] to [l2]. [exp_s]
  * is the expected string contents of [f], and [exp_ls] is the expected
  * list of line lengths in [f]. *)
- let delete_test test_name orig_f l1 l2 exp_s exp_ls =
+let delete_test test_name orig_f l1 l2 exp_s exp_ls =
   let f = delete_text orig_f l1 l2 in
   test_name >:: (fun _ -> assert_equal (exp_s, exp_ls)
     (get_all_text f, get_line_lengths f)
     ~printer: (fun (s, ls) -> "\"" ^ s ^ "\", " ^ (int_list_printer ls))
   )
+
+(* [del_ch_test test_name f l exp_s exp_ls] creates a test case with name
+ * [test_name] that deletes a char in the contents of [f] at
+ * location [l]. [exp_s] is the expected string contents of [f], and
+ * [exp_ls] is the expected list of line lengths in [f]. [exp_cur]
+ * is the tuple of the expected cursor index, line number, and column. *)
+let del_ch_test test_name orig_f l exp_s exp_ls exp_cur =
+  let f = let f' = move_cursor orig_f l in delete_char f' in
+  test_name >:: (fun _ -> assert_equal (exp_s, exp_ls, exp_cur)
+    (get_all_text f, get_line_lengths f,
+      (get_cursor_location f, get_cursor_line_num f ,get_cursor_column f))
+    ~printer: (fun (s, ls, cur) -> "\"" ^ s ^ "\", " ^
+      (int_list_printer ls) ^ (three_tuple_to_string cur))
+  )
+
+(* [is_saved_test test_name f_fun f exp] funs [f_fun f] to get a new file
+ * [f'] and makes a test case checking that [is_saved f' = exp]. *)
+let is_saved_test test_name f_fun f exp =
+  test_name >:: (fun _ -> assert_equal exp (
+    f |> f_fun |> is_saved
+  ) ~printer: string_of_bool)
 
 (* Test cases for File module. *)
 let tests = [
@@ -150,9 +185,27 @@ let tests = [
   insert_test "insert3" somelines "yo" (-1)
     "yohello\nworld\n\n!!!\n" [8; 6; 1; 4];
   insert_test "insert4" somelines "yo" 17
-    "hello\nworld\n\n!!!\nyo" [6; 6; 1; 4; 2];
+    "hello\nworld\n\n!!!\nyo\n" [6; 6; 1; 4; 3];
   insert_test "insert5" somelines "ok\n" 20
     "hello\nworld\n\n!!!\nok\n" [6; 6; 1; 4; 3];
+
+  (* inserting char *)
+  ins_ch_test "insch0" somelines 'a' 0
+    "ahello\nworld\n\n!!!\n" [7; 6; 1; 4] (1, 0, 1);
+  ins_ch_test "insch1" somelines 'o' 17
+    "hello\nworld\n\n!!!o\n" [6; 6; 1; 5] (17, 3, 4);
+  ins_ch_test "insch2" (delete_text somelines 16 17) 'o' 16
+    "hello\nworld\n\n!!!o\n" [6; 6; 1; 5] (17, 3, 4);
+  ins_ch_test "insch3" somelines ' ' 8
+    "hello\nwo rld\n\n!!!\n" [6; 7; 1; 4] (9, 1, 3);
+  ins_ch_test "insch4" somelines '\n' 8
+    "hello\nwo\nrld\n\n!!!\n" [6; 3; 4; 1; 4] (9, 2, 0);
+  ins_ch_test "insch5" somelines '\n' 2
+    "he\nllo\nworld\n\n!!!\n" [3; 4; 6; 1; 4] (3, 1, 0);
+  ins_ch_test "insch6" somelines '\n' 16
+    "hello\nworld\n\n!!!\n\n" [6; 6; 1; 4; 1] (17, 4, 0);
+  ins_ch_test "insch7" somelines '\n' 14
+    "hello\nworld\n\n!\n!!\n" [6; 6; 1; 2; 3] (15, 4, 0);
 
   (* deleting text *)
   delete_test "delete0" somelines 0 3
@@ -161,16 +214,39 @@ let tests = [
     "hellorld\n\n!!!\n" [9; 1; 4];
   delete_test "delete2" somelines 12 6
     "hello\n\n!!!\n" [6; 1; 4];
-  delete_test "delete3" somelines 0 17 "" [];
-  delete_test "delete4" somelines (-1) 18 "" [];
+  delete_test "delete3" somelines 0 17 "\n" [1];
+  delete_test "delete4" somelines (-1) 18 "\n" [1];
   delete_test "delete5" somelines 0 16 "\n" [1];
+  delete_test "delete6" somelines 15 17
+    "hello\nworld\n\n!!\n" [6; 6; 1; 3];
+
+  (* deleting char *)
+  del_ch_test "delch0" somelines 0
+    "hello\nworld\n\n!!!\n" [6; 6; 1; 4] (0, 0, 0);
+  del_ch_test "delch1" somelines 3
+    "helo\nworld\n\n!!!\n" [5; 6; 1; 4] (2, 0, 2);
+  del_ch_test "delch2" somelines 7
+    "hello\norld\n\n!!!\n" [6; 5; 1; 4] (6, 1, 0);
+  del_ch_test "delch3" somelines 16
+    "hello\nworld\n\n!!\n" [6; 6; 1; 3] (15, 3, 2);
+  del_ch_test "delch4" somelines 17
+    "hello\nworld\n\n!!\n" [6; 6; 1; 3] (15, 3, 2);
+  del_ch_test "delch5" somelines (-1)
+    "hello\nworld\n\n!!!\n" [6; 6; 1; 4] (0, 0, 0);
+  del_ch_test "delch6" somelines 6
+    "helloworld\n\n!!!\n" [11; 1; 4] (5, 0, 5);
+  del_ch_test "delch7" somelines 12
+    "hello\nworld\n!!!\n" [6; 6; 4] (11, 1, 5);
+  del_ch_test "delch8" somelines 13
+    "hello\nworld\n!!!\n" [6; 6; 4] (12, 2, 0);
 
   (* saving a file *)
   "save" >:: (fun _ -> assert_equal "abcde\n" (
     somelines
     |> fun f -> delete_text f 0 17
     |> fun f -> insert_text f "abcde" 0
-    |> fun f -> save_file f "testtxts/temp.txt";
+    |> fun f -> save_file f "testtxts/temp.txt"
+    |> fun f -> ();
     open_file "testtxts/temp.txt" |> get_all_text
   ) ~printer: (fun s -> s));
 
@@ -226,7 +302,7 @@ let tests = [
     ((set_replace_term (find somelines "h") "H") |> replace_next |> get_selected_range));
   "rep_next1" >:: (fun _ -> assert_equal "Hello\nHorld\n\n!!!\n"
     ((find ((set_replace_term (find somelines "h") "H") |> replace_next) "w") |> replace_next |> get_all_text));
-  "rep_next2" >:: (fun _ -> assert_equal "helloworld!!!"
+  "rep_next2" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
     ((set_replace_term (find somelines "\n") "") |> replace_next |> replace_next |> replace_next |> replace_next |> get_all_text));
   "rep_next3" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
     ((set_replace_term (find somelines "") "H") |> replace_next |> get_all_text));
@@ -234,12 +310,39 @@ let tests = [
                       ((find somelines "h") |> replace_next |> get_all_text));
 
   (* tests for replace all *)
-  "rep_all0" >:: (fun _ -> assert_equal "Hello\nworld\n\n!!!\n"
+   "rep_all0" >:: (fun _ -> assert_equal "Hello\nworld\n\n!!!\n"
     ((set_replace_term (find somelines "h") "H") |> replace_all |> get_all_text));
   "rep_all1" >:: (fun _ -> assert_equal "heLLo\nworLd\n\n!!!\n"
     ((set_replace_term (find somelines "l") "L") |> replace_all |> get_all_text));
-  "rep_all1" >:: (fun _ -> assert_equal "helloworld!!!"
+  "rep_all2" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
     ((set_replace_term (find somelines "\n") "") |> replace_all |> get_all_text));
-  "rep_all1" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+
+  "rep_all3" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
     ((set_replace_term (find somelines "H") "h") |> replace_all |> get_all_text));
+
+  (* saving a file *)
+  "save" >:: (fun _ -> assert_equal "abcde\n" (
+    somelines
+    |> fun f -> delete_text f 0 17
+    |> fun f -> insert_text f "abcde" 0
+    |> fun f -> save_file f "testtxts/temp.txt"
+    |> fun f -> ();
+    open_file "testtxts/temp.txt" |> get_all_text
+  ) ~printer: (fun s -> s));
+
+  (* is_saved *)
+  "issaved0" >:: (fun _ -> assert_equal true (
+    somelines
+    |> fun f -> delete_text f 0 17
+    |> fun f -> insert_text f "abcde" 0
+    |> fun f -> save_file f "testtxts/temp.txt"
+    |> is_saved
+  ) ~printer: string_of_bool);
+  is_saved_test "issaved1" (fun f -> delete_text f 0 17) somelines false;
+  is_saved_test "issaved2" (fun f -> insert_text f "abcde" 0) somelines false;
+  is_saved_test "issaved3" (fun f -> insert_char f 'a') somelines false;
+  is_saved_test "issaved4" delete_char somelines true;
+  is_saved_test "issaved5" (fun f -> move_cursor f 4 |> delete_char)
+    somelines false;
+
 ]

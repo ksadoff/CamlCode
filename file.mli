@@ -28,7 +28,22 @@ val open_file : string -> file
 
 (* [save_file f s] saves [f] at relative path [s].
  * Raises Sys_error if file write failed. *)
-val save_file : file -> string -> unit
+val save_file : file -> string -> file
+
+(* [is_saved f] returns whether [f] was saved since the last modification. *)
+val is_saved : file -> bool
+
+(*
+(* [get_file_contents f] returns the rope that represents the context of the file *)
+val get_file_contents : file -> Rope.t *)
+
+(* [get_cont_length f] returns the length of the file_contents of [f]. *)
+val cont_length : file -> int
+(*
+(* [get_contents f] returns the *)
+(* [set_file_contents f r] returns a new file with all the old fields of f
+ * except with file_contents now set to r *)
+val set_file_contents : file -> Rope.t -> file *)
 
 (* [get_name f] is the relative path of [f]. *)
 val get_name : file -> string
@@ -98,15 +113,28 @@ val unselect_text : file -> file
  * [i1] to [i2]. *)
 val get_selected_range : file -> (int * int) option
 
+(* [set_selected_range f (i1,i2)] returns a new file with the same fields as f
+ *  except with selected_range set to (i1, i2) *)
+(* val set_selected_range : file -> (int * int) option -> file *)
+
 (* [insert_text f s] inserts string [s] into the contents
  * of [f] at location [l]. The beginning of the inserted string
  * will be at index [l]. If [l] is an invalid location, the closest
  * valid location will be used. *)
 val insert_text : file -> string -> int -> file
 
+(* [insert_char f c] inserts a character [c] into the contents of [f]
+ * at the cursor location in [f]. *)
+val insert_char : file -> char -> file
+
 (* [delete_text l1 l2] deletes all text in [f] from location
  * [l1] to [l2]. *)
 val delete_text : file -> int -> int -> file
+
+(* [delete_char f] deletes the character directly to the left of the
+ * cursor in [f] and moves the cursor left one character. If there
+ * is no character before the cursor, the file is left unchanged. *)
+val delete_char : file -> file
 
 (* [undo f] undoes the last change recorded in [f]. If there
  * is nothing left to undo, [undo f] will return [f] unchanged. *)
@@ -117,7 +145,7 @@ val undo : file -> file
 val redo : file -> file
 
 (* [color_text f lst] returns a copy of [f] with the color mappings of [lst] *)
-val color_text : file -> (int * int * color) list -> file
+val color_text : file -> color_mapping -> file
 
 (* [get_coloring f] gets the coloring scheme of [f]. *)
 val get_coloring : file -> color_mapping
