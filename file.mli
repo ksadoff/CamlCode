@@ -28,7 +28,11 @@ val open_file : string -> file
 
 (* [save_file f s] saves [f] at relative path [s].
  * Raises Sys_error if file write failed. *)
-val save_file : file -> string -> unit
+val save_file : file -> string -> file
+
+(* [is_saved f] returns whether [f] was saved since the last modification. *)
+val is_saved : file -> bool
+
 (*
 (* [get_file_contents f] returns the rope that represents the context of the file *)
 val get_file_contents : file -> Rope.t *)

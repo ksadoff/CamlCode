@@ -44,7 +44,7 @@ let tests = [
       let fghij_state = empty_state
       |> fun st -> open_file st "testtxts/statetest.txt"
       |> fun st -> insert_text st "fghij" 0 in
-      save_file fghij_state "testtxts/statetemp.txt";
+      save_file fghij_state "testtxts/statetemp.txt" |> fun st -> ();
       open_file fghij_state "testtxts/statetemp.txt" |> get_all_text
     )
   );

@@ -120,7 +120,7 @@ let open_file s =
     replace_term = None;
     color_mapping = Color.empty_cm;
     clipboard = Rope.empty;
-    was_saved = false
+    was_saved = true;
   }
 
 (* [save_file f] saves [f] at relative path [s].
@@ -128,7 +128,11 @@ let open_file s =
 let save_file f s =
   let ch_out = open_out s in
   Printf.fprintf ch_out "%s" (Rope.to_string f.contents);
-  close_out ch_out
+  close_out ch_out;
+  {f with was_saved = true}
+
+(* [is_saved f] returns whether [f] was saved since the last modification. *)
+let is_saved f = f.was_saved
 
 (* [get_name f] is the relative path of [f]. *)
 let get_name f = f.name
@@ -356,6 +360,7 @@ let insert_text f s l' =
   { f with
     contents = new_rope;
     line_lengths = line_lengths_arr new_rope;
+    was_saved = false;
   }
 
 (* [insert_char f c] inserts a character [c] into the contents of [f] 
@@ -370,7 +375,7 @@ let insert_char f c =
   let new_rope = Rope.concat Rope.empty [begin_rope; insert_rope; end_rope] in
   { f with
     contents = new_rope;
-    line_lengths = 
+    line_lengths = begin
       if c <> '\n' then 
         let prev_len = Array.get f.line_lengths f.cursor_line_num in
         let new_lls = Array.copy f.line_lengths in
@@ -389,7 +394,9 @@ let insert_char f c =
           then let ln = f.cursor_line_num + 1 in
             Array.sub f.line_lengths ln (len_arr - ln)
           else [||];
-        ];
+        ]
+      end;
+    was_saved = false;
   } |> cursor_right
 
 (* [delete_text l1 l2] deletes all text in [f] from location
@@ -406,6 +413,7 @@ let delete_text f l1' l2' =
   { f with
     contents = new_rope;
     line_lengths = line_lengths_arr new_rope;
+    was_saved = false;
   }
 
 (* [delete_char f] deletes the character directly to the left of the 
@@ -446,6 +454,7 @@ let delete_char f =
     cursor_column = 
       if deleted_char <> '\n' then f.cursor_column - 1
       else Array.get f.line_lengths (f.cursor_line_num - 1) - 1;
+    was_saved = false;
   }
 
 (* [undo f] undoes the last change recorded in [f]. If there

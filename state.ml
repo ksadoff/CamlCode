@@ -108,11 +108,12 @@ let empty_state =
 let get_file_names st =
   List.map (fun x -> fst x) st.files
 
- (* [get_current_file_name st] returns the string of the name of the file being
-  * manipulated. *)
+(* [get_current_file_name st] returns the string of the name of the file being
+ * manipulated. *)
 let get_current_file_name st =
-    let f = get_current_file st in
-    File.get_name f
+  match st.current_file with
+  | Fname s -> s
+  | _ -> raise (Invalid_argument "no file selected")
 
 (* [open_file st s] constructs the file at path [s] and adds it
  * to the list of files in state [st].
@@ -126,13 +127,15 @@ let open_file st s =
     clipboard = st.clipboard
   }
 
-(* [is_filed_saved st] returns true if the file is saved and false if not*)
-let is_file_saved st = failwith "Unimplemented"
+(* [is_filed_saved st s] returns the file named [s] in state [st] is saved.
+ * Raises [Not_found] if file does not exist in [st]. *)
+let is_file_saved st s = 
+  List.assoc s st.files |> fun f -> File.is_saved f
 
-(* [save_file st] saves the currently selected file in [st] at
- * its corresponding path.
+(* [save_file st s] saves the currently selected file in [st] 
+ * at relative path [s].
  * Raises Sys_error if file write failed. *)
-let save_file = file_to_state_fun File.save_file
+let save_file st s = fmap_st_f (fun f -> File.save_file f s) st
 
 (* [close_file st] removes the currently selected file [f]
  * from the list of open files in [st]. The newly selected file

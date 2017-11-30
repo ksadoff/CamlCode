@@ -54,7 +54,7 @@ let insert_test test_name orig_f s l exp_s exp_ls =
  * location [l]. [exp_s] is the expected string contents of [f], and
  * [exp_ls] is the expected list of line lengths in [f]. [exp_cur]
  * is the tuple of the expected cursor index, line number, and column. *)
- let ins_ch_test test_name orig_f c l exp_s exp_ls exp_cur =
+let ins_ch_test test_name orig_f c l exp_s exp_ls exp_cur =
   let f = let f' = move_cursor orig_f l in insert_char f' c in
   test_name >:: (fun _ -> assert_equal (exp_s, exp_ls, exp_cur)
     (get_all_text f, get_line_lengths f, 
@@ -67,7 +67,7 @@ let insert_test test_name orig_f s l exp_s exp_ls =
  * name [test_name] that deletes contents of [f] from [l1] to [l2]. [exp_s]
  * is the expected string contents of [f], and [exp_ls] is the expected
  * list of line lengths in [f]. *)
- let delete_test test_name orig_f l1 l2 exp_s exp_ls =
+let delete_test test_name orig_f l1 l2 exp_s exp_ls =
   let f = delete_text orig_f l1 l2 in
   test_name >:: (fun _ -> assert_equal (exp_s, exp_ls)
     (get_all_text f, get_line_lengths f)
@@ -87,6 +87,13 @@ let del_ch_test test_name orig_f l exp_s exp_ls exp_cur =
     ~printer: (fun (s, ls, cur) -> "\"" ^ s ^ "\", " ^ 
       (int_list_printer ls) ^ (three_tuple_to_string cur))
   )
+
+(* [is_saved_test test_name f_fun f exp] funs [f_fun f] to get a new file
+ * [f'] and makes a test case checking that [is_saved f' = exp]. *)
+let is_saved_test test_name f_fun f exp =
+  test_name >:: (fun _ -> assert_equal exp (
+    f |> f_fun |> is_saved
+  ) ~printer: string_of_bool)
 
 (* Test cases for File module. *)
 let tests = [
@@ -238,7 +245,8 @@ let tests = [
     somelines
     |> fun f -> delete_text f 0 17
     |> fun f -> insert_text f "abcde" 0
-    |> fun f -> save_file f "testtxts/temp.txt";
+    |> fun f -> save_file f "testtxts/temp.txt"
+    |> fun f -> ();
     open_file "testtxts/temp.txt" |> get_all_text
   ) ~printer: (fun s -> s));
 
@@ -251,7 +259,6 @@ let tests = [
     (get_search_term (find somelines "")));
   "find3" >:: (fun _ -> assert_equal None
     (get_search_term somelines));
-
 
   (* tests for selecting the search term of a file *)
   "sel_search0" >:: (fun _ -> assert_equal (Some (0,1))
@@ -307,7 +314,23 @@ let tests = [
     somelines
     |> fun f -> delete_text f 0 17
     |> fun f -> insert_text f "abcde" 0
-    |> fun f -> save_file f "testtxts/temp.txt";
+    |> fun f -> save_file f "testtxts/temp.txt"
+    |> fun f -> ();
     open_file "testtxts/temp.txt" |> get_all_text
   ) ~printer: (fun s -> s));
+
+  (* is_saved *)
+  "issaved0" >:: (fun _ -> assert_equal true (
+    somelines
+    |> fun f -> delete_text f 0 17
+    |> fun f -> insert_text f "abcde" 0
+    |> fun f -> save_file f "testtxts/temp.txt"
+    |> is_saved
+  ) ~printer: string_of_bool);
+  is_saved_test "issaved1" (fun f -> delete_text f 0 17) somelines false;
+  is_saved_test "issaved2" (fun f -> insert_text f "abcde" 0) somelines false;
+  is_saved_test "issaved3" (fun f -> insert_char f 'a') somelines false;
+  is_saved_test "issaved4" delete_char somelines true;
+  is_saved_test "issaved5" (fun f -> move_cursor f 4 |> delete_char) 
+    somelines false;
 ]

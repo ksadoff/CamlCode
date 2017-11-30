@@ -61,13 +61,14 @@ val get_current_file_name : state -> string
  * Raises Sys_error if file read failed. *)
 val open_file : state -> string -> state
 
-(*[is_filed_saved st] returns true if the file is saved and false if not*)
-val is_file_saved : state -> bool
+(* [is_filed_saved st s] returns the file named [s] in state [st] is saved.
+ * Raises [Not_found] if file does not exist in [st]. *)
+val is_file_saved : state -> string -> bool
 
 (* [save_file st s] saves the currently selected file in [st] at
  * relative path [s].
  * Raises Sys_error if file write failed. *)
-val save_file : state -> string -> unit
+val save_file : state -> string -> state
 
 (* [close_file st] removes the currently selected file [f]
  * from the list of open files in [st]. The newly selected file
