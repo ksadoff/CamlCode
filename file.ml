@@ -448,3 +448,21 @@ let replace_next f =
         let nf = insert_text nf rep_term st in
         {nf with selected_range = Some (st, (String.length rep_term));}
       end
+
+(* [replace_all f] returns an updated copy of [f] where the every instance
+ * of the search term is replaced by the replace term.
+ * If there is no instance of the search term or either the search or replace
+ * term does not exist, returns [f] with no text selected *)
+let rec replace_all f =
+  match f.replace_term with
+  | None -> f
+  | Some rep_term ->
+    let to_replace = select_search_term f in
+    match to_replace.selected_range with
+    | None -> to_replace
+    | Some (st, en) ->
+      begin
+        let nf = delete_text to_replace st en in
+        let nf = insert_text nf rep_term st in
+        replace_all {nf with selected_range = Some (st, (String.length rep_term));}
+      end

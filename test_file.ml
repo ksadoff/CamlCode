@@ -231,5 +231,15 @@ let tests = [
   "rep_next3" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
     ((set_replace_term (find somelines "") "H") |> replace_next |> get_all_text));
   "rep_next4" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
-    ((find somelines "h") |> replace_next |> get_all_text));
+                      ((find somelines "h") |> replace_next |> get_all_text));
+
+  (* tests for replace all *)
+  "rep_all0" >:: (fun _ -> assert_equal "Hello\nworld\n\n!!!\n"
+    ((set_replace_term (find somelines "h") "H") |> replace_all |> get_all_text));
+  "rep_all1" >:: (fun _ -> assert_equal "heLLo\nworLd\n\n!!!\n"
+    ((set_replace_term (find somelines "l") "L") |> replace_all |> get_all_text));
+  "rep_all1" >:: (fun _ -> assert_equal "helloworld!!!"
+    ((set_replace_term (find somelines "\n") "") |> replace_all |> get_all_text));
+  "rep_all1" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((set_replace_term (find somelines "H") "h") |> replace_all |> get_all_text));
 ]
