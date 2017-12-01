@@ -162,13 +162,15 @@ val get_search_term : file -> string option
 val select_search_term : file -> file
 
 (* [find f s] updates [f] so that it holds [s] as its current
- * search term. *)
+ * search term.  Unless [s] = "" or "\n",
+ * for which it sets the term to [None] *)
 val find :  file -> string -> file
 
 (* [remove_search_term f] removes the search_term of file [f] *)
 val remove_search_term: file -> file
 
-(* [set_replace_term f s] sets the replace term of file [f] to [Some s] *)
+(* [set_replace_term f s] sets the replace term of file [f] to [Some s]
+ * unless s = "" or "\n", for which it sets the term to [None] *)
 val set_replace_term: file -> string -> file
 
 (* [remove_replace_term f] sets the replace term of file [f] to [None]*)

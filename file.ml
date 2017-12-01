@@ -514,7 +514,8 @@ let rec select_search_term f =
     end
 
 (* [find f s] updates [f] so that it holds [s] as its current
- * search term. *)
+ * search term.  Unless [s] = "" or "\n",
+ * for which it sets the term to [None] *)
 let find f s =
   match s with
   | ""

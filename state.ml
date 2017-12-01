@@ -129,10 +129,10 @@ let open_file st s =
 
 (* [is_filed_saved st s] returns the file named [s] in state [st] is saved.
  * Raises [Not_found] if file does not exist in [st]. *)
-let is_file_saved st s = 
+let is_file_saved st s =
   List.assoc s st.files |> fun f -> File.is_saved f
 
-(* [save_file st s] saves the currently selected file in [st] 
+(* [save_file st s] saves the currently selected file in [st]
  * at relative path [s].
  * Raises Sys_error if file write failed. *)
 let save_file st s = fmap_st_f (fun f -> File.save_file f s) st
@@ -272,7 +272,7 @@ let insert_char st c = fmap_st_f (fun f -> File.insert_char f c) st
 let delete_text st l1 l2 = fmap_st_f (fun f -> File.delete_text f l1 l2) st
 
 (* [delete_char st] deletes the character before the cursor postion
- * in the currently selected file in [st] and moves the cursor 
+ * in the currently selected file in [st] and moves the cursor
  * to the left accordingly. *)
 let delete_char = fmap_st_f File.delete_char
 
@@ -294,12 +294,41 @@ let color_text st lst = {st with current_file = Fname (File.get_name (File.color
 let get_coloring st = File.get_coloring (get_current_file st)
 
 (* [get_search_term st] gets the current search term in [st]. *)
-let get_search_term st = failwith "Unimplemented"
+let get_search_term st = File.get_search_term (get_current_file st)
 
-(* [get_search_locations st] returns the list of regions in which
- * the search term has been found in the currently selected file in [st]. *)
-let get_search_locations st = failwith "Unimplemented"
+(* [select_search_term st] returns an updated version of [st] with the currently selected file
+ * with the next instance of the search term selected. The next instance is
+ * defined as from the currently selected text. If no text is selected, the
+ * new version of the selected file will have the first instance of its search term selected.
+ * If there is no search term or it is not found, returns [st] with the selected file no text
+ * selected *)
+let select_search_term st = fmap_st_f File.select_search_term st
 
 (* [find st s] updates [st] so that it holds [s] as its current
  * search term in its currently selected file. *)
-let find st s = failwith "Unimplemented"
+let find st s = fmap_st_f (fun f -> File.find f s) st
+
+(* [remove_search_term st] removes the search_term of file currently selected
+ * in [st] *)
+let remove_search_term st = fmap_st_f File.remove_search_term st
+
+(* [set_replace_term st s] sets the replace term of file opened in [st] to
+ *  to [Some s] unless s = "" or "\n" *)
+let set_replace_term st s = fmap_st_f (fun f -> File.set_replace_term f s) st
+
+(* [remove_replace_term st] sets the replace term of file opened in [st] to [None] *)
+let remove_replace_term st = fmap_st_f File.remove_replace_term st
+
+(* [get_replace_term f] returns [Some s] where [r] is the replacement term
+ * if the is no replacement term returns [None] *)
+let get_replace_term st = File.get_replace_term (get_current_file st)
+
+(* [replace_next st] calls [File.replace_next f] where [f] is the currently
+ * selected file in [st] and changes the currectly selected file to be the
+ * the returned file *)
+let replace_next st = fmap_st_f File.replace_next st
+
+(* [replace_all st] calls [File.replace_all f] where [f] is the currently
+ * selected file in [st] and changes the currectly selected file to be the
+ * the returned file *)
+let replace_all st = fmap_st_f File.replace_all st
