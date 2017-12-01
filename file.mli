@@ -28,7 +28,11 @@ val open_file : string -> file
 
 (* [save_file f s] saves [f] at relative path [s].
  * Raises Sys_error if file write failed. *)
-val save_file : file -> string -> unit
+val save_file : file -> string -> file
+
+(* [is_saved f] returns whether [f] was saved since the last modification. *)
+val is_saved : file -> bool
+
 (*
 (* [get_file_contents f] returns the rope that represents the context of the file *)
 val get_file_contents : file -> Rope.t *)
@@ -119,9 +123,18 @@ val get_selected_range : file -> (int * int) option
  * valid location will be used. *)
 val insert_text : file -> string -> int -> file
 
+(* [insert_char f c] inserts a character [c] into the contents of [f]
+ * at the cursor location in [f]. *)
+val insert_char : file -> char -> file
+
 (* [delete_text l1 l2] deletes all text in [f] from location
  * [l1] to [l2]. *)
 val delete_text : file -> int -> int -> file
+
+(* [delete_char f] deletes the character directly to the left of the
+ * cursor in [f] and moves the cursor left one character. If there
+ * is no character before the cursor, the file is left unchanged. *)
+val delete_char : file -> file
 
 (* [undo f] undoes the last change recorded in [f]. If there
  * is nothing left to undo, [undo f] will return [f] unchanged. *)
@@ -149,13 +162,15 @@ val get_search_term : file -> string option
 val select_search_term : file -> file
 
 (* [find f s] updates [f] so that it holds [s] as its current
- * search term. *)
+ * search term.  Unless [s] = "" or "\n",
+ * for which it sets the term to [None] *)
 val find :  file -> string -> file
 
 (* [remove_search_term f] removes the search_term of file [f] *)
 val remove_search_term: file -> file
 
-(* [set_replace_term f s] sets the replace term of file [f] to [Some s] *)
+(* [set_replace_term f s] sets the replace term of file [f] to [Some s]
+ * unless s = "" or "\n", for which it sets the term to [None] *)
 val set_replace_term: file -> string -> file
 
 (* [remove_replace_term f] sets the replace term of file [f] to [None]*)
@@ -173,3 +188,9 @@ val get_replace_term: file -> string option
  * If there is no instance of the search term or either the search or replace
  * term does not exist, returns [f] with no text selected *)
 val replace_next: file -> file
+
+(* [replace_all f] returns an updated copy of [f] where the every instance
+ * of the search term is replaced by the replace term.
+ * If there is no instance of the search term or either the search or replace
+ * term does not exist, returns [f] with no text selected *)
+val replace_all: file -> file

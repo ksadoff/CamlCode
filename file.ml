@@ -120,7 +120,7 @@ let open_file s =
     replace_term = None;
     color_mapping = Color.empty_cm;
     clipboard = Rope.empty;
-    was_saved = false
+    was_saved = true;
   }
 
 (* [save_file f] saves [f] at relative path [s].
@@ -128,7 +128,11 @@ let open_file s =
 let save_file f s =
   let ch_out = open_out s in
   Printf.fprintf ch_out "%s" (Rope.to_string f.contents);
-  close_out ch_out
+  close_out ch_out;
+  {f with was_saved = true}
+
+(* [is_saved f] returns whether [f] was saved since the last modification. *)
+let is_saved f = f.was_saved
 
 (* [get_name f] is the relative path of [f]. *)
 let get_name f = f.name
@@ -331,24 +335,69 @@ let unselect_text f = {f with selected_range = None}
  * index [i1] to [i2]. *)
 let get_selected_range f = f.selected_range
 
+(* [concat_with_newline ropes] concatenates a list of ropes
+ * and appends a newline character to the end if it doesn't exist. *)
+let concat_with_newline ropes =
+  let combo = Rope.concat Rope.empty ropes in
+  if (Rope.length combo = 0) || Rope.get combo (Rope.length combo - 1) <> '\n'
+  then Rope.concat2 combo (Rope.of_string "\n")
+  else combo
+
 let set_selected_range f i_opt = {f with selected_range = i_opt}
 
 (* [insert_text f s] inserts string [s] into the contents
  * of [f] at location [l]. The beginning of the inserted string
  * will be at index [l]. If [l] is an invalid location, the closest
- * valid location will be used. *)
+ * valid location will be used. If text append causes there to be
+ * no newline character at the end of the contents, a newline is added. *)
 let insert_text f s l' =
-  let clen = cont_length f in
-  let l = if l' < 0 then 0 else if l' > clen then clen else l' in
-  let begin_rope = Rope.sub f.contents 0 l in
   let len_rope = cont_length f in
+  let l = if l' < 0 then 0 else if l' > len_rope then len_rope else l' in
+  let begin_rope = Rope.sub f.contents 0 l in
   let end_rope = Rope.sub f.contents l (len_rope - l) in
   let insert_rope = Rope.of_string s in
-  let new_rope = Rope.concat Rope.empty [begin_rope; insert_rope; end_rope] in
+  let new_rope = concat_with_newline [begin_rope; insert_rope; end_rope] in
   { f with
     contents = new_rope;
     line_lengths = line_lengths_arr new_rope;
+    was_saved = false;
   }
+
+(* [insert_char f c] inserts a character [c] into the contents of [f]
+ * at the cursor location in [f] and moves the cursor one character
+ * to the right. *)
+let insert_char f c =
+  let len_rope = cont_length f in
+  let l = f.cursor in
+  let begin_rope = Rope.sub f.contents 0 l in
+  let end_rope = Rope.sub f.contents l (len_rope - l) in
+  let insert_rope = String.make 1 c |> Rope.of_string in
+  let new_rope = Rope.concat Rope.empty [begin_rope; insert_rope; end_rope] in
+  { f with
+    contents = new_rope;
+    line_lengths = begin
+      if c <> '\n' then
+        let prev_len = Array.get f.line_lengths f.cursor_line_num in
+        let new_lls = Array.copy f.line_lengths in
+        Array.set new_lls f.cursor_line_num (prev_len + 1);
+        new_lls
+      else
+        let len_arr = Array.length f.line_lengths in
+        let line_len = Array.get f.line_lengths f.cursor_line_num in
+        Array.concat [
+          if f.cursor_line_num > 0
+          then (Array.sub f.line_lengths 0 f.cursor_line_num)
+          else [||];
+          [|f.cursor_column + 1|];
+          [|line_len - f.cursor_column|];
+          if f.cursor_line_num < len_arr - 1
+          then let ln = f.cursor_line_num + 1 in
+            Array.sub f.line_lengths ln (len_arr - ln)
+          else [||];
+        ]
+      end;
+    was_saved = false;
+  } |> cursor_right
 
 (* [delete_text l1 l2] deletes all text in [f] from location
  * [l1] to [l2]. The new file contents contains everything up
@@ -360,10 +409,52 @@ let delete_text f l1' l2' =
   let begin_rope = Rope.sub f.contents 0 l1 in
   let len_rope = cont_length f in
   let end_rope = Rope.sub f.contents l2 (len_rope - l2) in
-  let new_rope = Rope.concat2 begin_rope end_rope in
+  let new_rope = concat_with_newline [begin_rope; end_rope] in
   { f with
     contents = new_rope;
     line_lengths = line_lengths_arr new_rope;
+    was_saved = false;
+  }
+
+(* [delete_char f] deletes the character directly to the left of the
+ * cursor in [f] and moves the cursor left one character. If there
+ * is no character before the cursor, the file is left unchanged. *)
+let delete_char f =
+  if f.cursor = 0 then f else
+  let deleted_char = Rope.get f.contents (f.cursor - 1) in
+  let begin_rope = Rope.sub f.contents 0 (f.cursor - 1) in
+  let len_rope = Rope.length f.contents in
+  let end_rope = Rope.sub f.contents f.cursor (len_rope - f.cursor) in
+  let new_rope = Rope.concat2 begin_rope end_rope in
+  { f with
+    contents = new_rope;
+    line_lengths = begin
+      if deleted_char <> '\n' then
+        let prev_len = Array.get f.line_lengths f.cursor_line_num in
+        let new_lls = Array.copy f.line_lengths in
+        Array.set new_lls f.cursor_line_num (prev_len - 1);
+        new_lls
+      else
+        let len_arr = Array.length f.line_lengths in
+        let p_line_len = Array.get f.line_lengths (f.cursor_line_num - 1) in
+        let line_len = Array.get f.line_lengths f.cursor_line_num in
+        Array.concat [
+          Array.sub f.line_lengths 0 (f.cursor_line_num - 1);
+          [|p_line_len + line_len - 1|];
+          if f.cursor_line_num < len_arr - 1
+          then let ln = f.cursor_line_num + 1 in
+            Array.sub f.line_lengths ln (len_arr - ln)
+          else [||];
+        ]
+      end;
+    cursor = f.cursor - 1;
+    cursor_line_num =
+      if deleted_char <> '\n' then f.cursor_line_num
+      else f.cursor_line_num - 1;
+    cursor_column =
+      if deleted_char <> '\n' then f.cursor_column - 1
+      else Array.get f.line_lengths (f.cursor_line_num - 1) - 1;
+    was_saved = false;
   }
 
 (* [undo f] undoes the last change recorded in [f]. If there
@@ -423,10 +514,12 @@ let rec select_search_term f =
     end
 
 (* [find f s] updates [f] so that it holds [s] as its current
- * search term. *)
+ * search term.  Unless [s] = "" or "\n",
+ * for which it sets the term to [None] *)
 let find f s =
   match s with
-  | "" -> { f with search_term = None; }
+  | ""
+  | "\n" -> { f with search_term = None; }
   | term -> { f with search_term = Some term; }
 
 (* [remove_search_term f] removes the search_term of file [f] *)
@@ -462,3 +555,21 @@ let replace_next f =
         let nf = insert_text nf rep_term st in
         {nf with selected_range = Some (st, (String.length rep_term));}
       end
+
+  (* [replace_all f] returns an updated copy of [f] where the every instance
+   * of the search term is replaced by the replace term.
+   * If there is no instance of the search term or either the search or replace
+   * term does not exist, returns [f] with no text selected *)
+  let rec replace_all f =
+    match f.replace_term with
+    | None -> f
+    | Some rep_term ->
+      let to_replace = select_search_term f in
+      match to_replace.selected_range with
+      | None -> to_replace
+      | Some (st, en) ->
+        begin
+          let nf = delete_text to_replace st en in
+          let nf = insert_text nf rep_term st in
+          replace_all {nf with selected_range = Some (st, (String.length rep_term));}
+        end

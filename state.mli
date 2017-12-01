@@ -35,13 +35,16 @@ val empty_state : state
 
 (* [get_file_names st] returns a list of strings that represent the names of
  * the currently open files. *)
- val get_file_names : state -> string list
+val get_file_names : state -> string list
 
- (* [get_current_file st] returns the file that is currently being manipulated *)
- val get_current_file : state -> File.file
+(* [get_current_file st] returns the file that is currently being manipulated *)
+val get_current_file : state -> File.file
+
+(* [set_current_file st f] sets the current file in [st] to [f]. *)
+val set_current_file : state -> File.file -> state
 
 (* [get_current_file_name st] returns the string of the name of the file being *)
- val get_file_names : state -> string list
+val get_file_names : state -> string list
 
  (* [get_current_file st] returns the file that is currently being manipulated *)
 val get_current_file : state -> File.file
@@ -49,22 +52,23 @@ val get_current_file : state -> File.file
 (* [set_current_file st f] returns a new state with the same fields as st except
  * with the current file set to f*)
 
- (* [get_current_file_name st] returns the string of the name of the file being
-  * manipulated. *)
- val get_current_file_name : state -> string
+(* [get_current_file_name st] returns the string of the name of the file being
+ * manipulated. *)
+val get_current_file_name : state -> string
 
 (* [open_file st s] constructs the file at path [s] and adds it
  * to the list of files in state [st].
  * Raises Sys_error if file read failed. *)
 val open_file : state -> string -> state
 
-(*[is_filed_saved st] returns true if the file is saved and false if not*)
-val is_file_saved : state -> bool
+(* [is_filed_saved st s] returns the file named [s] in state [st] is saved.
+ * Raises [Not_found] if file does not exist in [st]. *)
+val is_file_saved : state -> string -> bool
 
 (* [save_file st s] saves the currently selected file in [st] at
  * relative path [s].
  * Raises Sys_error if file write failed. *)
-val save_file : state -> string -> unit
+val save_file : state -> string -> state
 
 (* [close_file st] removes the currently selected file [f]
  * from the list of open files in [st]. The newly selected file
@@ -153,9 +157,19 @@ val get_selected_range : state -> (int * int) option
  * file of [st] at location [l]. *)
 val insert_text : state -> string -> int -> state
 
+(* [insert_char st c] inserts a character [c] at the cursor position
+ * in the currently selected file in [st] and moves the cursor one
+ * position to the right. *)
+val insert_char : state -> char -> state
+
 (* [delete_text l1 l2] deletes all the text in the currently held
  * file from location [l1] to [l2]. *)
 val delete_text : state -> int -> int -> state
+
+(* [delete_char st] deletes the character before the cursor postion
+ * in the currently selected file in [st] and moves the cursor
+ * to the left accordingly. *)
+val delete_char : state -> state
 
 (* [undo st] undoes the last change recorded in the open file of [st].
  * If there is nothing left to undo, [undo st] will return [st] unchanged. *)
@@ -175,12 +189,42 @@ val color_text : state -> color_mapping -> state
 val get_coloring : state -> color_mapping
 
 (* [get_search_term st] gets the current search term in [st]. *)
-val get_search_term : state -> string
+val get_search_term : state -> string option
 
-(* [get_search_locations st] returns the list of regions in which
- * the search term has been found in the currently selected file in [st]. *)
-val get_search_locations : state -> (int *int ) list
+(* [select_search_term st] returns an updated version of [st] with the currently selected file
+ * with the next instance of the search term selected. The next instance is
+ * defined as from the currently selected text. If no text is selected, the
+ * new version of the selected file will have the first instance of its search term selected.
+ * If there is no search term or it is not found, returns [st] with the selected file no text
+ * selected *)
+val select_search_term : state -> state
 
-(* [find st s] updates [st] so that it holds [s] as its current
- * search term in its currently selected file. *)
-val find :  string -> state -> state
+(* [find st s] updates [st] so that it holds [Some s] as its current
+ * search term in its currently selected file. Unless [s] = "" or "\n",
+ * for which it sets the term to [None] *)
+val find :  state -> string -> state
+
+(* [remove_search_term st] removes the search_term of file currently selected
+ * in [st] *)
+val remove_search_term: state -> state
+
+(* [set_replace_term st s] sets the replace term of file opened in [st] to
+ *  to [Some s] unless s = "" or "\n" *)
+val set_replace_term: state -> string -> state
+
+(* [remove_replace_term st] sets the replace term of file opened in [st] to [None] *)
+val remove_replace_term: state -> state
+
+(* [get_replace_term st] returns [Some s] where [r] is the replacement term
+ * if the is no replacement term returns [None] *)
+val get_replace_term: state -> string option
+
+(* [replace_next st] calls [File.replace_next f] where [f] is the currently
+ * selected file in [st] and changes the currectly selected file to be the
+ * the returned file *)
+val replace_next: state -> state
+
+(* [replace_all st] calls [File.replace_all f] where [f] is the currently
+ * selected file in [st] and changes the currectly selected file to be the
+ * the returned file *)
+val replace_all: state -> state

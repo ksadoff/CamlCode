@@ -32,7 +32,7 @@ type state = {
   (* currently open file *)
   current_file: typing_area;
   (* clipboard *)
-clipboard: clipboard
+  clipboard: clipboard
 }
 
 (* [extract file_opt] takes in an 'a option and returns the 'a. *)
@@ -49,6 +49,7 @@ let get_current_file st =
   | Fname s -> List.assoc s st.files
   | _ -> raise (Invalid_argument "no file selected")
 
+(* [set_current_file st f] sets the current file in [st] to [f]. *)
 let set_current_file st f = {st with current_file = Fname (get_name f)}
 
 (* [file_to_state_fun f_fun st] takes a function that acts on a file
@@ -107,11 +108,12 @@ let empty_state =
 let get_file_names st =
   List.map (fun x -> fst x) st.files
 
- (* [get_current_file_name st] returns the string of the name of the file being
-  * manipulated. *)
+(* [get_current_file_name st] returns the string of the name of the file being
+ * manipulated. *)
 let get_current_file_name st =
-    let f = get_current_file st in
-    File.get_name f
+  match st.current_file with
+  | Fname s -> s
+  | _ -> raise (Invalid_argument "no file selected")
 
 (* [open_file st s] constructs the file at path [s] and adds it
  * to the list of files in state [st].
@@ -125,13 +127,15 @@ let open_file st s =
     clipboard = st.clipboard
   }
 
-(* [is_filed_saved st] returns true if the file is saved and false if not*)
-let is_file_saved st = failwith "Unimplemented"
+(* [is_filed_saved st s] returns the file named [s] in state [st] is saved.
+ * Raises [Not_found] if file does not exist in [st]. *)
+let is_file_saved st s =
+  List.assoc s st.files |> fun f -> File.is_saved f
 
-(* [save_file st] saves the currently selected file in [st] at
- * its corresponding path.
+(* [save_file st s] saves the currently selected file in [st]
+ * at relative path [s].
  * Raises Sys_error if file write failed. *)
-let save_file = file_to_state_fun File.save_file
+let save_file st s = fmap_st_f (fun f -> File.save_file f s) st
 
 (* [close_file st] removes the currently selected file [f]
  * from the list of open files in [st]. The newly selected file
@@ -175,7 +179,6 @@ let copy st =
     (* let () = Pervasives.print_endline (to_string new_clipboard) in *)
   {st with clipboard = new_clipboard}
 
-
 (* [paste st] returns a copy of state with the text from the clipboard of [st]
  * inserted at the cursor location in the open flie of [st] *)
 let paste st =
@@ -194,8 +197,6 @@ let paste st =
 
 let change_selected_file s st =
   {st with current_file = Fname s }
-
-
 
 (* [get_cursor_location st] gets the location of the cursor in the file open
  * in [st]. *)
@@ -259,13 +260,21 @@ let get_selected_range = file_to_state_fun File.get_selected_range
 
 (* [insert_text st s l] inserts string [s] into the contents the open
  * file of [st] at location [l]. *)
-let insert_text st s l = (file_to_state_fun File.insert_text) st s l
-  |> replace_current_file st
+let insert_text st s l = fmap_st_f (fun f -> File.insert_text f s l) st
+
+(* [insert_char st c] inserts a character [c] at the cursor position
+ * in the currently selected file in [f] and moves the cursor one
+ * position to the right. *)
+let insert_char st c = fmap_st_f (fun f -> File.insert_char f c) st
 
 (* [delete_text st l1 l2] deletes all the text in the currently held
  * file from location [l1] to [l2]. *)
-let delete_text st l1 l2 = (file_to_state_fun File.delete_text) st l1 l2
-  |> replace_current_file st
+let delete_text st l1 l2 = fmap_st_f (fun f -> File.delete_text f l1 l2) st
+
+(* [delete_char st] deletes the character before the cursor postion
+ * in the currently selected file in [st] and moves the cursor
+ * to the left accordingly. *)
+let delete_char = fmap_st_f File.delete_char
 
 (* [undo st] undoes the last change recorded in the open file of [st].
  * If there is nothing left to undo, [undo st] will return [st] unchanged. *)
@@ -285,12 +294,41 @@ let color_text st lst = {st with current_file = Fname (File.get_name (File.color
 let get_coloring st = File.get_coloring (get_current_file st)
 
 (* [get_search_term st] gets the current search term in [st]. *)
-let get_search_term st = failwith "Unimplemented"
+let get_search_term st = File.get_search_term (get_current_file st)
 
-(* [get_search_locations st] returns the list of regions in which
- * the search term has been found in the currently selected file in [st]. *)
-let get_search_locations st = failwith "Unimplemented"
+(* [select_search_term st] returns an updated version of [st] with the currently selected file
+ * with the next instance of the search term selected. The next instance is
+ * defined as from the currently selected text. If no text is selected, the
+ * new version of the selected file will have the first instance of its search term selected.
+ * If there is no search term or it is not found, returns [st] with the selected file no text
+ * selected *)
+let select_search_term st = fmap_st_f File.select_search_term st
 
 (* [find st s] updates [st] so that it holds [s] as its current
  * search term in its currently selected file. *)
-let find st s = failwith "Unimplemented"
+let find st s = fmap_st_f (fun f -> File.find f s) st
+
+(* [remove_search_term st] removes the search_term of file currently selected
+ * in [st] *)
+let remove_search_term st = fmap_st_f File.remove_search_term st
+
+(* [set_replace_term st s] sets the replace term of file opened in [st] to
+ *  to [Some s] unless s = "" or "\n" *)
+let set_replace_term st s = fmap_st_f (fun f -> File.set_replace_term f s) st
+
+(* [remove_replace_term st] sets the replace term of file opened in [st] to [None] *)
+let remove_replace_term st = fmap_st_f File.remove_replace_term st
+
+(* [get_replace_term f] returns [Some s] where [r] is the replacement term
+ * if the is no replacement term returns [None] *)
+let get_replace_term st = File.get_replace_term (get_current_file st)
+
+(* [replace_next st] calls [File.replace_next f] where [f] is the currently
+ * selected file in [st] and changes the currectly selected file to be the
+ * the returned file *)
+let replace_next st = fmap_st_f File.replace_next st
+
+(* [replace_all st] calls [File.replace_all f] where [f] is the currently
+ * selected file in [st] and changes the currectly selected file to be the
+ * the returned file *)
+let replace_all st = fmap_st_f File.replace_all st

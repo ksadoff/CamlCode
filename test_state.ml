@@ -44,14 +44,28 @@ let tests = [
       let fghij_state = empty_state
       |> fun st -> open_file st "testtxts/statetest.txt"
       |> fun st -> insert_text st "fghij" 0 in
-      save_file fghij_state "testtxts/statetemp.txt";
+      save_file fghij_state "testtxts/statetemp.txt" |> fun st -> ();
       open_file fghij_state "testtxts/statetemp.txt" |> get_all_text
     )
   );
 
+  (* insert char *)
+  "ins_char" >:: (fun _ -> assert_equal "hello\nworld\na\n!!!\n" (
+    move_cursor slstate 12
+    |> fun st -> insert_char st 'a'
+    |> get_all_text
+  ));
+
   (* delete text *)
-  "delete" >:: (fun _ -> assert_equal "h"
+  "delete" >:: (fun _ -> assert_equal "h\n"
     (delete_text slstate 1 17 |> get_all_text));
+
+  (* delete char *)
+  "del_char" >:: (fun _ -> assert_equal "hello\nworld\n!!!\n" (
+    move_cursor slstate 12
+    |> delete_char
+    |> get_all_text
+  ));
 
   (* test cursor *)
   test_cursor "cursor0" (fun x -> x) slstate (0, 0, 0);
@@ -83,5 +97,74 @@ let tests = [
                                                                get_clipboard));
   (* "clipboard paste" >:: (fun _ -> assert_equal (paste_text)
                             (paste basic_state_paste |> get_all_text)); *)
+
+                            (* tests for setting and getting the search term of a file *)
+  "find0" >:: (fun _ -> assert_equal (Some "hello")
+    (get_search_term (find slstate ("hello"))));
+  "find1" >:: (fun _ -> assert_equal (Some " ")
+    (get_search_term (find slstate " ")));
+  "find2" >:: (fun _ -> assert_equal None
+    (get_search_term (find slstate "")));
+  "find3" >:: (fun _ -> assert_equal None
+    (get_search_term slstate));
+
+  (* tests for selecting the search term of a file *)
+  "sel_search0" >:: (fun _ -> assert_equal (Some (0,1))
+    ((find slstate "h") |> select_search_term |> get_selected_range));
+  (* loop back to start at end of file *)
+  "sel_search1" >:: (fun _ -> assert_equal (Some (0,1))
+    ((find slstate "h") |> select_search_term |> select_search_term |> get_selected_range));
+  (* term not found *)
+  "sel_search2" >:: (fun _ -> assert_equal None
+    ((find slstate "Hello") |> select_search_term |> get_selected_range));
+  (* first location *)
+  "sel_search3" >:: (fun _ -> assert_equal (Some (2,3))
+    ((find slstate "l") |> select_search_term |> get_selected_range));
+  (* second location *)
+  "sel_search4" >:: (fun _ -> assert_equal (Some (3,4))
+    ((find slstate "l") |> select_search_term |> select_search_term |> get_selected_range));
+  (* third location *)
+  "sel_search5" >:: (fun _ -> assert_equal (Some (9,10))
+    ((find slstate "l") |> select_search_term |> select_search_term |> select_search_term |> get_selected_range));
+
+  (* tests for removing the search term of a file *)
+  "rem_find0" >:: (fun _ -> assert_equal None
+    ((find slstate "hello") |> remove_search_term |> get_search_term));
+  "rem_find1" >:: (fun _ -> assert_equal None
+    ((find slstate " ") |> remove_search_term |> get_search_term));
+
+  (* tests for setting, getting, and removing the replace term of a file *)
+  "rep0" >:: (fun _ -> assert_equal None
+    (slstate |> get_replace_term));
+  "rep1" >:: (fun _ -> assert_equal (Some "H")
+    ((set_replace_term slstate "H") |> get_replace_term));
+  "rep2" >:: (fun _ -> assert_equal None
+    ((set_replace_term slstate "H") |> remove_replace_term |> get_replace_term));
+  "rep3" >:: (fun _ -> assert_equal (Some "")
+    ((set_replace_term slstate "") |> get_replace_term));
+
+  (* tests for replacing the next search term *)
+  "rep_next0" >:: (fun _ -> assert_equal "Hello\nworld\n\n!!!\n"
+    ((set_replace_term (find slstate "h") "H") |> replace_next |> get_all_text));
+  "rep_next5" >:: (fun _ -> assert_equal (Some (0,1))
+    ((set_replace_term (find slstate "h") "H") |> replace_next |> get_selected_range));
+  "rep_next1" >:: (fun _ -> assert_equal "Hello\nHorld\n\n!!!\n"
+    ((find ((set_replace_term (find slstate "h") "H") |> replace_next) "w") |> replace_next |> get_all_text));
+  "rep_next2" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((set_replace_term (find slstate "\n") "") |> replace_next |> replace_next |> replace_next |> replace_next |> get_all_text));
+  "rep_next3" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((set_replace_term (find slstate "") "H") |> replace_next |> get_all_text));
+  "rep_next4" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((find slstate "h") |> replace_next |> get_all_text));
+
+  (* tests for replace all *)
+   "rep_all0" >:: (fun _ -> assert_equal "Hello\nworld\n\n!!!\n"
+    ((set_replace_term (find slstate "h") "H") |> replace_all |> get_all_text));
+  "rep_all1" >:: (fun _ -> assert_equal "heLLo\nworLd\n\n!!!\n"
+    ((set_replace_term (find slstate "l") "L") |> replace_all |> get_all_text));
+  "rep_all2" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((set_replace_term (find slstate "\n") "") |> replace_all |> get_all_text));
+  "rep_all3" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((set_replace_term (find slstate "H") "h") |> replace_all |> get_all_text));
 
 ]
