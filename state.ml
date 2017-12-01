@@ -32,7 +32,7 @@ type state = {
   (* currently open file *)
   current_file: typing_area;
   (* clipboard *)
-clipboard: clipboard
+  clipboard: clipboard
 }
 
 (* [extract file_opt] takes in an 'a option and returns the 'a. *)
