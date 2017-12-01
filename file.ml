@@ -338,11 +338,11 @@ let get_selected_range f = f.selected_range
 (* [concat_with_newline ropes] concatenates a list of ropes
  * and appends a newline character to the end if it doesn't exist. *)
 let concat_with_newline ropes =
-  let combo = Rope.concat Rope.empty ropes in 
+  let combo = Rope.concat Rope.empty ropes in
   if (Rope.length combo = 0) || Rope.get combo (Rope.length combo - 1) <> '\n'
   then Rope.concat2 combo (Rope.of_string "\n")
   else combo
-  
+
 let set_selected_range f i_opt = {f with selected_range = i_opt}
 
 (* [insert_text f s] inserts string [s] into the contents
@@ -363,29 +363,29 @@ let insert_text f s l' =
     was_saved = false;
   }
 
-(* [insert_char f c] inserts a character [c] into the contents of [f] 
- * at the cursor location in [f] and moves the cursor one character 
+(* [insert_char f c] inserts a character [c] into the contents of [f]
+ * at the cursor location in [f] and moves the cursor one character
  * to the right. *)
-let insert_char f c = 
+let insert_char f c =
   let len_rope = cont_length f in
   let l = f.cursor in
-  let begin_rope = Rope.sub f.contents 0 l in 
-  let end_rope = Rope.sub f.contents l (len_rope - l) in 
+  let begin_rope = Rope.sub f.contents 0 l in
+  let end_rope = Rope.sub f.contents l (len_rope - l) in
   let insert_rope = String.make 1 c |> Rope.of_string in
   let new_rope = Rope.concat Rope.empty [begin_rope; insert_rope; end_rope] in
   { f with
     contents = new_rope;
     line_lengths = begin
-      if c <> '\n' then 
+      if c <> '\n' then
         let prev_len = Array.get f.line_lengths f.cursor_line_num in
         let new_lls = Array.copy f.line_lengths in
         Array.set new_lls f.cursor_line_num (prev_len + 1);
         new_lls
-      else 
+      else
         let len_arr = Array.length f.line_lengths in
         let line_len = Array.get f.line_lengths f.cursor_line_num in
         Array.concat [
-          if f.cursor_line_num > 0 
+          if f.cursor_line_num > 0
           then (Array.sub f.line_lengths 0 f.cursor_line_num)
           else [||];
           [|f.cursor_column + 1|];
@@ -416,25 +416,25 @@ let delete_text f l1' l2' =
     was_saved = false;
   }
 
-(* [delete_char f] deletes the character directly to the left of the 
+(* [delete_char f] deletes the character directly to the left of the
  * cursor in [f] and moves the cursor left one character. If there
  * is no character before the cursor, the file is left unchanged. *)
-let delete_char f = 
+let delete_char f =
   if f.cursor = 0 then f else
   let deleted_char = Rope.get f.contents (f.cursor - 1) in
   let begin_rope = Rope.sub f.contents 0 (f.cursor - 1) in
-  let len_rope = Rope.length f.contents in 
+  let len_rope = Rope.length f.contents in
   let end_rope = Rope.sub f.contents f.cursor (len_rope - f.cursor) in
   let new_rope = Rope.concat2 begin_rope end_rope in
   { f with
     contents = new_rope;
     line_lengths = begin
-      if deleted_char <> '\n' then 
+      if deleted_char <> '\n' then
         let prev_len = Array.get f.line_lengths f.cursor_line_num in
         let new_lls = Array.copy f.line_lengths in
         Array.set new_lls f.cursor_line_num (prev_len - 1);
         new_lls
-      else 
+      else
         let len_arr = Array.length f.line_lengths in
         let p_line_len = Array.get f.line_lengths (f.cursor_line_num - 1) in
         let line_len = Array.get f.line_lengths f.cursor_line_num in
@@ -448,10 +448,10 @@ let delete_char f =
         ]
       end;
     cursor = f.cursor - 1;
-    cursor_line_num = 
-      if deleted_char <> '\n' then f.cursor_line_num 
+    cursor_line_num =
+      if deleted_char <> '\n' then f.cursor_line_num
       else f.cursor_line_num - 1;
-    cursor_column = 
+    cursor_column =
       if deleted_char <> '\n' then f.cursor_column - 1
       else Array.get f.line_lengths (f.cursor_line_num - 1) - 1;
     was_saved = false;
@@ -514,10 +514,12 @@ let rec select_search_term f =
     end
 
 (* [find f s] updates [f] so that it holds [s] as its current
- * search term. *)
+ * search term.  Unless [s] = "" or "\n",
+ * for which it sets the term to [None] *)
 let find f s =
   match s with
-  | "" -> { f with search_term = None; }
+  | ""
+  | "\n" -> { f with search_term = None; }
   | term -> { f with search_term = Some term; }
 
 (* [remove_search_term f] removes the search_term of file [f] *)
@@ -553,3 +555,21 @@ let replace_next f =
         let nf = insert_text nf rep_term st in
         {nf with selected_range = Some (st, (String.length rep_term));}
       end
+
+  (* [replace_all f] returns an updated copy of [f] where the every instance
+   * of the search term is replaced by the replace term.
+   * If there is no instance of the search term or either the search or replace
+   * term does not exist, returns [f] with no text selected *)
+  let rec replace_all f =
+    match f.replace_term with
+    | None -> f
+    | Some rep_term ->
+      let to_replace = select_search_term f in
+      match to_replace.selected_range with
+      | None -> to_replace
+      | Some (st, en) ->
+        begin
+          let nf = delete_text to_replace st en in
+          let nf = insert_text nf rep_term st in
+          replace_all {nf with selected_range = Some (st, (String.length rep_term));}
+        end

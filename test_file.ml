@@ -57,9 +57,9 @@ let insert_test test_name orig_f s l exp_s exp_ls =
 let ins_ch_test test_name orig_f c l exp_s exp_ls exp_cur =
   let f = let f' = move_cursor orig_f l in insert_char f' c in
   test_name >:: (fun _ -> assert_equal (exp_s, exp_ls, exp_cur)
-    (get_all_text f, get_line_lengths f, 
+    (get_all_text f, get_line_lengths f,
       (get_cursor_location f, get_cursor_line_num f ,get_cursor_column f))
-    ~printer: (fun (s, ls, cur) -> "\"" ^ s ^ "\", " ^ 
+    ~printer: (fun (s, ls, cur) -> "\"" ^ s ^ "\", " ^
       (int_list_printer ls) ^ (three_tuple_to_string cur))
   )
 
@@ -82,9 +82,9 @@ let delete_test test_name orig_f l1 l2 exp_s exp_ls =
 let del_ch_test test_name orig_f l exp_s exp_ls exp_cur =
   let f = let f' = move_cursor orig_f l in delete_char f' in
   test_name >:: (fun _ -> assert_equal (exp_s, exp_ls, exp_cur)
-    (get_all_text f, get_line_lengths f, 
+    (get_all_text f, get_line_lengths f,
       (get_cursor_location f, get_cursor_line_num f ,get_cursor_column f))
-    ~printer: (fun (s, ls, cur) -> "\"" ^ s ^ "\", " ^ 
+    ~printer: (fun (s, ls, cur) -> "\"" ^ s ^ "\", " ^
       (int_list_printer ls) ^ (three_tuple_to_string cur))
   )
 
@@ -217,7 +217,7 @@ let tests = [
   delete_test "delete3" somelines 0 17 "\n" [1];
   delete_test "delete4" somelines (-1) 18 "\n" [1];
   delete_test "delete5" somelines 0 16 "\n" [1];
-  delete_test "delete6" somelines 15 17 
+  delete_test "delete6" somelines 15 17
     "hello\nworld\n\n!!\n" [6; 6; 1; 3];
 
   (* deleting char *)
@@ -302,12 +302,23 @@ let tests = [
     ((set_replace_term (find somelines "h") "H") |> replace_next |> get_selected_range));
   "rep_next1" >:: (fun _ -> assert_equal "Hello\nHorld\n\n!!!\n"
     ((find ((set_replace_term (find somelines "h") "H") |> replace_next) "w") |> replace_next |> get_all_text));
-  "rep_next2" >:: (fun _ -> assert_equal "helloworld!!!\n"
+  "rep_next2" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
     ((set_replace_term (find somelines "\n") "") |> replace_next |> replace_next |> replace_next |> replace_next |> get_all_text));
   "rep_next3" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
     ((set_replace_term (find somelines "") "H") |> replace_next |> get_all_text));
   "rep_next4" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
-    ((find somelines "h") |> replace_next |> get_all_text));
+                      ((find somelines "h") |> replace_next |> get_all_text));
+
+  (* tests for replace all *)
+   "rep_all0" >:: (fun _ -> assert_equal "Hello\nworld\n\n!!!\n"
+    ((set_replace_term (find somelines "h") "H") |> replace_all |> get_all_text));
+  "rep_all1" >:: (fun _ -> assert_equal "heLLo\nworLd\n\n!!!\n"
+    ((set_replace_term (find somelines "l") "L") |> replace_all |> get_all_text));
+  "rep_all2" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((set_replace_term (find somelines "\n") "") |> replace_all |> get_all_text));
+
+  "rep_all3" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((set_replace_term (find somelines "H") "h") |> replace_all |> get_all_text));
 
   (* saving a file *)
   "save" >:: (fun _ -> assert_equal "abcde\n" (
@@ -331,6 +342,7 @@ let tests = [
   is_saved_test "issaved2" (fun f -> insert_text f "abcde" 0) somelines false;
   is_saved_test "issaved3" (fun f -> insert_char f 'a') somelines false;
   is_saved_test "issaved4" delete_char somelines true;
-  is_saved_test "issaved5" (fun f -> move_cursor f 4 |> delete_char) 
+  is_saved_test "issaved5" (fun f -> move_cursor f 4 |> delete_char)
     somelines false;
+
 ]

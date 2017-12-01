@@ -167,7 +167,7 @@ val insert_char : state -> char -> state
 val delete_text : state -> int -> int -> state
 
 (* [delete_char st] deletes the character before the cursor postion
- * in the currently selected file in [st] and moves the cursor 
+ * in the currently selected file in [st] and moves the cursor
  * to the left accordingly. *)
 val delete_char : state -> state
 
@@ -189,12 +189,42 @@ val color_text : state -> color_mapping -> state
 val get_coloring : state -> color_mapping
 
 (* [get_search_term st] gets the current search term in [st]. *)
-val get_search_term : state -> string
+val get_search_term : state -> string option
 
-(* [get_search_locations st] returns the list of regions in which
- * the search term has been found in the currently selected file in [st]. *)
-val get_search_locations : state -> (int *int ) list
+(* [select_search_term st] returns an updated version of [st] with the currently selected file
+ * with the next instance of the search term selected. The next instance is
+ * defined as from the currently selected text. If no text is selected, the
+ * new version of the selected file will have the first instance of its search term selected.
+ * If there is no search term or it is not found, returns [st] with the selected file no text
+ * selected *)
+val select_search_term : state -> state
 
-(* [find st s] updates [st] so that it holds [s] as its current
- * search term in its currently selected file. *)
-val find :  string -> state -> state
+(* [find st s] updates [st] so that it holds [Some s] as its current
+ * search term in its currently selected file. Unless [s] = "" or "\n",
+ * for which it sets the term to [None] *)
+val find :  state -> string -> state
+
+(* [remove_search_term st] removes the search_term of file currently selected
+ * in [st] *)
+val remove_search_term: state -> state
+
+(* [set_replace_term st s] sets the replace term of file opened in [st] to
+ *  to [Some s] unless s = "" or "\n" *)
+val set_replace_term: state -> string -> state
+
+(* [remove_replace_term st] sets the replace term of file opened in [st] to [None] *)
+val remove_replace_term: state -> state
+
+(* [get_replace_term st] returns [Some s] where [r] is the replacement term
+ * if the is no replacement term returns [None] *)
+val get_replace_term: state -> string option
+
+(* [replace_next st] calls [File.replace_next f] where [f] is the currently
+ * selected file in [st] and changes the currectly selected file to be the
+ * the returned file *)
+val replace_next: state -> state
+
+(* [replace_all st] calls [File.replace_all f] where [f] is the currently
+ * selected file in [st] and changes the currectly selected file to be the
+ * the returned file *)
+val replace_all: state -> state
