@@ -1,8 +1,9 @@
 open CamomileLibraryDyn.Camomile
 open Lwt
 open LTerm_widget
+open State
 
-(* let update num_open_files state *)
+
 let main () =
   let waiter, wakener = wait () in
 
@@ -17,6 +18,9 @@ let main () =
   let tab_labels = (new label "") in
 
   vbox#add ~expand:false (new hline);
+
+  let add_tabs =
+  (* for n = 0 in (List.length get) *)
   (* let add_tabs = *)
     for i = 0 to 0 do
       let hbox = new hbox in
@@ -27,8 +31,8 @@ let main () =
       hbox#add ~expand:false (new vline);
       vbox#add ~expand:false hbox;
     done;
-(* in
-  add_tabs; *)
+in
+  add_tabs;
 
   (* vbox#add ~expand:false (new hline); *)
 
@@ -98,6 +102,9 @@ let main () =
     (fun () -> LTerm_widget.run term vbox waiter)
     (fun () -> LTerm.disable_mouse term)
 
+
 let () = Lwt_main.run (main ())
 
-(* let update (st: State.state) = main () *)
+(*let main () =
+  let init_state = empty_state in
+  update init_state*)

@@ -3,7 +3,7 @@
    the lambda-term library. *)
 (* open State *)
 
-(*[update] is called by [repl] in keyboard.mli after user input is received. It
+(*[update] is called by [repl] in command.ml after user input is received. It
   takes in the current state, updates the user interface to reflect any change
   the user made to the state, and returns a unit. *)
 (* val update: state -> unit *)

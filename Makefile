@@ -8,3 +8,6 @@ compile:
 	jbuilder build clview.exe
 	ocamlbuild -use-ocamlfind state.byte
 	ocamlbuild -use-ocamlfind file.byte
+
+view:
+	cd _build && cd default && ./clview.exe
