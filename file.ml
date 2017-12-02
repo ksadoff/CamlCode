@@ -6,6 +6,11 @@
  * including all characters. *)
 type contents = Rope.t
 
+type undo_state = {
+  text : contents;
+  cursor_loc : int;
+}
+
 (* A file variable represents all the state that is recorded
  * for one file. It should contain the following information:
  * * file name/relative path
@@ -56,7 +61,37 @@ type file = {
   clipboard : Rope.t;
 
   was_saved : bool;
+
+  (* the number of previous undo_states in the undo stack *)
+  num_undos : int;
+
+  (* a stack of previous file states than are used to revert to previous states *)
+  undo_list : undo_state list
 }
+
+(* sets the maximum size of the undo queue *)
+let max_undos = 50
+
+(* [rem_tail lst] returns a copy of [lst] with the last element removed *)
+let rec rem_tail = function
+  | []
+  | _::[] -> []
+  | h::t -> h::(rem_tail t)
+
+(* [add_undo f] returns a copy of f with a new element in the undo stack that
+ * contains the text and cursor location of [f], and the size of the stack
+ * updated. If the stack is full the bottom element is removed *)
+let add_undo f =
+  let new_undo = {
+    text = f.contents;
+    cursor_loc = f.cursor;
+  } in
+  if f.num_undos < max_undos then
+    {f with num_undos = f.num_undos + 1;
+            undo_list = new_undo::f.undo_list;}
+  else
+    {f with undo_list = new_undo::(rem_tail f.undo_list);}
+
 
 (* [get_cont_length f] returns the length of the contents of [f]. *)
 let cont_length f = Rope.length f.contents
@@ -121,6 +156,8 @@ let open_file s =
     color_mapping = Color.empty_cm;
     clipboard = Rope.empty;
     was_saved = true;
+    num_undos = 0;
+    undo_list = [];
   }
 
 (* [save_file f] saves [f] at relative path [s].
@@ -357,7 +394,8 @@ let insert_text f s l' =
   let end_rope = Rope.sub f.contents l (len_rope - l) in
   let insert_rope = Rope.of_string s in
   let new_rope = concat_with_newline [begin_rope; insert_rope; end_rope] in
-  { f with
+  let nf = add_undo f in
+  { nf with
     contents = new_rope;
     line_lengths = line_lengths_arr new_rope;
     was_saved = false;
@@ -373,7 +411,8 @@ let insert_char f c =
   let end_rope = Rope.sub f.contents l (len_rope - l) in
   let insert_rope = String.make 1 c |> Rope.of_string in
   let new_rope = Rope.concat Rope.empty [begin_rope; insert_rope; end_rope] in
-  { f with
+  let nf = add_undo f in
+  { nf with
     contents = new_rope;
     line_lengths = begin
       if c <> '\n' then
@@ -410,7 +449,8 @@ let delete_text f l1' l2' =
   let len_rope = cont_length f in
   let end_rope = Rope.sub f.contents l2 (len_rope - l2) in
   let new_rope = concat_with_newline [begin_rope; end_rope] in
-  { f with
+  let nf = add_undo f in
+  { nf with
     contents = new_rope;
     line_lengths = line_lengths_arr new_rope;
     was_saved = false;
@@ -426,7 +466,8 @@ let delete_char f =
   let len_rope = Rope.length f.contents in
   let end_rope = Rope.sub f.contents f.cursor (len_rope - f.cursor) in
   let new_rope = Rope.concat2 begin_rope end_rope in
-  { f with
+  let nf = add_undo f in
+  { nf with
     contents = new_rope;
     line_lengths = begin
       if deleted_char <> '\n' then
@@ -459,7 +500,10 @@ let delete_char f =
 
 (* [undo f] undoes the last change recorded in [f]. If there
  * is nothing left to undo, [undo f] will return [f] unchanged. *)
-let undo f = failwith "Unimplemented"
+let undo f =
+  match f.undo_list with
+  | [] -> f
+  | h::t -> {f with contents = h.text; cursor = h.cursor_loc; undo_list = t;}
 
 (* [redo f] redoes the last change that was undone in [f]. If there
  * is nothing left to redo, [redo f] will return [f] unchanged. *)
@@ -551,16 +595,19 @@ let replace_next f =
     | None -> to_replace
     | Some (st, en) ->
       begin
+        let undo_file = add_undo f in
         let nf = delete_text to_replace st en in
         let nf = insert_text nf rep_term st in
-        {nf with selected_range = Some (st, (String.length rep_term));}
+        {nf with selected_range = Some (st, (String.length rep_term));
+                 num_undos = undo_file.num_undos;
+                 undo_list = undo_file.undo_list;}
       end
 
-  (* [replace_all f] returns an updated copy of [f] where the every instance
+  (* [replace_all_helper f] returns an updated copy of [f] where the every instance
    * of the search term is replaced by the replace term.
    * If there is no instance of the search term or either the search or replace
    * term does not exist, returns [f] with no text selected *)
-  let rec replace_all f =
+  let rec replace_all_helper f =
     match f.replace_term with
     | None -> f
     | Some rep_term ->
@@ -571,5 +618,14 @@ let replace_next f =
         begin
           let nf = delete_text to_replace st en in
           let nf = insert_text nf rep_term st in
-          replace_all {nf with selected_range = Some (st, (String.length rep_term));}
+          replace_all_helper {nf with selected_range = Some (st, (String.length rep_term));}
         end
+(* [replace_all f] uses [replace_all_helper f] to replace all of the instances of
+ * the seach term in [f] with the replace term. The use of the helper function allows
+ * the user to undo/redo the full replacement rather than one at a time *)
+let replace_all f =
+  let undo_file = add_undo f in
+  let replace_file = replace_all_helper f in
+  { replace_file with
+    num_undos = undo_file.num_undos;
+    undo_list = undo_file.undo_list;}

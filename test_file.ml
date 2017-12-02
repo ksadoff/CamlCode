@@ -320,6 +320,51 @@ let tests = [
   "rep_all3" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
     ((set_replace_term (find somelines "H") "h") |> replace_all |> get_all_text));
 
+  "undo0" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((insert_text somelines "hi" 0) |> undo |> get_all_text));
+  "undo1" >:: (fun _ -> assert_equal 0
+    ((insert_text somelines "hi" 0) |> undo |> get_cursor_location));
+  "undo2" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((delete_text somelines 0 5) |> undo |> get_all_text));
+  "undo3" >:: (fun _ -> assert_equal 0
+    ((delete_text somelines 0 5) |> undo |> get_cursor_location));
+  "undo4" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((insert_char somelines 'a') |> undo |> get_all_text));
+  "undo5" >:: (fun _ -> assert_equal 0
+    ((insert_char somelines 'a') |> undo |> get_cursor_location));
+  "undo6" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((delete_char somelines) |> undo |> get_all_text));
+  "undo7" >:: (fun _ -> assert_equal 0
+    ((delete_char somelines) |> undo |> get_cursor_location));
+  "undo8" >:: (fun _ -> assert_equal "ello\nworld\n\n!!!\n"
+    (somelines |> cursor_right |> delete_char |> cursor_right |> delete_char |> undo |> get_all_text));
+  "undo9" >:: (fun _ -> assert_equal 1
+    (somelines |> cursor_right |> delete_char |> cursor_right |> delete_char |> undo |> get_cursor_location));
+  "undo10" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    (somelines |> cursor_right |> delete_char |> cursor_right |> delete_char |> undo |> undo |> get_all_text));
+  "undo11" >:: (fun _ -> assert_equal 1
+    (somelines |> cursor_right |> delete_char |> cursor_right |> delete_char |> undo |> undo |> get_cursor_location));
+  "undo12" >:: (fun _ -> assert_equal "ello\nworld\n\n!!!\n"
+    (somelines |> cursor_right |> delete_char |> undo |> delete_char |> get_all_text));
+  "undo13" >:: (fun _ -> assert_equal 0
+    (somelines |> cursor_right |> delete_char |> undo |> delete_char |> get_cursor_location));
+  "undo14" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    (somelines |> undo |> get_all_text));
+  "undo15" >:: (fun _ -> assert_equal 0
+    (somelines |> undo |> get_cursor_location));
+  "undo16" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((set_replace_term (find somelines "l") "L") |> replace_next |> undo |> get_all_text));
+  "undo17" >:: (fun _ -> assert_equal 0
+    ((set_replace_term (find somelines "l") "L") |> replace_next |> undo |> get_cursor_location));
+  "undo18" >:: (fun _ -> assert_equal "heLlo\nworld\n\n!!!\n"
+    ((set_replace_term (find somelines "l") "L") |> replace_next |> replace_next |> undo |> get_all_text));
+  "undo19" >:: (fun _ -> assert_equal 0
+    ((set_replace_term (find somelines "l") "L") |> replace_next |> replace_next |> undo |> get_cursor_location));
+  "undo20" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((set_replace_term (find somelines "l") "L") |> replace_all |> undo |> get_all_text));
+  "undo21" >:: (fun _ -> assert_equal 0
+    ((set_replace_term (find somelines "l") "L") |> replace_all |> undo |> get_cursor_location));
+
   (* saving a file *)
   "save" >:: (fun _ -> assert_equal "abcde\n" (
     somelines
@@ -344,5 +389,4 @@ let tests = [
   is_saved_test "issaved4" delete_char somelines true;
   is_saved_test "issaved5" (fun f -> move_cursor f 4 |> delete_char)
     somelines false;
-
 ]

@@ -278,7 +278,7 @@ let delete_char = fmap_st_f File.delete_char
 
 (* [undo st] undoes the last change recorded in the open file of [st].
  * If there is nothing left to undo, [undo st] will return [st] unchanged. *)
-let undo st = failwith "Unimplemented"
+let undo st = fmap_st_f File.undo st
 
 (* [redo st] redoes the last change that was undone in the open file of
  * [st]. If there is nothing left to redo, [redo st] will return [st]
