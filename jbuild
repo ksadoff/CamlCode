@@ -1,9 +1,10 @@
 
                                                                  (jbuild_version 1)
 
-                                                                 (executable
-                                                                  ((name clview)
+                                                                 (executables
+                                                                  ((names (clview controller))
                                                                    (libraries (react str lwt.unix lambda-term rope))))
+
 
 
  (rule (with-stdout-to state.ml
