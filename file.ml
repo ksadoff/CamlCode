@@ -66,7 +66,11 @@ type file = {
   num_undos : int;
 
   (* a stack of previous file states than are used to revert to previous states *)
-  undo_list : undo_state list
+  undo_list : undo_state list;
+
+  num_redos : int;
+
+  redo_list : undo_state list
 }
 
 (* sets the maximum size of the undo queue *)
@@ -91,6 +95,20 @@ let add_undo f =
             undo_list = new_undo::f.undo_list;}
   else
     {f with undo_list = new_undo::(rem_tail f.undo_list);}
+
+(* [add_redo f] returns a copy of f with a new element in the redo stack that
+ * contains the text and cursor location of [f], and the size of the stack
+ * updated. If the stack is full the bottom element is removed *)
+let add_redo f =
+  let new_redo = {
+    text = f.contents;
+    cursor_loc = f.cursor;
+  } in
+  if f.num_redos < max_undos then
+    {f with num_redos = f.num_redos + 1;
+            redo_list = new_redo::f.redo_list;}
+  else
+    {f with redo_list = new_redo::(rem_tail f.redo_list);}
 
 
 (* [get_cont_length f] returns the length of the contents of [f]. *)
@@ -158,6 +176,8 @@ let open_file s =
     was_saved = true;
     num_undos = 0;
     undo_list = [];
+    num_redos = 0;
+    redo_list = [];
   }
 
 (* [save_file f] saves [f] at relative path [s].
@@ -399,6 +419,8 @@ let insert_text f s l' =
     contents = new_rope;
     line_lengths = line_lengths_arr new_rope;
     was_saved = false;
+    num_redos = 0;
+    redo_list = [];
   }
 
 (* [insert_char f c] inserts a character [c] into the contents of [f]
@@ -436,6 +458,8 @@ let insert_char f c =
         ]
       end;
     was_saved = false;
+    num_redos = 0;
+    redo_list = [];
   } |> cursor_right
 
 (* [delete_text l1 l2] deletes all text in [f] from location
@@ -454,6 +478,8 @@ let delete_text f l1' l2' =
     contents = new_rope;
     line_lengths = line_lengths_arr new_rope;
     was_saved = false;
+    num_redos = 0;
+    redo_list = [];
   }
 
 (* [delete_char f] deletes the character directly to the left of the
@@ -496,18 +522,37 @@ let delete_char f =
       if deleted_char <> '\n' then f.cursor_column - 1
       else Array.get f.line_lengths (f.cursor_line_num - 1) - 1;
     was_saved = false;
+    num_redos = 0;
+    redo_list = [];
   }
 
 (* [undo f] undoes the last change recorded in [f]. If there
  * is nothing left to undo, [undo f] will return [f] unchanged. *)
 let undo f =
+  let redo_file = add_redo f in
   match f.undo_list with
   | [] -> f
-  | h::t -> {f with contents = h.text; cursor = h.cursor_loc; undo_list = t;}
+  | h::t -> {f with contents = h.text;
+                    cursor = h.cursor_loc;
+                    num_undos = f.num_undos - 1;
+                    undo_list = t;
+                    num_redos = redo_file.num_redos;
+                    redo_list = redo_file.redo_list;
+            }
 
 (* [redo f] redoes the last change that was undone in [f]. If there
  * is nothing left to redo, [redo f] will return [f] unchanged. *)
-let redo f = failwith "Unimplemented"
+let redo f =
+  let undo_file = add_undo f in
+  match f.redo_list with
+  | [] -> f
+  | h::t -> {f with contents = h.text;
+                    cursor = h.cursor_loc;
+                    num_undos = undo_file.num_undos;
+                    undo_list = undo_file.undo_list;
+                    num_redos = f.num_redos - 1;
+                    redo_list = t;
+            }
 
 (* [color_text f lst] returns a copy of [f] with the color mappings of [lst] *)
 let color_text f lst = {f with color_mapping = lst}
@@ -600,7 +645,10 @@ let replace_next f =
         let nf = insert_text nf rep_term st in
         {nf with selected_range = Some (st, (String.length rep_term));
                  num_undos = undo_file.num_undos;
-                 undo_list = undo_file.undo_list;}
+                 undo_list = undo_file.undo_list;
+                 num_redos = 0;
+                 redo_list = [];
+        }
       end
 
   (* [replace_all_helper f] returns an updated copy of [f] where the every instance
@@ -628,4 +676,7 @@ let replace_all f =
   let replace_file = replace_all_helper f in
   { replace_file with
     num_undos = undo_file.num_undos;
-    undo_list = undo_file.undo_list;}
+    undo_list = undo_file.undo_list;
+    num_redos = 0;
+    redo_list = [];
+  }

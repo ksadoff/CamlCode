@@ -283,7 +283,7 @@ let undo st = fmap_st_f File.undo st
 (* [redo st] redoes the last change that was undone in the open file of
  * [st]. If there is nothing left to redo, [redo st] will return [st]
  * unchanged. *)
-let redo st = failwith "Unimplemented"
+let redo st = fmap_st_f File.redo st
 
 (* [color_text st lst] returns a copy of [st] with the open file now
  * having the color mappings of [lst] *)
