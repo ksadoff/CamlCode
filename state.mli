@@ -93,6 +93,32 @@ val copy : state -> state
  * inserted at the cursor location in the open flie of [st] *)
 val paste : state -> state
 
+(* [open_terminal st] returns a copy of [st] with both [command_out] and
+ * [command_in] set to [Some ""] if they are [None] in [st] which indicates
+ * that the terminal is open but no text is displayed. If the terminal is open
+ * in [st] it returns [st] *)
+val open_terminal : state -> state
+
+(* [close_terminal st] returns a copy of [st] with both [command_out] and
+ * and [command_in] both set to [None], indicating that the terminal is closed *)
+val close_terminal : state -> state
+
+(* [set_command_out st s] returns a copy of [st] with [command_out] set to
+ * [Some s], if the terminal is not open in [st] the returned value also has
+ * [command_in] set to [Some ""] *)
+val set_command_out : state -> string -> state
+
+(* [get_command_out st] returns the [command_out] field of [st] *)
+val get_command_out : state -> string option
+
+(* [set_command_in st s] returns a copy of [st] with [command_in] set to
+ * [Some s], if the terminal is not open in [st] the returned value also has
+ * [command_out] set to [Some ""] *)
+val set_command_in : state -> string -> state
+
+(* [get_command_out st] returns the [command_out] field of [st] *)
+val get_command_in : state -> string option
+
 (* [get_cursor_location st] gets the location of the cursor in the file open
  * in [st]. *)
 val get_cursor_location : state -> int

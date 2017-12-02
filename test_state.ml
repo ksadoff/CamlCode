@@ -167,6 +167,7 @@ let tests = [
   "rep_all3" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
     ((set_replace_term (find slstate "H") "h") |> replace_all |> get_all_text));
 
+  (* tests for undo *)
   "undo0" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
     ((insert_text slstate "hi" 0) |> undo |> get_all_text));
   "undo1" >:: (fun _ -> assert_equal 0
@@ -212,6 +213,7 @@ let tests = [
   "undo21" >:: (fun _ -> assert_equal 0
     ((set_replace_term (find slstate "l") "L") |> replace_all |> undo |> get_cursor_location));
 
+  (* tests for redo *)
   "redo0" >:: (fun _ -> assert_equal "hihello\nworld\n\n!!!\n"
     ((insert_text slstate "hi" 0) |> undo |> redo |> get_all_text));
   "redo1" >:: (fun _ -> assert_equal 0
@@ -260,4 +262,30 @@ let tests = [
     ((set_replace_term (find slstate "l") "L") |> replace_all |> undo |> redo |> undo |> redo |> undo |> redo |> get_all_text));
   "redo23" >:: (fun _ -> assert_equal 0
     ((set_replace_term (find slstate "l") "L") |> replace_all |> undo |> redo |> undo |> redo |> undo |> redo |> get_cursor_location));
+
+  (* command terminal tests *)
+  "command0" >:: (fun _ -> assert_equal None
+    (slstate |> get_command_out));
+  "command1" >:: (fun _ -> assert_equal None
+    (slstate |> get_command_in));
+  "command2" >:: (fun _ -> assert_equal (Some "")
+    (slstate |> open_terminal |> get_command_out));
+  "command3" >:: (fun _ -> assert_equal (Some "")
+    (slstate |> open_terminal |> get_command_in));
+  "command4" >:: (fun _ -> assert_equal None
+    (slstate |> open_terminal |> close_terminal |> get_command_out));
+  "command5" >:: (fun _ -> assert_equal None
+    (slstate |> open_terminal |> close_terminal |> get_command_in));
+  "command6" >:: (fun _ -> assert_equal (Some "hi")
+    ((set_command_out slstate "hi") |> get_command_out));
+  "command7" >:: (fun _ -> assert_equal (Some "")
+    ((set_command_out slstate "hi") |> get_command_in));
+  "command8" >:: (fun _ -> assert_equal (Some "")
+    ((set_command_in slstate "hi") |> get_command_out));
+  "command9" >:: (fun _ -> assert_equal (Some "hi")
+    ((set_command_in slstate "hi") |> get_command_in));
+  "command10" >:: (fun _ -> assert_equal None
+    ((set_command_in slstate "hi") |> close_terminal |> get_command_out));
+  "command11" >:: (fun _ -> assert_equal None
+    ((set_command_in slstate "hi") |> close_terminal |> get_command_in));
 ]
