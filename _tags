@@ -1,2 +1,2 @@
-true: use_menhir, package(oUnit), package(str), package(rope)
+true: use_menhir, package(oUnit), package(str), package(rope), package(lwt), package(lambda-term)
 <repl.*>: package(react), package(lwt), package(lambda-term)

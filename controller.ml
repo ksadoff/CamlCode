@@ -1,11 +1,7 @@
-(*
- * move.ml
- * -------
- * Copyright : (c) 2011, Jeremie Dimino <jeremie@dimino.org>
- * Licence   : BSD3
- *
- * This file is a part of Lambda-Term.
- *)
+(* The Controller module is responsible for getting input from the user
+ * either as keybindings within the file or as a command in the command
+ * prompt. It then uses the State module to update the current state of
+ * the editor and the CLView module to update the display. *)
 
 open Lwt
 open LTerm_geom
@@ -14,22 +10,6 @@ open LTerm_key
 
 let rec loop ui coord =
   LTerm_ui.wait ui >>= function
-    | LTerm_event.Key{ code = Up; _ } ->
-        coord := { !coord with row = !coord.row - 1 };
-        LTerm_ui.draw ui;
-        loop ui coord
-    | LTerm_event.Key{ code = Down; _ } ->
-        coord := { !coord with row = !coord.row + 1 };
-        LTerm_ui.draw ui;
-        loop ui coord
-    | LTerm_event.Key{ code = Left; _ } ->
-        coord := { !coord with col = !coord.col - 1 };
-        LTerm_ui.draw ui;
-        loop ui coord
-    | LTerm_event.Key{ code = Right; _ } ->
-        coord := { !coord with col = !coord.col + 1 };
-        LTerm_ui.draw ui;
-        loop ui coord
     | LTerm_event.Key{ code = Escape; _ } ->
         return ()
     | _ ->
@@ -39,7 +19,6 @@ let draw ui matrix coord =
   let size = LTerm_ui.size ui in
   let ctx = LTerm_draw.context matrix size in
   LTerm_draw.clear ctx;
-  LTerm_draw.draw_frame_labelled ctx { row1 = 0; col1 = 0; row2 = size.rows; col2 = size.cols } ~alignment:H_align_center "Use arrow keys to move text" LTerm_draw.Light;
   if size.rows > 2 && size.cols > 2 then begin
     let ctx = LTerm_draw.sub ctx { row1 = 1; col1 = 1; row2 = size.rows - 1; col2 = size.cols - 1 } in
     LTerm_draw.draw_styled ctx coord.row coord.col (eval [B_fg LTerm_style.lblue; S"Move me"; E_fg])

@@ -1,10 +1,11 @@
+(*
 (* The Controller module is responsible for getting input from the user
  * either as keybindings within the file or as a command in the command
  * prompt. It then uses the State module to update the current state of
  * the editor and the CLView module to update the display. *)
 
 open State
-open CLVIew
+open Clview
 
 (* Function to be called when starting the text editor
  * [main str] opens a file with the name [str] if it exists, the editor opens
@@ -18,3 +19,4 @@ val main : string -> unit
  * update in CLView) and passes the
  * new state to another call of [repl] recursively*)
 val repl : state -> state
+*)
