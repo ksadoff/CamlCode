@@ -167,4 +167,125 @@ let tests = [
   "rep_all3" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
     ((set_replace_term (find slstate "H") "h") |> replace_all |> get_all_text));
 
+  (* tests for undo *)
+  "undo0" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((insert_text slstate "hi" 0) |> undo |> get_all_text));
+  "undo1" >:: (fun _ -> assert_equal 0
+    ((insert_text slstate "hi" 0) |> undo |> get_cursor_location));
+  "undo2" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((delete_text slstate 0 5) |> undo |> get_all_text));
+  "undo3" >:: (fun _ -> assert_equal 0
+    ((delete_text slstate 0 5) |> undo |> get_cursor_location));
+  "undo4" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((insert_char slstate 'a') |> undo |> get_all_text));
+  "undo5" >:: (fun _ -> assert_equal 0
+    ((insert_char slstate 'a') |> undo |> get_cursor_location));
+  "undo6" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((delete_char slstate) |> undo |> get_all_text));
+  "undo7" >:: (fun _ -> assert_equal 0
+    ((delete_char slstate) |> undo |> get_cursor_location));
+  "undo8" >:: (fun _ -> assert_equal "ello\nworld\n\n!!!\n"
+    (slstate |> cursor_right |> delete_char |> cursor_right |> delete_char |> undo |> get_all_text));
+  "undo9" >:: (fun _ -> assert_equal 1
+    (slstate |> cursor_right |> delete_char |> cursor_right |> delete_char |> undo |> get_cursor_location));
+  "undo10" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    (slstate |> cursor_right |> delete_char |> cursor_right |> delete_char |> undo |> undo |> get_all_text));
+  "undo11" >:: (fun _ -> assert_equal 1
+    (slstate |> cursor_right |> delete_char |> cursor_right |> delete_char |> undo |> undo |> get_cursor_location));
+  "undo12" >:: (fun _ -> assert_equal "ello\nworld\n\n!!!\n"
+    (slstate |> cursor_right |> delete_char |> undo |> delete_char |> get_all_text));
+  "undo13" >:: (fun _ -> assert_equal 0
+    (slstate |> cursor_right |> delete_char |> undo |> delete_char |> get_cursor_location));
+  "undo14" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    (slstate |> undo |> get_all_text));
+  "undo15" >:: (fun _ -> assert_equal 0
+    (slstate |> undo |> get_cursor_location));
+  "undo16" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((set_replace_term (find slstate "l") "L") |> replace_next |> undo |> get_all_text));
+  "undo17" >:: (fun _ -> assert_equal 0
+    ((set_replace_term (find slstate "l") "L") |> replace_next |> undo |> get_cursor_location));
+  "undo18" >:: (fun _ -> assert_equal "heLlo\nworld\n\n!!!\n"
+    ((set_replace_term (find slstate "l") "L") |> replace_next |> replace_next |> undo |> get_all_text));
+  "undo19" >:: (fun _ -> assert_equal 0
+    ((set_replace_term (find slstate "l") "L") |> replace_next |> replace_next |> undo |> get_cursor_location));
+  "undo20" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((set_replace_term (find slstate "l") "L") |> replace_all |> undo |> get_all_text));
+  "undo21" >:: (fun _ -> assert_equal 0
+    ((set_replace_term (find slstate "l") "L") |> replace_all |> undo |> get_cursor_location));
+
+  (* tests for redo *)
+  "redo0" >:: (fun _ -> assert_equal "hihello\nworld\n\n!!!\n"
+    ((insert_text slstate "hi" 0) |> undo |> redo |> get_all_text));
+  "redo1" >:: (fun _ -> assert_equal 0
+    ((insert_text slstate "hi" 0) |> undo |> redo |> get_cursor_location));
+  "redo2" >:: (fun _ -> assert_equal "\nworld\n\n!!!\n"
+    ((delete_text slstate 0 5) |> undo |> redo |> get_all_text));
+  "redo3" >:: (fun _ -> assert_equal 0
+    ((delete_text slstate 0 5) |> undo |> redo |> get_cursor_location));
+  "redo4" >:: (fun _ -> assert_equal "ahello\nworld\n\n!!!\n"
+    ((insert_char slstate 'a') |> undo |> redo |> get_all_text));
+  "redo5" >:: (fun _ -> assert_equal 1
+    ((insert_char slstate 'a') |> undo |> redo |> get_cursor_location));
+  "redo6" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    ((delete_char slstate) |> undo |> redo |> get_all_text));
+  "redo7" >:: (fun _ -> assert_equal 0
+    ((delete_char slstate) |> undo |> redo |> get_cursor_location));
+  "redo8" >:: (fun _ -> assert_equal "llo\nworld\n\n!!!\n"
+    (slstate |> cursor_right |> delete_char |> cursor_right |> delete_char |> undo |> redo |> get_all_text));
+  "redo9" >:: (fun _ -> assert_equal 0
+    (slstate |> cursor_right |> delete_char |> cursor_right |> delete_char |> undo |> redo |> get_cursor_location));
+  "redo10" >:: (fun _ -> assert_equal "llo\nworld\n\n!!!\n"
+    (slstate |> cursor_right |> delete_char |> cursor_right |> delete_char |> undo |> undo |> redo |> redo |> get_all_text));
+  "redo11" >:: (fun _ -> assert_equal 0
+    (slstate |> cursor_right |> delete_char |> cursor_right |> delete_char |> undo |> undo |> redo |> redo |> get_cursor_location));
+  "redo12" >:: (fun _ -> assert_equal "ello\nworld\n\n!!!\n"
+    (slstate |> cursor_right |> delete_char |> undo |> delete_char |> redo |> get_all_text));
+  "redo13" >:: (fun _ -> assert_equal 0
+    (slstate |> cursor_right |> delete_char |> undo |> delete_char |> redo |> get_cursor_location));
+  "redo14" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
+    (slstate |> redo |> get_all_text));
+  "redo15" >:: (fun _ -> assert_equal 0
+    (slstate |> redo |> get_cursor_location));
+  "redo16" >:: (fun _ -> assert_equal "heLlo\nworld\n\n!!!\n"
+    ((set_replace_term (find slstate "l") "L") |> replace_next |> undo |> redo |> get_all_text));
+  "redo17" >:: (fun _ -> assert_equal 0
+    ((set_replace_term (find slstate "l") "L") |> replace_next |> undo |> redo |> get_cursor_location));
+  "redo18" >:: (fun _ -> assert_equal "heLLo\nworld\n\n!!!\n"
+    ((set_replace_term (find slstate "l") "L") |> replace_next |> replace_next |> undo |> redo |> get_all_text));
+  "redo19" >:: (fun _ -> assert_equal 0
+    ((set_replace_term (find slstate "l") "L") |> replace_next |> replace_next |> undo |> redo |> get_cursor_location));
+  "redo20" >:: (fun _ -> assert_equal "heLLo\nworLd\n\n!!!\n"
+    ((set_replace_term (find slstate "l") "L") |> replace_all |> undo |> redo |> get_all_text));
+  "redo21" >:: (fun _ -> assert_equal 0
+    ((set_replace_term (find slstate "l") "L") |> replace_all |> undo |> redo |> get_cursor_location));
+  "redo22" >:: (fun _ -> assert_equal "heLLo\nworLd\n\n!!!\n"
+    ((set_replace_term (find slstate "l") "L") |> replace_all |> undo |> redo |> undo |> redo |> undo |> redo |> get_all_text));
+  "redo23" >:: (fun _ -> assert_equal 0
+    ((set_replace_term (find slstate "l") "L") |> replace_all |> undo |> redo |> undo |> redo |> undo |> redo |> get_cursor_location));
+
+  (* command terminal tests *)
+  "command0" >:: (fun _ -> assert_equal None
+    (slstate |> get_command_out));
+  "command1" >:: (fun _ -> assert_equal None
+    (slstate |> get_command_in));
+  "command2" >:: (fun _ -> assert_equal (Some "")
+    (slstate |> open_terminal |> get_command_out));
+  "command3" >:: (fun _ -> assert_equal (Some "")
+    (slstate |> open_terminal |> get_command_in));
+  "command4" >:: (fun _ -> assert_equal None
+    (slstate |> open_terminal |> close_terminal |> get_command_out));
+  "command5" >:: (fun _ -> assert_equal None
+    (slstate |> open_terminal |> close_terminal |> get_command_in));
+  "command6" >:: (fun _ -> assert_equal (Some "hi")
+    ((set_command_out slstate "hi") |> get_command_out));
+  "command7" >:: (fun _ -> assert_equal (Some "")
+    ((set_command_out slstate "hi") |> get_command_in));
+  "command8" >:: (fun _ -> assert_equal (Some "")
+    ((set_command_in slstate "hi") |> get_command_out));
+  "command9" >:: (fun _ -> assert_equal (Some "hi")
+    ((set_command_in slstate "hi") |> get_command_in));
+  "command10" >:: (fun _ -> assert_equal None
+    ((set_command_in slstate "hi") |> close_terminal |> get_command_out));
+  "command11" >:: (fun _ -> assert_equal None
+    ((set_command_in slstate "hi") |> close_terminal |> get_command_in));
 ]

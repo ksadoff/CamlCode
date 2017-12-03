@@ -1,0 +1,53 @@
+
+                                                                 (jbuild_version 1)
+
+                                                                 (executables
+                                                                  ((names (clview controller))
+                                                                   (libraries (react str lwt.unix lambda-term rope))))
+
+
+
+ (rule (with-stdout-to state.ml
+        (progn
+         (echo "[@@@warning \"-a\"]\nmodule rec HACK : sig\n")
+         (cat state.mli)
+         (echo "\nend = HACK\ninclude HACK\n"))))
+
+        (rule (with-stdout-to plugin.ml
+                (progn
+                 (echo "[@@@warning \"-a\"]\nmodule rec HACK : sig\n")
+                 (cat plugin.mli)
+                 (echo "\nend = HACK\ninclude HACK\n"))))
+
+
+                         (rule (with-stdout-to keystroke.ml
+                                (progn
+                                 (echo "[@@@warning \"-a\"]\nmodule rec HACK : sig\n")
+                                 (cat keystroke.mli)
+                                 (echo "\nend = HACK\ninclude HACK\n"))))
+
+
+                                 (rule (with-stdout-to file.ml
+                                        (progn
+                                         (echo "[@@@warning \"-a\"]\nmodule rec HACK : sig\n")
+                                         (cat file.mli)
+                                         (echo "\nend = HACK\ninclude HACK\n"))))
+
+                                         (rule (with-stdout-to controller.ml
+                                                (progn
+                                                 (echo "[@@@warning \"-a\"]\nmodule rec HACK : sig\n")
+                                                 (cat controller.mli)
+                                                 (echo "\nend = HACK\ninclude HACK\n"))))
+
+                                                 (rule (with-stdout-to color.ml
+                                                        (progn
+                                                         (echo "[@@@warning \"-a\"]\nmodule rec HACK : sig\n")
+                                                         (cat color.mli)
+                                                         (echo "\nend = HACK\ninclude HACK\n"))))
+
+
+                                                         (rule (with-stdout-to clview.ml
+                                                                (progn
+                                                                 (echo "[@@@warning \"-a\"]\nmodule rec HACK : sig\n")
+                                                                 (cat clview.mli)
+                                                                 (echo "\nend = HACK\ninclude HACK\n"))))

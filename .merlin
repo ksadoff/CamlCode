@@ -1,6 +1,17 @@
-B _build
-PKG oUnit
-PKG lwt
-PKG react
+B _build/default
+FLG -w -40
+PKG bigarray
+PKG bytes
+PKG camomile
 PKG lambda-term
+PKG lwt
+PKG lwt.log
+PKG lwt.unix
+PKG lwt_react
+PKG oUnit
+PKG react
+PKG result
 PKG rope
+PKG str
+PKG unix
+PKG zed

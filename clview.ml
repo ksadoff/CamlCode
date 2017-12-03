@@ -1,59 +1,34 @@
-(*
- * move.ml
- * -------
- * Copyright : (c) 2011, Jeremie Dimino <jeremie@dimino.org>
- * Licence   : BSD3
- *
- * This file is a part of Lambda-Term.
- *)
-
+(* open CamomileLibraryDyn.Camomile *)
 open Lwt
+open LTerm_widget
 open LTerm_geom
 open LTerm_text
 open LTerm_key
+open State
+open LTerm_style
+open CamomileLibrary
+open LTerm_ui
 
-let rec loop ui coord =
-  LTerm_ui.wait ui >>= function
-    | LTerm_event.Key{ code = Up; _ } ->
-        coord := { !coord with row = !coord.row - 1 };
-        LTerm_ui.draw ui;
-        loop ui coord
-    | LTerm_event.Key{ code = Down; _ } ->
-        coord := { !coord with row = !coord.row + 1 };
-        LTerm_ui.draw ui;
-        loop ui coord
-    | LTerm_event.Key{ code = Left; _ } ->
-        coord := { !coord with col = !coord.col - 1 };
-        LTerm_ui.draw ui;
-        loop ui coord
-    | LTerm_event.Key{ code = Right; _ } ->
-        coord := { !coord with col = !coord.col + 1 };
-        LTerm_ui.draw ui;
-        loop ui coord
-    | LTerm_event.Key{ code = Escape; _ } ->
-        return ()
-    | _ ->
-        loop ui coord
+(* type coord = LTerm_geom.coord *)
 
-let draw ui matrix coord =
+let draw_editor ui matrix coord =
   let size = LTerm_ui.size ui in
   let ctx = LTerm_draw.context matrix size in
   LTerm_draw.clear ctx;
-  LTerm_draw.draw_frame_labelled ctx { row1 = 0; col1 = 0; row2 = size.rows; col2 = size.cols } ~alignment:H_align_center "Use arrow keys to move text" LTerm_draw.Light;
-  if size.rows > 2 && size.cols > 2 then begin
-    let ctx = LTerm_draw.sub ctx { row1 = 1; col1 = 1; row2 = size.rows - 1; col2 = size.cols - 1 } in
-    LTerm_draw.draw_styled ctx coord.row coord.col (eval [B_fg LTerm_style.lblue; S"Move me"; E_fg])
-  end
+  LTerm_draw.draw_frame_labelled ctx { row1 = 0; col1 = 0; row2 = size.rows; col2 = size.cols } ~alignment:H_align_center "CamlCode" LTerm_draw.Light;
+  LTerm_draw.draw_frame ctx {row1 = 0; col1 = 0; row2 = 3; col2 = 10} LTerm_draw.Light
 
-let main () =
-  Lazy.force LTerm.stdout
-  >>= fun term ->
-
-  (* Coordinates of the message. *)
-  let coord = ref { row = 0; col = 0 } in
-
-  LTerm_ui.create term (fun matrix size -> draw matrix size !coord)
-  >>= fun ui ->
-  Lwt.finalize (fun () -> loop ui coord) (fun () -> LTerm_ui.quit ui)
-
-let () = Lwt_main.run (main ())
+let sty = {bold = None; underline = None; blink = None; reverse = None;
+           foreground = Some white; background = None}
+           
+let draw ui matrix coord=
+  let size = LTerm_ui.size ui in
+  let ctx = LTerm_draw.context matrix size in
+  LTerm_draw.clear ctx;
+  LTerm_draw.draw_frame_labelled ctx { row1 = 0; col1 = 0; row2 = size.rows; col2 = size.cols } ~alignment:H_align_center "CamlCode" LTerm_draw.Light;
+  (* LTerm_draw.draw_hline ctx 0 0  *)
+  (* LTerm_draw.draw_char ctx 10 10 ~style:sty (CamomileLibrary.UChar.of_char 'a'); *)
+  LTerm_draw.draw_string_aligned ctx 10 H_align_center ~style:sty "Welcome to CamlCode";
+  for n = 0 to 5 do
+    LTerm_draw.draw_frame ctx {row1 = 0; col1 = 0 + (n*10); row2 = 3; col2 = 10 + (n*10)} LTerm_draw.Light
+  done

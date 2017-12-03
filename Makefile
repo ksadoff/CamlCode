@@ -5,9 +5,9 @@ clean:
 	ocamlbuild -clean
 
 compile:
-	jbuilder build clview.exe
+	jbuilder build clview.exe && jbuilder build controller.exe
 	ocamlbuild -use-ocamlfind state.byte
 	ocamlbuild -use-ocamlfind file.byte
 
-ui:
-	ocamlbuild -use-ocamlfind controller.byte && ./controller.byte
+view:
+	cd _build && cd default && ./controller.exe

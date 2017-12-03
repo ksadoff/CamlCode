@@ -32,7 +32,13 @@ type state = {
   (* currently open file *)
   current_file: typing_area;
   (* clipboard *)
-  clipboard: clipboard
+  clipboard: clipboard;
+  (* text to be displayed to the user in the command prompt, [None] if
+   * the terminal is not open *)
+  command_out : string option;
+  (* text input to the command prompt from the user, [None] if the terminal
+   * is not open *)
+  command_in : string option
 }
 
 (* [extract file_opt] takes in an 'a option and returns the 'a. *)
@@ -75,15 +81,12 @@ let fmap_st_f f_fun st =
  * the instance with [f]'s name in the list. *)
 let replace_current_file st f =
   let file_name = File.get_name f in
-  {
+  { st with
     files = begin
       let fname = file_name in
       (fname, f) :: (List.remove_assoc fname st.files)
     end;
-    screens = st.screens;
     current_file = Fname file_name;
-    clipboard = st.clipboard
-
   }
 
 (* [new_file s] creates a new, empty file at path [s].
@@ -100,7 +103,9 @@ let empty_state =
     files = [];
     screens = [];
     current_file = Nofile;
-    clipboard = new_clipboard
+    clipboard = new_clipboard;
+    command_out = None;
+    command_in = None;
   }
 
 (* [get_file_names st] returns a list of strings that represent the names of
@@ -120,11 +125,10 @@ let get_current_file_name st =
  * Raises Sys_error if file read failed. *)
 let open_file st s =
   let new_file = File.open_file s in
-  {
+  { st with
     files = (s, new_file) :: st.files;
     screens = [];
     current_file = Fname s;
-    clipboard = st.clipboard
   }
 
 (* [is_filed_saved st s] returns the file named [s] in state [st] is saved.
@@ -145,6 +149,7 @@ let close_file st =
   match st.current_file with
   | Fname s ->
     let newfiles = List.remove_assoc s st.files in {
+      st with
       files = newfiles;
       screens = List.filter (fun x -> x <> s) st.screens;
       current_file = begin
@@ -152,7 +157,6 @@ let close_file st =
         | [] -> Nofile
         | (s,_)::_ -> Fname s
       end;
-      clipboard = st.clipboard;
     }
   | _ -> st
 
@@ -197,6 +201,41 @@ let paste st =
 
 let change_selected_file s st =
   {st with current_file = Fname s }
+
+(* [open_terminal st] returns a copy of [st] with both [command_out] and
+ * [command_in] set to [Some ""] if they are [None] in [st] which indicates
+ * that the terminal is open but no text is displayed. If the terminal is open
+ * in [st] it returns [st] *)
+let open_terminal st =
+  match st.command_out with
+  | None -> { st with command_out = Some ""; command_in = Some ""; }
+  | Some _ -> st
+
+(* [close_terminal st] returns a copy of [st] with both [command_out] and
+ * and [command_in] both set to [None], indicating that the terminal is closed *)
+let close_terminal st = { st with command_out = None; command_in = None; }
+
+(* [set_command_out st s] returns a copy of [st] with [command_out] set to
+ * [Some s], if the terminal is not open in [st] the returned value also has
+ * [command_in] set to [Some ""] *)
+let set_command_out st s =
+  match st.command_in with
+  | None -> { st with command_out = Some s; command_in = Some "";}
+  | Some _ -> { st with command_out = Some s; }
+
+(* [get_command_out st] returns the [command_out] field of [st] *)
+let get_command_out st = st.command_out
+
+(* [set_command_in st s] returns a copy of [st] with [command_in] set to
+ * [Some s], if the terminal is not open in [st] the returned value also has
+ * [command_out] set to [Some ""] *)
+let set_command_in st s =
+  match st.command_out with
+  | None -> { st with command_out = Some ""; command_in = Some s;}
+  | Some _ -> { st with command_in = Some s; }
+
+(* [get_command_out st] returns the [command_out] field of [st] *)
+let get_command_in st = st.command_in
 
 (* [get_cursor_location st] gets the location of the cursor in the file open
  * in [st]. *)
@@ -278,12 +317,12 @@ let delete_char = fmap_st_f File.delete_char
 
 (* [undo st] undoes the last change recorded in the open file of [st].
  * If there is nothing left to undo, [undo st] will return [st] unchanged. *)
-let undo st = failwith "Unimplemented"
+let undo st = fmap_st_f File.undo st
 
 (* [redo st] redoes the last change that was undone in the open file of
  * [st]. If there is nothing left to redo, [redo st] will return [st]
  * unchanged. *)
-let redo st = failwith "Unimplemented"
+let redo st = fmap_st_f File.redo st
 
 (* [color_text st lst] returns a copy of [st] with the open file now
  * having the color mappings of [lst] *)
