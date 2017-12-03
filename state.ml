@@ -58,6 +58,14 @@ let get_current_file st =
 (* [set_current_file st f] sets the current file in [st] to [f]. *)
 let set_current_file st f = {st with current_file = Fname (get_name f)}
 
+(* [is_on_file st] returns [true] if there user is currently on a file,
+ * and [false] if the user does not have a file open or if they
+ * are typing on the command prompt. *)
+let is_on_file st = 
+  match st.current_file with
+  | Fname _ -> true
+  | _ -> false
+
 (* [file_to_state_fun f_fun st] takes a function that acts on a file
  * [f_fun : file -> 'a] and returns a function of type [state -> 'a]
  * that calls to [f_fun] but uses the current file in [st] as input.
@@ -166,7 +174,7 @@ let close_file st =
 let change_selected_file s st =
   {st with current_file = Fname s }
 
-
+(* [get_clipboard st] returns the current clipboard of st *)
 let get_clipboard st = st.clipboard
 
 (* [copy st] returns a copy of state with the text selected in the open file of
@@ -198,7 +206,9 @@ let paste st =
   Pervasives.print_endline ("contents after: "^File.get_all_text new_contents);
   {st with current_file = Fname (File.get_name new_contents)}
 
-
+(* [change_selected_file s st] changes the selected file in [st]
+ * to the file with name [s].
+ * Raises Not_found if [s] is not one of the files open in [st]. *)
 let change_selected_file s st =
   {st with current_file = Fname s }
 

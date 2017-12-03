@@ -1,4 +1,3 @@
-
 (* The Controller module is responsible for getting input from the user
  * either as keybindings within the file or as a command in the command
  * prompt. It then uses the State module to update the current state of
@@ -7,15 +6,9 @@
 open State
 open Clview
 
-(* Function to be called when starting the text editor
- * [main str] opens a file with the name [str] if it exists, the editor opens
- * but with no file open
- * The argument should be optional, when not given a string the
- * function is the same as if the file was not found *)
-val main : string -> unit
+(* Function to be called when starting the text editor with no files open. *)
+val main : unit -> unit Lwt.t
 
-(* [repl s] waits for input from the user. Once input is recieved it creates
- * a new state, updates the display according to the new state (by calling
- * update in CLView) and passes the
- * new state to another call of [repl] recursively*)
-val repl : state -> state
+(* [repl ui s] reads input from the user, evaluates it to a new state,
+ * changes the UI accordingly, and repeats. Returns when user quits. *)
+val repl : LTerm_ui.t -> state -> unit Lwt.t

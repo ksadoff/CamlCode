@@ -43,14 +43,13 @@ val get_current_file : state -> File.file
 (* [set_current_file st f] sets the current file in [st] to [f]. *)
 val set_current_file : state -> File.file -> state
 
-(* [get_current_file_name st] returns the string of the name of the file being *)
-val get_file_names : state -> string list
-
  (* [get_current_file st] returns the file that is currently being manipulated *)
 val get_current_file : state -> File.file
 
-(* [set_current_file st f] returns a new state with the same fields as st except
- * with the current file set to f*)
+(* [is_on_file st] returns [true] if there user is currently on a file,
+ * and [false] if the user does not have a file open or if they
+ * are typing on the command prompt. *)
+val is_on_file : state -> bool
 
 (* [get_current_file_name st] returns the string of the name of the file being
  * manipulated. *)
@@ -80,7 +79,6 @@ val close_file : state -> state
  * to the file with name [s].
  * Raises Not_found if [s] is not one of the files open in [st]. *)
 val change_selected_file : string -> state -> state
-
 
 (* [get_clipboard st] returns the current clipboard of st *)
 val get_clipboard : state -> clipboard
