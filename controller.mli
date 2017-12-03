@@ -9,6 +9,6 @@ open Clview
 (* Function to be called when starting the text editor with no files open. *)
 val main : unit -> unit Lwt.t
 
-(* [repl ui s] reads input from the user, evaluates it to a new state,
+(* [repl ui stref] reads input from the user, evaluates it to a new state,
  * changes the UI accordingly, and repeats. Returns when user quits. *)
-val repl : LTerm_ui.t -> state -> unit Lwt.t
+val repl : LTerm_ui.t -> state ref -> unit Lwt.t
