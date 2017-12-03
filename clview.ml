@@ -8,9 +8,9 @@ open LTerm_draw
 let sty = {bold = None; underline = None; blink = None; reverse = None;
   foreground = Some white; background = None}
 
-(* [draw_tabs ctx st] draws the tabs in state [st] at the top of context 
+(* [draw_tabs st ctx] draws the tabs in state [st] at the top of context 
  * [ctx]. *)
-let draw_tabs ctx st = 
+let draw_tabs st ctx = 
   let num_tabs = get_file_names st |> List.length in
   let tab_height = (size ctx).rows in
   for n = 0 to (num_tabs-1) do
@@ -19,9 +19,9 @@ let draw_tabs ctx st =
       Light
   done
 
-(* [draw_file ctx st] draws the currently selected file in [st]
+(* [draw_file st ctx] draws the currently selected file in [st]
  * on context [ctx]. *)
-let draw_file ctx st =
+let draw_file st ctx =
   (* draw horizontal line *)
   draw_hline ctx 0 0 (size ctx).cols Heavy;
 
@@ -29,7 +29,7 @@ let draw_file ctx st =
   if is_on_file st then begin
     (* name of file at the top *)
     get_current_file_name st 
-      |> draw_string_aligned ctx 0 H_align_center ~style:sty;
+    |> draw_string_aligned ctx 0 H_align_center ~style:sty;
     (* contents of file *)
     get_all_text st |> draw_string ctx 1 0 ~style:sty
   end
@@ -51,13 +51,12 @@ let draw_all ctx st =
   let tab_height = 3 in
 
   (* Draw file in its own subcontext *)
-  let filectx = sub ctx 
-    {row1=tab_height; col1=0; row2=size.rows; col2=size.cols} in
-  draw_file filectx st;
+  sub ctx {row1=tab_height; col1=0; row2=size.rows; col2=size.cols}
+  |> draw_file st;
 
   (* Draw tabs *)
-  let tabctx = sub ctx {row1=0; col1=0; row2=tab_height; col2=size.cols} in
-  draw_tabs tabctx st
+  sub ctx {row1=0; col1=0; row2=tab_height; col2=size.cols}
+  |> draw_tabs st
 
 (* [draw] is called by [repl] in command.ml after user input is received. 
  * It takes in the current state, updates the user interface to reflect any 
