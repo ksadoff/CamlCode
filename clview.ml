@@ -40,11 +40,9 @@ let draw_file ctx st =
       ~style:sty "Welcome to CamlCode"
   end
 
-(* [draw_matrix ui matrix st] draws the state [st] on ui [ui]
- * using matrix [matrix].*)
-let draw_matrix ui matrix st =
-  let size = LTerm_ui.size ui in
-  let ctx = context matrix size in
+(* [draw_all ctx st] draws the state [st] on context [ctx]. *)
+let draw_all ctx st =
+  let size = size ctx in
 
   (* Clear context *)
   clear ctx;
@@ -65,4 +63,8 @@ let draw_matrix ui matrix st =
  * It takes in the current state, updates the user interface to reflect any 
  * change the user made to the state, and returns a unit. *)
 let draw term st = 
-  LTerm_ui.create term (fun ui matrix -> draw_matrix ui matrix st)
+  LTerm_ui.create term (fun ui matrix -> 
+    let size = LTerm_ui.size ui in
+    let ctx = context matrix size in
+    draw_all ctx st
+  )
