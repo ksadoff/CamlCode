@@ -13,8 +13,21 @@ let rec repl ui stref =
   LTerm_ui.wait ui >>= function
   | LTerm_event.Key{ code = Escape; _ } ->
     return ()
-  (* | LTerm_event.Key{ control = true; code = keycode; _} -> *)
+  | LTerm_event.Key{ control = true; code = keycode; _} ->
+    if (is_on_file !stref) then begin
+      stref := match keycode with
+        | Char z when (UChar.char_of z) = 'z' -> undo !stref
+        | Char y when (UChar.char_of y) = 'y' -> redo !stref
+        | _ -> !stref
+        end;
+        LTerm_ui.draw ui;
+        repl ui stref
 
+            (* | Char x when (UChar.int_of x) >=0 && (UChar.int_of x) < (num_open_files !stref) ->
+          change_selected_file (List.nth (get_file_names !stref) (UChar.int_of x)) !stref
+        | Char c when (UChar.char_of c) = 't' ->
+          let old = get_current_file_name !stref in
+                  let new = (List. *)
   | LTerm_event.Key { code = keycode; _ } ->
     if (is_on_file !stref) then begin
       stref := match keycode with
