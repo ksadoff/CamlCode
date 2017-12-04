@@ -408,12 +408,12 @@ let unselect_text f = {f with selectpoint = None}
 let get_selected_range f = 
   match f.selectpoint with
   | None -> None
-  | Some sp -> Some (make_range_valid (f.cursor.index + 1, sp.index) 
-    (cont_length f))
+  | Some sp -> (make_range_valid (f.cursor.index, sp.index) (cont_length f))
+    |> fun (i0, i1) -> Some (i0, i1+1)
 
 (* [get_select_start f] returns [Some (i, l, c)] where [i]
  * is the index of the beginning of the selection region, [l] is the line 
- * number, and [c] is the column. If not selection has been made,
+ * number, and [c] is the column. If no selection has been made,
  * returns None. *)
 let get_select_start f = 
   match f.selectpoint with
@@ -421,6 +421,14 @@ let get_select_start f =
   | Some sp -> 
     if sp.index < f.cursor.index then Some (sp.index, sp.line_num, sp.column)
     else Some (f.cursor.index, f.cursor.line_num, f.cursor.column)
+
+(* [get_select_point f] returns [Some (i, l, c)] where [i]
+ * is the index of the fixed selection point, [l] is the line number,
+ * and [c] is the column. If no selection has been made, returns [None]. *)
+let get_select_point f = 
+  match f.selectpoint with
+  | Some {index=i; line_num=l; column=c} -> Some (i, l, c)
+  | None -> None
 
 (* [concat_with_newline ropes] concatenates a list of ropes
  * and appends a newline character to the end if it doesn't exist. *)

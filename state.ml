@@ -27,8 +27,7 @@ type clipboard = rope
 type state = {
   (* associative list mapping file name to file *)
   files: (string * File.file) list;
-  (* associative list mapping file name to file, used for determining which
-   files will appear for split screen *)
+  (* list of file names open on split screen *)
   screens: string list;
   (* currently open file *)
   current_file: opened_file;
@@ -376,6 +375,10 @@ let get_text = file_to_state_fun File.get_text
  * the file opened in [st] *)
 let get_all_text = file_to_state_fun File.get_all_text
 
+(* [start_selecting st] sets the fixed selecting point to the current 
+ * location of the cursor in the currently selected file in [st]. *)
+let start_selecting = fmap_st_f File.start_selecting
+
 (* [select_text st l1 l2] selects text from [l1] to [l2] in the currently
  * selected file in [st]. This function forces [l1] and [l2] to be in order
  * and in bounds. *)
@@ -388,6 +391,12 @@ let unselect_text = fmap_st_f File.unselect_text
  * or [Some (i1, i2)] if there is currently text selected from
  * index [i1] to [i2]. *)
 let get_selected_range = file_to_state_fun File.get_selected_range
+
+(* [get_select_start f] returns [Some (i, l, c)] where [i]
+ * is the index of the beginning of the selection region, [l] is the line 
+ * number, and [c] is the column. If not selection has been made,
+ * returns None. *)
+let get_select_start = file_to_state_fun File.get_select_start
 
 (* [insert_text st s l] inserts string [s] into the contents the open
  * file of [st] at location [l]. *)

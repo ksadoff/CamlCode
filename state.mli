@@ -44,7 +44,6 @@ val get_current_file : state -> File.file
 (* [set_current_file st f] sets the current file in [st] to [f]. *)
 val set_current_file : state -> File.file -> state
 
-
 (* [get_current_file_name st] returns the string of the name of the file being *)
 val get_file_names : state -> string list
 
@@ -201,6 +200,10 @@ val get_text : state -> int -> int -> string
  * the file opened in [st] *)
 val get_all_text : state -> string
 
+(* [start_selecting st] sets the fixed selecting point to the current 
+ * location of the cursor in the currently selected file in [st]. *)
+val start_selecting : state -> state
+
 (* [select_text st l1 l2] selects text from [l1] to [l2] in the currently
  * selected file in [st]. This function forces [l1] and [l2] to be in order
  * and in bounds. *)
@@ -213,6 +216,12 @@ val unselect_text : state -> state
  * current file in [st], or [Some (i1, i2)] if there is currently text
  * selected from index [i1] to [i2]. *)
 val get_selected_range : state -> (int * int) option
+
+(* [get_select_start st] returns [Some (i, l, c)] where [i]
+ * is the index of the beginning of the selection region, [l] is the line 
+ * number, and [c] is the column. If not selection has been made,
+ * returns None. *)
+val get_select_start : state -> (int * int * int) option
 
 (* [insert_text st s l] inserts string [s] into the contents the open
  * file of [st] at location [l]. *)

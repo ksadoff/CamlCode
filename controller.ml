@@ -12,7 +12,6 @@ type commands =
   | Replace_All
   | Invalid
 
-
 (* [parse_word s] returns the substring of [s] before the first [" "]. If
  * no [" "] occurs it returns [s] *)
 let parse_word s =
@@ -120,16 +119,22 @@ let rec repl ui stref =
         | Char c when (UChar.char_of c) = 't' ->
           let old = get_current_file_name !stref in
                   let new = (List. *)
-  | LTerm_event.Key { code = keycode; _ } ->
+  | LTerm_event.Key { code = keycode; shift = shift; _ } ->
     if (is_on_file !stref) then begin
       match get_typing_area !stref with
       | File ->
         begin
+          (* changes selection based on whether shift is pressed *)
+          let change_select shift st =
+            match shift, (get_select_start st) with 
+            | true, None -> start_selecting st 
+            | false, Some _ -> unselect_text st
+            | _ -> st in
           stref := match keycode with
-          | Right -> cursor_right !stref
-          | Left -> cursor_left !stref
-          | Up -> cursor_up !stref
-          | Down -> cursor_down !stref
+          | Right -> !stref |> change_select shift |> cursor_right
+          | Left -> !stref |> change_select shift |> cursor_left
+          | Up -> !stref |> change_select shift |> cursor_up
+          | Down -> !stref |> change_select shift |> cursor_down
           | Char c -> insert_char !stref (UChar.char_of c)
           | Enter -> insert_char !stref '\n'
           | Backspace -> delete_char !stref

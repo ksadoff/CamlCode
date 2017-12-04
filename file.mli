@@ -124,6 +124,11 @@ val get_selected_range : file -> (int * int) option
  * returns None. *)
 val get_select_start : file -> (int * int * int) option
 
+(* [get_select_point f] returns [Some (i, l, c)] where [i]
+ * is the index of the fixed selection point, [l] is the line number,
+ * and [c] is the column. If no selection has been made, returns [None]. *)
+val get_select_point : file -> (int * int * int) option
+
 (* [insert_text f s] inserts string [s] into the contents
  * of [f] at location [l]. The beginning of the inserted string
  * will be at index [l]. If [l] is an invalid location, the closest
