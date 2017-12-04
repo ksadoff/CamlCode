@@ -6,11 +6,6 @@
  * including all characters. *)
 type contents = Rope.t
 
-type undo_state = {
-  text : contents;
-  cursor_loc : int;
-}
-
 (* A file variable represents all the state that is recorded
  * for one file. It should contain the following information:
  * * file name/relative path
@@ -66,11 +61,11 @@ type file = {
   num_undos : int;
 
   (* a stack of previous file states than are used to revert to previous states *)
-  undo_list : undo_state list;
+  undo_list : file list;
 
   num_redos : int;
 
-  redo_list : undo_state list
+  redo_list : file list
 }
 
 (* sets the maximum size of the undo queue *)
@@ -86,29 +81,21 @@ let rec rem_tail = function
  * contains the text and cursor location of [f], and the size of the stack
  * updated. If the stack is full the bottom element is removed *)
 let add_undo f =
-  let new_undo = {
-    text = f.contents;
-    cursor_loc = f.cursor;
-  } in
   if f.num_undos < max_undos then
     {f with num_undos = f.num_undos + 1;
-            undo_list = new_undo::f.undo_list;}
+            undo_list = f::f.undo_list;}
   else
-    {f with undo_list = new_undo::(rem_tail f.undo_list);}
+    {f with undo_list = f::(rem_tail f.undo_list);}
 
 (* [add_redo f] returns a copy of f with a new element in the redo stack that
  * contains the text and cursor location of [f], and the size of the stack
  * updated. If the stack is full the bottom element is removed *)
 let add_redo f =
-  let new_redo = {
-    text = f.contents;
-    cursor_loc = f.cursor;
-  } in
   if f.num_redos < max_undos then
     {f with num_redos = f.num_redos + 1;
-            redo_list = new_redo::f.redo_list;}
+            redo_list = f::f.redo_list;}
   else
-    {f with redo_list = new_redo::(rem_tail f.redo_list);}
+    {f with redo_list = f::(rem_tail f.redo_list);}
 
 
 (* [get_cont_length f] returns the length of the contents of [f]. *)
@@ -532,11 +519,7 @@ let undo f =
   let redo_file = add_redo f in
   match f.undo_list with
   | [] -> f
-  | h::t -> {f with contents = h.text;
-                    cursor = h.cursor_loc;
-                    num_undos = f.num_undos - 1;
-                    undo_list = t;
-                    num_redos = redo_file.num_redos;
+  | h::t -> {h with num_redos = redo_file.num_redos;
                     redo_list = redo_file.redo_list;
             }
 
@@ -546,12 +529,8 @@ let redo f =
   let undo_file = add_undo f in
   match f.redo_list with
   | [] -> f
-  | h::t -> {f with contents = h.text;
-                    cursor = h.cursor_loc;
-                    num_undos = undo_file.num_undos;
+  | h::t -> {h with num_undos = undo_file.num_undos;
                     undo_list = undo_file.undo_list;
-                    num_redos = f.num_redos - 1;
-                    redo_list = t;
             }
 
 (* [color_text f lst] returns a copy of [f] with the color mappings of [lst] *)
