@@ -358,7 +358,7 @@ let tests = [
     ((set_replace_term (find somelines "l") "L") |> replace_next |> undo |> get_cursor_location));
   "undo18" >:: (fun _ -> assert_equal "heLlo\nworld\n\n!!!\n"
     ((set_replace_term (find somelines "l") "L") |> replace_next |> replace_next |> undo |> get_all_text));
-  "undo19" >:: (fun _ -> assert_equal 0
+  "undo19" >:: (fun _ -> assert_equal 2
     ((set_replace_term (find somelines "l") "L") |> replace_next |> replace_next |> undo |> get_cursor_location));
   "undo20" >:: (fun _ -> assert_equal "hello\nworld\n\n!!!\n"
     ((set_replace_term (find somelines "l") "L") |> replace_all |> undo |> get_all_text));
@@ -399,19 +399,19 @@ let tests = [
     (somelines |> redo |> get_cursor_location));
   "redo16" >:: (fun _ -> assert_equal "heLlo\nworld\n\n!!!\n"
     ((set_replace_term (find somelines "l") "L") |> replace_next |> undo |> redo |> get_all_text));
-  "redo17" >:: (fun _ -> assert_equal 0
+  "redo17" >:: (fun _ -> assert_equal 2
     ((set_replace_term (find somelines "l") "L") |> replace_next |> undo |> redo |> get_cursor_location));
   "redo18" >:: (fun _ -> assert_equal "heLLo\nworld\n\n!!!\n"
     ((set_replace_term (find somelines "l") "L") |> replace_next |> replace_next |> undo |> redo |> get_all_text));
-  "redo19" >:: (fun _ -> assert_equal 0
+  "redo19" >:: (fun _ -> assert_equal 3
     ((set_replace_term (find somelines "l") "L") |> replace_next |> replace_next |> undo |> redo |> get_cursor_location));
   "redo20" >:: (fun _ -> assert_equal "heLLo\nworLd\n\n!!!\n"
     ((set_replace_term (find somelines "l") "L") |> replace_all |> undo |> redo |> get_all_text));
-  "redo21" >:: (fun _ -> assert_equal 0
-    ((set_replace_term (find somelines "l") "L") |> replace_all |> undo |> redo |> get_cursor_location));
+  "redo21" >:: (fun _ -> assert_equal 9
+    ((set_replace_term (find somelines "l") "L") |> replace_all |> undo |> redo |> get_cursor_location) ~printer: string_of_int);
   "redo22" >:: (fun _ -> assert_equal "heLLo\nworLd\n\n!!!\n"
     ((set_replace_term (find somelines "l") "L") |> replace_all |> undo |> redo |> undo |> redo |> undo |> redo |> get_all_text));
-  "redo23" >:: (fun _ -> assert_equal 0
+  "redo23" >:: (fun _ -> assert_equal 9
     ((set_replace_term (find somelines "l") "L") |> replace_all |> undo |> redo |> undo |> redo |> undo |> redo |> get_cursor_location));
 
   (* saving a file *)

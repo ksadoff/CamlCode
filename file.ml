@@ -6,9 +6,16 @@
  * including all characters. *)
 type contents = Rope.t
 
+(* represents where a cursor can be in text *)
+type location = {
+  index : int; (* index in string of entire file *)
+  line_num : int; (* line number *)
+  column : int; (* column number *)
+}
+
 type undo_state = {
   text : contents;
-  cursor_loc : int;
+  cursor_loc : location;
 }
 
 (* A file variable represents all the state that is recorded
@@ -29,14 +36,8 @@ type file = {
   (* file contents *)
   contents : contents;
 
-  (* index of cursor in contents *)
-  cursor : int;
-
-  (* line number of cursor *)
-  cursor_line_num : int;
-
-  (* column number of cursor *)
-  cursor_column : int;
+  (* cursor location *)
+  cursor : location;
 
   (* [Array.get f.line_lengths i] is the number of characters in
    * line [i] of [f.contents] *)
@@ -45,8 +46,10 @@ type file = {
   (* top line that view is currently scrolled to *)
   scroll_line_num : int;
 
-  (* range of currently selected text *)
-  selected_range : (int * int) option;
+  (* Fixed point where text selection begins/ends.
+   * Text selection extends from [selectpoint] to [cursor].
+   * The selected range is INCLUSIVE on both endpoints. *)
+  selectpoint : location option;
 
   (* the string that the user is currently searching for *)
   search_term : string option;
@@ -58,8 +61,10 @@ type file = {
    * the color that characters starting at that location should be. *)
   color_mapping : Color.color_mapping;
 
+  (* copied string *)
   clipboard : Rope.t;
 
+  (* whether file was saved since last edit *)
   was_saved : bool;
 
   (* the number of previous undo_states in the undo stack *)
@@ -68,8 +73,10 @@ type file = {
   (* a stack of previous file states than are used to revert to previous states *)
   undo_list : undo_state list;
 
+  (* number of redos so far *)
   num_redos : int;
 
+  (* list of redos *)
   redo_list : undo_state list
 }
 
@@ -163,12 +170,10 @@ let open_file s =
   {
     name = s;
     contents = contents;
-    cursor = 0;
-    cursor_line_num = 0;
-    cursor_column = 0;
+    cursor = {index=0; line_num=0; column=0};
     line_lengths = line_lengths_arr contents;
     scroll_line_num = 0;
-    selected_range = None;
+    selectpoint = None;
     search_term = None;
     replace_term = None;
     color_mapping = Color.empty_cm;
@@ -195,13 +200,13 @@ let is_saved f = f.was_saved
 let get_name f = f.name
 
 (* [get_cursor_location f] gets the location of the cursor in [f]. *)
-let get_cursor_location f = f.cursor
+let get_cursor_location f = f.cursor.index
 
 (* [get_cursor_line_num f] gets the line number of the cursor in [f]. *)
-let get_cursor_line_num f = f.cursor_line_num
+let get_cursor_line_num f = f.cursor.line_num
 
 (* [get_cursor_column f] gets the column number of the cursor in [f]. *)
-let get_cursor_column f = f.cursor_column
+let get_cursor_column f = f.cursor.column
 
 (* [get_line_lengths f] returns the list of the lengths of lines
  * in the contents of [f], in order from top of file to bottom. *)
@@ -209,17 +214,16 @@ let get_line_lengths f = f.line_lengths |> Array.to_list
 
 (* requires:
  * [lla] array of line lengths in a file
- * [i1] character index of previous cursor location
- * [ln1] line number of previous cursor location
- * [c1] column number of previous cursor location
+ * [loc1] previous location of cursor
  * [i2] index of new cursor location
- * returns: line number and column [(ln2, c2)] of new cursor location
+ * returns: location of new cursor location, including line num and column
  * raises: Invalid_argument if any of the following happens
  * * [i1] or [i2] are out of bounds of contents
  * * [ln1] is not a valid index of [lla]
  * * [c1] is not a valid column in its corresponding line
  *)
-let rec get_line_num_col lla i1 ln1 c1 i2 =
+let rec get_location lla loc1 i2 =
+  let {index=i1; line_num=ln1; column=c1} = loc1 in
   (* line number exceptions *)
   if ln1 < 0 || ln1 >= Array.length lla
   then raise (Invalid_argument ("invalid line number " ^ (string_of_int ln1)))
@@ -232,7 +236,8 @@ let rec get_line_num_col lla i1 ln1 c1 i2 =
   then raise (Invalid_argument ("invalid column " ^ (string_of_int ln1)))
   else
   (* if i1 and i2 on same line, return ln1 *)
-  if i2 >= line_start && i2 < line_start + line_len then (ln1, i2-line_start)
+  if i2 >= line_start && i2 < line_start + line_len 
+  then {index=i2; line_num=ln1; column=i2-line_start}
   (* if i2 not on i1's line, recursively call with previous or next line *)
   else
   let new_ln = if i2 < line_start then ln1 - 1 else ln1 + 1 in
@@ -240,7 +245,7 @@ let rec get_line_num_col lla i1 ln1 c1 i2 =
   let new_start =
     if i2 < line_start then i1 - c1 - new_len
     else i1 - c1 + line_len in
-  get_line_num_col lla new_start new_ln 0 i2
+  get_location lla {index=new_start; line_num=new_ln; column=0} i2 
 
 (* [move_cursor f l] moves the cursor location in [f] to [l]. The cursor
  * index, line number, and column number are all updated. If [l] is an
@@ -250,43 +255,50 @@ let move_cursor f l =
   let l' = if l < 0 then 0
     else if l >= cont_length f then cont_length f - 1
     else l in
-  let (new_line_num, new_col) = get_line_num_col lla f.cursor
-    f.cursor_line_num f.cursor_column l' in
+  let new_cursor = get_location lla f.cursor l' in
   { f with
-    cursor = l';
-    cursor_line_num = new_line_num;
-    cursor_column = new_col;
+    cursor = new_cursor;
   }
 
 (* [cursor_left f] returns [f] with cursor moved one position left.
  * If the end of the line is reached, cursor moves to end of previous
  * line. If cursor at index 0, it doesn't move. *)
 let cursor_left f =
-  if f.cursor = 0 then f
-  else if f.cursor_column = 0 then { f with
-    cursor = f.cursor - 1;
-    cursor_line_num = f.cursor_line_num - 1;
-    cursor_column =  Array.get f.line_lengths (f.cursor_line_num - 1) - 1;
+  if f.cursor.index = 0 then f
+  else if f.cursor.column = 0 then { f with
+    cursor = {
+      index= f.cursor.index - 1;
+      line_num = f.cursor.line_num - 1;
+      column =  Array.get f.line_lengths (f.cursor.line_num - 1) - 1;
+    }
   }
   else { f with
-    cursor = f.cursor - 1;
-    cursor_column = f.cursor_column - 1;
+    cursor = {
+      index = f.cursor.index - 1;
+      line_num = f.cursor.line_num;
+      column = f.cursor.column - 1;
+    }
   }
 
  (* [cursor_right f] returns [f] with cursor moved one position right.
   * If the end of the line is reached, cursor moves to beginning
   * of next line. If cursor at the end of file, it doesn't move. *)
 let cursor_right f =
-  let line_len = Array.get f.line_lengths f.cursor_line_num in
-  if f.cursor = cont_length f - 1 then f
-  else if f.cursor_column = line_len - 1 then { f with
-    cursor = f.cursor + 1;
-    cursor_line_num = f.cursor_line_num + 1;
-    cursor_column = 0;
+  let line_len = Array.get f.line_lengths f.cursor.line_num in
+  if f.cursor.index = cont_length f - 1 then f
+  else if f.cursor.column = line_len - 1 then { f with
+    cursor = {
+      index = f.cursor.index + 1;
+      line_num = f.cursor.line_num + 1;
+      column = 0;
+    }
   }
   else { f with
-    cursor = f.cursor + 1;
-    cursor_column = f.cursor_column + 1;
+    cursor = {
+      index = f.cursor.index + 1;
+      line_num = f.cursor.line_num;
+      column = f.cursor.column + 1;
+    }
   }
 
  (* [cursor_up f] returns [f] with cursor moved one line up.
@@ -295,20 +307,22 @@ let cursor_right f =
   * If on first line, cursor goes to farthest left position. *)
 let cursor_up f =
   let lnum =
-    if f.cursor_line_num = 0 then 0
-    else f.cursor_line_num - 1 in
+    if f.cursor.line_num = 0 then 0
+    else f.cursor.line_num - 1 in
   let line_len = Array.get f.line_lengths lnum in
   let col =
-    if f.cursor_line_num = 0 then 0
-    else if f.cursor_column < line_len then f.cursor_column
+    if f.cursor.line_num = 0 then 0
+    else if f.cursor.column < line_len then f.cursor.column
     else line_len - 1 in
   let new_cursor =
-    if f.cursor_line_num = 0 then 0
-    else f.cursor - f.cursor_column - line_len + col in
+    if f.cursor.line_num = 0 then 0
+    else f.cursor.index - f.cursor.column - line_len + col in
   { f with
-    cursor = new_cursor;
-    cursor_line_num = lnum;
-    cursor_column = col;
+    cursor = {
+      index = new_cursor;
+      line_num = lnum;
+      column = col;
+    }
   }
 
  (* [cursor_down f] returns [f] with cursor moved one line down.
@@ -318,21 +332,23 @@ let cursor_up f =
 let cursor_down f =
   let num_lines = Array.length f.line_lengths in
   let lnum =
-    if f.cursor_line_num = num_lines - 1 then num_lines - 1
-    else f.cursor_line_num + 1 in
-  let prev_line_len = Array.get f.line_lengths f.cursor_line_num in
+    if f.cursor.line_num = num_lines - 1 then num_lines - 1
+    else f.cursor.line_num + 1 in
+  let prev_line_len = Array.get f.line_lengths f.cursor.line_num in
   let line_len = Array.get f.line_lengths lnum in
   let col =
-    if f.cursor_line_num = num_lines - 1 then line_len - 1
-    else if f.cursor_column < line_len then f.cursor_column
+    if f.cursor.line_num = num_lines - 1 then line_len - 1
+    else if f.cursor.column < line_len then f.cursor.column
     else line_len - 1 in
   let new_cursor =
-    if f.cursor_line_num = num_lines - 1 then cont_length f - 1
-    else f.cursor - f.cursor_column + prev_line_len + col in
+    if f.cursor.line_num = num_lines - 1 then cont_length f - 1
+    else f.cursor.index - f.cursor.column + prev_line_len + col in
   { f with
-    cursor = new_cursor;
-    cursor_line_num = lnum;
-    cursor_column = col;
+    cursor = {
+      index = new_cursor;
+      line_num = lnum;
+      column = col;
+    }
   }
 
 (* [scroll_to f n] changes the line number of the scrolled view
@@ -377,20 +393,43 @@ let get_text f l1 l2 =
 (* [get_all_text f] returns a string representing all of the text in [f] *)
 let get_all_text f = Rope.to_string f.contents
 
+(* [start_selecting f] sets the fixed selecting point to the current 
+ * location of the cursor in [f]. *)
+let start_selecting f = {f with selectpoint = Some f.cursor}
+
 (* [select_text f l1 l2] selects text from [l1] to [l2].
- * This function forces [l1] and [l2] to be in order and in bounds. *)
+ * This function forces [l1] and [l2] to be in order and in bounds.
+ * The selection point is set to [l1] and the cursor is set to [l2]. *)
 let select_text f l1 l2 =
-  let cont_len = cont_length f in
-  let (l1', l2') = make_range_valid (l1, l2) cont_len in
-  {f with selected_range = Some (l1', l2')}
+  let (l1', l2') = make_range_valid (l1, l2) (cont_length f) in
+  (* print_endline (string_of_int l1' ^ ", " ^ string_of_int l2'); *)
+  {f with 
+    cursor = get_location f.line_lengths f.cursor (l2'-1);
+    selectpoint = Some (get_location f.line_lengths f.cursor l1');
+  }
 
 (* Returns [f] with no selected text. *)
-let unselect_text f = {f with selected_range = None}
+let unselect_text f = {f with selectpoint = None}
 
 (* [get_selected_range f] returns [None] if no text is selected,
  * or [Some (i1, i2)] if there is currently text selected from
  * index [i1] to [i2]. *)
-let get_selected_range f = f.selected_range
+let get_selected_range f = 
+  match f.selectpoint with
+  | None -> None
+  | Some sp -> Some (make_range_valid (f.cursor.index + 1, sp.index) 
+    (cont_length f))
+
+(* [get_select_start f] returns [Some (i, l, c)] where [i]
+ * is the index of the beginning of the selection region, [l] is the line 
+ * number, and [c] is the column. If not selection has been made,
+ * returns None. *)
+let get_select_start f = 
+  match f.selectpoint with
+  | None -> None 
+  | Some sp -> 
+    if sp.index < f.cursor.index then Some (sp.index, sp.line_num, sp.column)
+    else Some (f.cursor.index, f.cursor.line_num, f.cursor.column)
 
 (* [concat_with_newline ropes] concatenates a list of ropes
  * and appends a newline character to the end if it doesn't exist. *)
@@ -399,8 +438,6 @@ let concat_with_newline ropes =
   if (Rope.length combo = 0) || Rope.get combo (Rope.length combo - 1) <> '\n'
   then Rope.concat2 combo (Rope.of_string "\n")
   else combo
-
-let set_selected_range f i_opt = {f with selected_range = i_opt}
 
 (* [insert_text f s] inserts string [s] into the contents
  * of [f] at location [l]. The beginning of the inserted string
@@ -428,7 +465,7 @@ let insert_text f s l' =
  * to the right. *)
 let insert_char f c =
   let len_rope = cont_length f in
-  let l = f.cursor in
+  let l = f.cursor.index in
   let begin_rope = Rope.sub f.contents 0 l in
   let end_rope = Rope.sub f.contents l (len_rope - l) in
   let insert_rope = String.make 1 c |> Rope.of_string in
@@ -438,21 +475,21 @@ let insert_char f c =
     contents = new_rope;
     line_lengths = begin
       if c <> '\n' then
-        let prev_len = Array.get f.line_lengths f.cursor_line_num in
+        let prev_len = Array.get f.line_lengths f.cursor.line_num in
         let new_lls = Array.copy f.line_lengths in
-        Array.set new_lls f.cursor_line_num (prev_len + 1);
+        Array.set new_lls f.cursor.line_num (prev_len + 1);
         new_lls
       else
         let len_arr = Array.length f.line_lengths in
-        let line_len = Array.get f.line_lengths f.cursor_line_num in
+        let line_len = Array.get f.line_lengths f.cursor.line_num in
         Array.concat [
-          if f.cursor_line_num > 0
-          then (Array.sub f.line_lengths 0 f.cursor_line_num)
+          if f.cursor.line_num > 0
+          then (Array.sub f.line_lengths 0 f.cursor.line_num)
           else [||];
-          [|f.cursor_column + 1|];
-          [|line_len - f.cursor_column|];
-          if f.cursor_line_num < len_arr - 1
-          then let ln = f.cursor_line_num + 1 in
+          [|f.cursor.column + 1|];
+          [|line_len - f.cursor.column|];
+          if f.cursor.line_num < len_arr - 1
+          then let ln = f.cursor.line_num + 1 in
             Array.sub f.line_lengths ln (len_arr - ln)
           else [||];
         ]
@@ -486,41 +523,44 @@ let delete_text f l1' l2' =
  * cursor in [f] and moves the cursor left one character. If there
  * is no character before the cursor, the file is left unchanged. *)
 let delete_char f =
-  if f.cursor = 0 then f else
-  let deleted_char = Rope.get f.contents (f.cursor - 1) in
-  let begin_rope = Rope.sub f.contents 0 (f.cursor - 1) in
+  if f.cursor.index = 0 then f else
+  let deleted_char = Rope.get f.contents (f.cursor.index - 1) in
+  let begin_rope = Rope.sub f.contents 0 (f.cursor.index - 1) in
   let len_rope = Rope.length f.contents in
-  let end_rope = Rope.sub f.contents f.cursor (len_rope - f.cursor) in
+  let end_rope = Rope.sub f.contents f.cursor.index 
+    (len_rope - f.cursor.index) in
   let new_rope = Rope.concat2 begin_rope end_rope in
   let nf = add_undo f in
   { nf with
     contents = new_rope;
     line_lengths = begin
       if deleted_char <> '\n' then
-        let prev_len = Array.get f.line_lengths f.cursor_line_num in
+        let prev_len = Array.get f.line_lengths f.cursor.line_num in
         let new_lls = Array.copy f.line_lengths in
-        Array.set new_lls f.cursor_line_num (prev_len - 1);
+        Array.set new_lls f.cursor.line_num (prev_len - 1);
         new_lls
       else
         let len_arr = Array.length f.line_lengths in
-        let p_line_len = Array.get f.line_lengths (f.cursor_line_num - 1) in
-        let line_len = Array.get f.line_lengths f.cursor_line_num in
+        let p_line_len = Array.get f.line_lengths (f.cursor.line_num - 1) in
+        let line_len = Array.get f.line_lengths f.cursor.line_num in
         Array.concat [
-          Array.sub f.line_lengths 0 (f.cursor_line_num - 1);
+          Array.sub f.line_lengths 0 (f.cursor.line_num - 1);
           [|p_line_len + line_len - 1|];
-          if f.cursor_line_num < len_arr - 1
-          then let ln = f.cursor_line_num + 1 in
+          if f.cursor.line_num < len_arr - 1
+          then let ln = f.cursor.line_num + 1 in
             Array.sub f.line_lengths ln (len_arr - ln)
           else [||];
         ]
       end;
-    cursor = f.cursor - 1;
-    cursor_line_num =
-      if deleted_char <> '\n' then f.cursor_line_num
-      else f.cursor_line_num - 1;
-    cursor_column =
-      if deleted_char <> '\n' then f.cursor_column - 1
-      else Array.get f.line_lengths (f.cursor_line_num - 1) - 1;
+    cursor = {
+      index = f.cursor.index - 1;
+      line_num =
+        if deleted_char <> '\n' then f.cursor.line_num
+        else f.cursor.line_num - 1;
+      column =
+        if deleted_char <> '\n' then f.cursor.column - 1
+        else Array.get f.line_lengths (f.cursor.line_num - 1) - 1;
+    };
     was_saved = false;
     num_redos = 0;
     redo_list = [];
@@ -570,7 +610,7 @@ let get_search_term f = f.search_term
  * If there is no search term or it is not found, returns [f] with no text
  * selected *)
 let rec select_search_term f =
-  match f.selected_range with
+  match get_selected_range f with
   | None ->
     begin
       try begin
@@ -581,7 +621,7 @@ let rec select_search_term f =
             let next_loc_end = next_loc + (String.length term) in
             select_text f next_loc next_loc_end
           end
-        | None -> {f with selected_range = None;}
+        | None -> {f with selectpoint = None;}
       end
       with
       | Not_found -> f
@@ -596,10 +636,10 @@ let rec select_search_term f =
             let next_loc_end = next_loc + (String.length term) in
             select_text f next_loc next_loc_end
           end
-        | None -> {f with selected_range = None;}
+        | None -> {f with selectpoint = None;}
       end
       with
-      | Not_found -> select_search_term {f with selected_range = None;}
+      | Not_found -> select_search_term {f with selectpoint = None;}
     end
 
 (* [find f s] updates [f] so that it holds [s] as its current
@@ -633,17 +673,17 @@ let get_replace_term f = f.replace_term
  * the returned file will have the same text and no text selected *)
 let replace_next f =
   match f.replace_term with
-  | None -> {f with selected_range = None;}
+  | None -> {f with selectpoint = None;}
   | Some rep_term ->
     let to_replace = select_search_term f in
-    match to_replace.selected_range with
+    match get_selected_range to_replace with
     | None -> to_replace
     | Some (st, en) ->
       begin
         let undo_file = add_undo f in
         let nf = delete_text to_replace st en in
         let nf = insert_text nf rep_term st in
-        {nf with selected_range = Some (st, (String.length rep_term));
+        {(select_text nf st (st + String.length rep_term)) with 
                  num_undos = undo_file.num_undos;
                  undo_list = undo_file.undo_list;
                  num_redos = 0;
@@ -660,13 +700,13 @@ let replace_next f =
     | None -> f
     | Some rep_term ->
       let to_replace = select_search_term f in
-      match to_replace.selected_range with
+      match get_selected_range to_replace with
       | None -> to_replace
       | Some (st, en) ->
         begin
           let nf = delete_text to_replace st en in
           let nf = insert_text nf rep_term st in
-          replace_all_helper {nf with selected_range = Some (st, (String.length rep_term));}
+          replace_all_helper (select_text nf st (st + String.length rep_term))
         end
 (* [replace_all f] uses [replace_all_helper f] to replace all of the instances of
  * the seach term in [f] with the replace term. The use of the helper function allows

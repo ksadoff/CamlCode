@@ -101,8 +101,13 @@ val get_text : file -> int -> int -> string
 (* [get_all_text f] returns a string representing all of the text in [f] *)
 val get_all_text : file -> string
 
+(* [start_selecting f] sets the fixed selecting point to the current 
+ * location of the cursor in [f]. *)
+val start_selecting : file -> file
+
 (* [select_text f l1 l2] selects text from [l1] to [l2].
- * Raises Invalid_argument if [l2] comes before [l1]. *)
+ * This function forces [l1] and [l2] to be in order and in bounds.
+ * The selection point is set to [l1] and the cursor is set to [l2]. *)
 val select_text : file -> int -> int -> file
 
 (* Returns [f] with no selected text. *)
@@ -113,9 +118,11 @@ val unselect_text : file -> file
  * [i1] to [i2]. *)
 val get_selected_range : file -> (int * int) option
 
-(* [set_selected_range f (i1,i2)] returns a new file with the same fields as f
- *  except with selected_range set to (i1, i2) *)
-(* val set_selected_range : file -> (int * int) option -> file *)
+(* [get_select_start f] returns [Some (i, l, c)] where [i]
+ * is the index of the beginning of the selection region, [l] is the line 
+ * number, and [c] is the column. If not selection has been made,
+ * returns None. *)
+val get_select_start : file -> (int * int * int) option
 
 (* [insert_text f s] inserts string [s] into the contents
  * of [f] at location [l]. The beginning of the inserted string

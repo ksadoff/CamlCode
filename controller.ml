@@ -13,16 +13,16 @@ let rec repl ui stref =
   LTerm_ui.wait ui >>= function
   | LTerm_event.Key{ code = Escape; _ } ->
     return ()
-  | LTerm_event.Key { code = keycode; _ } ->
+  | LTerm_event.Key { code = keycode; shift = shift; _ } ->
     if (is_on_file !stref) then begin
-      stref := match keycode with 
-      | Right -> cursor_right !stref
-      | Left -> cursor_left !stref
-      | Up -> cursor_up !stref
-      | Down -> cursor_down !stref
-      | Char c -> insert_char !stref (UChar.char_of c)
-      | Enter -> insert_char !stref '\n'
-      | Backspace -> delete_char !stref
+      stref := match keycode, shift with 
+      | Right, false -> cursor_right !stref
+      | Left, false -> cursor_left !stref
+      | Up, false -> cursor_up !stref
+      | Down, false -> cursor_down !stref
+      | Char c, _ -> insert_char !stref (UChar.char_of c)
+      | Enter, _ -> insert_char !stref '\n'
+      | Backspace, _ -> delete_char !stref
       | _ -> !stref
     end;
     LTerm_ui.draw ui;
