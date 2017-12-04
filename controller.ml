@@ -124,12 +124,14 @@ let rec repl ui stref =
       match get_typing_area !stref with
       | File ->
         begin
+
           (* changes selection based on whether shift is pressed *)
           let change_select shift st =
             match shift, (get_select_start st) with 
             | true, None -> start_selecting st 
             | false, Some _ -> unselect_text st
             | _ -> st in
+
           (* depending on whether there is selected text,
            * deletes selected text or calls a function on st *)
           let delete_or_fun st f = 
@@ -137,12 +139,14 @@ let rec repl ui stref =
             | None -> f st 
             | Some (i0, i1) -> 
               delete_text st i0 i1 |> unselect_text in
+
           stref := match keycode with
           | Right -> !stref |> change_select shift |> cursor_right
           | Left -> !stref |> change_select shift |> cursor_left
           | Up -> !stref |> change_select shift |> cursor_up
           | Down -> !stref |> change_select shift |> cursor_down
-          | Char c -> insert_char !stref (UChar.char_of c)
+          | Char c -> delete_or_fun !stref (fun x -> x)
+            |> fun st -> insert_char st (UChar.char_of c)
           | Enter -> insert_char !stref '\n'
           | Tab -> (* 1 tab = 4 spaces - can change w/ plugin *)
             List.fold_left (fun st c -> insert_char st c) !stref 
@@ -161,6 +165,7 @@ let rec repl ui stref =
                   else toggle_typing_area !stref
           | _ -> !stref
         end
+
       | Command ->
         begin
           stref := match keycode with
@@ -184,6 +189,7 @@ let rec repl ui stref =
           | _ -> !stref
         end
     end;
+
     LTerm_ui.draw ui;
     repl ui stref
   | _ -> repl ui stref
