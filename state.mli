@@ -136,18 +136,23 @@ val cmd_insert : state -> char -> state
 (* [cmd_delete st c] returns a copy of [st] with the character at the location
  * of the command cursor in the command input deleted and the command cursor moved
  * one space left *)
-(* val cmd_delete : state -> state *)
+val cmd_delete : state -> state
 
 (* [get_cmd_cursor st] returns the location of the cursor in the command prompt *)
-(* val get_cmd_cursor : state -> int *)
+val get_cmd_cursor : state -> int
 
 (* [cmd_cursor_right st] returns a copy of [st] with the command cursor moved
  * one space to the right *)
-(* val cmd_cursor_right : state -> state *)
+val cmd_cursor_right : state -> state
 
 (* [cmd_cursor_left st] returns a copy of [st] with the command cursor moved
  * one space to the left *)
-(* val cmd_cursor_left : state -> state *)
+val cmd_cursor_left : state -> state
+
+(* [get_cmd_text st] returns a single character string located at the location
+ * of the command cursor in the command input, or " " if the command input is
+ * empty. Assumes the command input exists *)
+val get_cmd_text : state -> string
 
 (* [get_cursor_location st] gets the location of the cursor in the file open
  * in [st]. *)

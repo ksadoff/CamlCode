@@ -263,15 +263,14 @@ let get_command_out st = st.command_out
  * [command_out] set to [Some ""] *)
 let set_command_in st s =
   match st.command_out with
-  | None -> { st with command_out = Some ""; command_in = Some s;}
-  | Some _ -> { st with command_in = Some s; }
+  | None -> { st with command_cursor = 0; command_out = Some ""; command_in = Some s;}
+  | Some _ -> { st with command_cursor = String.length s; command_in = Some s; }
 
 (* [cmd_insert st c] returns a copy of [st] with [c] inserted at the command
  * cursor location in the command input and the cursor moved one space right *)
 let cmd_insert st c =
   match st.command_in with
   | Some cmd_in ->
-    let cmd_in = st.command_in |> extract in
     let new_cmd_in = String.((sub cmd_in 0 st.command_cursor)^
                              (c |> Char.escaped)^
                              (sub cmd_in st.command_cursor
@@ -284,18 +283,48 @@ let cmd_insert st c =
 (* [cmd_delete st c] returns a copy of [st] with the character at the location
  * of the command cursor in the command input deleted and the command cursor moved
  * one space left *)
-(* let cmd_delete st = failwith "Unimplemented" *)
+let cmd_delete st =
+  match st.command_in with
+  | None -> st
+  | Some cmd_in -> if st.command_cursor > 0
+                  then{ st with
+                        command_in = Some String.((sub cmd_in 0 (st.command_cursor-1))^
+                                                  (sub cmd_in (st.command_cursor)
+                                                 ((length cmd_in)-st.command_cursor)));
+                        command_cursor = st.command_cursor - 1;
+                      }
+                  else st
 
 (* [get_cmd_cursor st] returns the location of the cursor in the command prompt *)
-(* let get_cmd_cursor = failwith "Unimplemented" *)
+let get_cmd_cursor st = st.command_cursor
 
 (* [cmd_cursor_right st] returns a copy of [st] with the command cursor moved
  * one space to the right *)
-(* let cmd_cursor_right st = failwith "Unimplemented" *)
+let cmd_cursor_right st =
+  match st.command_in with
+  | None -> st
+  | Some cmd_in ->
+    if st.command_cursor < (String.length cmd_in) then
+      {st with command_cursor = st.command_cursor + 1; }
+    else st
 
 (* [cmd_cursor_left st] returns a copy of [st] with the command cursor moved
  * one space to the left *)
-(* let cmd_cursor_left = failwith "Unimplemented" *)
+let cmd_cursor_left st =
+match st.command_in with
+  | None -> st
+  | Some cmd_in ->
+    if st.command_cursor > 0 then
+      {st with command_cursor = st.command_cursor - 1; }
+    else st
+
+let get_cmd_text st =
+  match st.command_in with
+  | None -> failwith "not used"
+  | Some "" -> " "
+  | Some s -> if st.command_cursor < String.length s
+              then String.(sub s st.command_cursor 1)
+              else " "
 
 (* [get_command_out st] returns the [command_out] field of [st] *)
 let get_command_in st = st.command_in

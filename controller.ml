@@ -5,19 +5,97 @@ open State
 open Clview
 open CamomileLibrary
 
+(* type to represent valid command prompt commands *)
+type commands =
+  | Find
+  | Replace
+  | Replace_All
+  | Invalid
+
+
+(* [parse_word s] returns the substring of [s] before the first [" "]. If
+ * no [" "] occurs it returns [s] *)
+let parse_word s =
+  try
+    let first_space = String.index s  ' ' in
+    String.sub s 0 first_space
+  with
+  | Not_found -> s
+
+(* [string_to_command s] parses a [s] into a intance of type command *)
+let string_to_command s =
+  let first_word = parse_word s in
+  (* single word commands *)
+  if first_word = s then
+    Invalid, ""
+  (* commands that take atleast one argument *)
+  else
+    let remainder = String.(sub s (length first_word+1)
+                              (length s - length first_word-1)) in
+    match String.lowercase_ascii first_word with
+    | "find" -> Find, (parse_word remainder |> String.trim)
+    | "replace" -> Replace, (remainder)
+    | "replace_all" -> Replace_All, (remainder)
+    | _ -> Invalid, ""
+
 (* [execute_command s flst st] finds the function in [flst] mapped to [s] and
- * returns the state returned by executing that function on [st]. If [s] does
- * not map to anything in [flst] returns [st] *)
+ * returns the state returned by executing that function on [st] with the command
+ * input now empty. If [s] does not map to anything in [flst] returns [st] *)
 let execute_command s flst st =
   try
-    (flst |> List.assoc s) st
+    let c = string_to_command s in
+    let f = List.assoc (fst c) flst in
+    let st' = set_command_out (set_command_in st "") "" in
+    f st' (snd c)
   with
-  | Not_found -> st
+  | Not_found -> set_command_out (set_command_in st "") "unrecognized command"
 
-(* returns the value [s] represented by [Some s], fails if the input is [None] *)
-let extract = function
-  | None -> failwith "not used"
-  | Some s -> s
+(* [find_command st s_term] returns a copy of [st] with the next instance of
+ * [s_term] selected *)
+let find_command st s_term =
+  let st' = s_term |> find st |> select_search_term in
+  if get_selected_range st = get_selected_range st'
+  then set_command_out st' (s_term^" not found")
+  else st'
+
+(* [replace_command st terms] replaces the next instance of the first word in
+ * [terms] with the second word in [terms]. If there is only one word it changes
+ * the output to indicate to the user that replace requires 2 terms *)
+let replace_command st terms =
+  let s_term = parse_word terms in
+  if s_term = terms
+  then set_command_out (set_command_in st "") "replace requires 2 terms"
+  else
+    let remainder = String.(sub terms (length s_term+1)
+                              (length terms - length s_term-1)) in
+    let r_term = parse_word remainder |> String.trim in
+    let st' = set_replace_term (find st s_term) r_term |> replace_next in
+    if get_all_text st = get_all_text st'
+    then set_command_out st' (s_term^" not found")
+    else st'
+
+  (* [replace_command st terms] replaces the next instance of the first word in
+   * [terms] with the second word in [terms]. If there is only one word it changes
+   * the output to indicate to the user that replace requires 2 terms *)
+  let replace_all_command st terms =
+    let s_term = parse_word terms in
+    if s_term = terms
+    then set_command_out (set_command_in st "") "replace requires 2 terms"
+    else
+      let remainder = String.(sub terms (length s_term+1)
+                                (length terms - length s_term-1)) in
+      let r_term = parse_word remainder |> String.trim in
+      let st' = set_replace_term (find st s_term) r_term |> replace_all in
+      if get_all_text st = get_all_text st'
+      then set_command_out st' (s_term^" not found")
+      else st'
+
+(* a mapping of [Command]'s to functions for the command prompt *)
+let flst = [
+  (Find, find_command);
+  (Replace, replace_command);
+  (Replace_All, replace_all_command)
+]
 
 (* [repl ui stref] waits for input from the user. Once input is recieved it
  * creates a new state, updates the ui according to the new state
@@ -61,21 +139,24 @@ let rec repl ui stref =
               | None -> open_terminal !stref
               | Some _ -> close_terminal !stref
             end
-          | F3 -> toggle_typing_area !stref
+          | F3 -> if get_command_in !stref = None
+                  then !stref
+                  else toggle_typing_area !stref
           | _ -> !stref
         end
       | Command ->
         begin
           stref := match keycode with
-          | Char c -> set_command_in !stref
-                        ((!stref |> get_command_in |> extract)^
-                         (c |> UChar.char_of |> Char.escaped))
-          | Backspace ->
+          | Right -> cmd_cursor_right !stref
+          | Left -> cmd_cursor_left !stref
+          | Char c -> cmd_insert !stref (UChar.char_of c)
+          | Enter ->
             begin
-              let cmd_in = !stref |> get_command_in |> extract in
-              if cmd_in = "" then !stref
-              else set_command_in !stref String.(sub cmd_in 0 (length cmd_in-1))
+              match get_command_in !stref with
+              | None -> failwith "unused"
+              | Some cmd_in -> execute_command cmd_in flst !stref
             end
+          | Backspace -> cmd_delete !stref
           | F2 ->
             begin
               match get_command_in !stref with

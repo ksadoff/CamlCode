@@ -95,10 +95,10 @@ let draw_cmd st ctx =
   draw_frame ctx {row1 = 1; col1 = 0; row2 = 4; col2 = (size ctx).cols} Light;
   draw_frame ctx {row1 = 4; col1 = 0; row2 = 7; col2 = (size ctx).cols} Light;
   (* display terminal input/output *)
-  draw_string ctx 2 2 ~style:sty (cmd_out);
-  draw_string ctx 5 2 ~style:sty (cmd_in);
+  draw_string ctx 2 1 ~style:sty (cmd_out);
+  draw_string ctx 5 1 ~style:sty (cmd_in);
   if (get_typing_area st) = Command then
-    draw_string ctx 5 ((cmd_in |> String.length)+2) ~style:cursor_style " "
+    draw_string ctx 5 ((get_cmd_cursor st)+1) ~style:cursor_style (get_cmd_text st)
   else ()
 
 
