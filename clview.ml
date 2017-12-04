@@ -4,22 +4,45 @@ open LTerm_style
 open LTerm_ui
 open LTerm_geom
 open LTerm_draw
+open Str
 
 let sty = {bold = None; underline = None; blink = None; reverse = None;
-  foreground = Some white; background = None}
+           foreground = Some white; background = None}
 
 let cursor_style = {bold = None; underline = None; blink = None; reverse = None;
-  foreground = Some black; background = Some white}
+                    foreground = Some black; background = Some white}
 
-(* [draw_tabs st ctx] draws the tabs in state [st] at the top of context 
+let get_tab_name str =
+  (* if (String.sub str ((String.length str)-5) ((String.length str)-1)) =".txt"
+  then let () = print_endline (String.sub str ((String.length str)-5) ((String.length str)-1)) in
+  String.sub str 0 ((String.length str)-5)
+  else str *)
+  let file_name = Str.regexp "/[A-Za-z0-9]+[.][a-z]+\\b" in
+  let find = Str.search_forward file_name str 0 in
+  let full_name = Str.matched_string str in
+  let without_ext = String.sub full_name 1 ((String.length full_name)-5) in
+  if String.length without_ext > 7 then
+    (String.sub without_ext 0 5)^"..." else
+  without_ext
+
+
+
+
+(* [draw_tabs st ctx] draws the tabs in state [st] at the top of context
  * [ctx]. *)
-let draw_tabs st ctx = 
+let draw_tabs st ctx =
   let num_tabs = get_file_names st |> List.length in
   let tab_height = (size ctx).rows in
   for n = 0 to (num_tabs-1) do
-    draw_frame ctx 
-      {row1 = 0; col1 = 0 + (n*10); row2 = tab_height; col2 = 10 + (n*10)} 
-      Light
+    draw_frame ctx
+      {row1 = 0; col1 = 0 + (n*10); row2 = tab_height; col2 = 10 + (n*10)}
+      Light;
+    let file_name = (List.nth (get_file_names st) n) in
+    if (String.length file_name)>10 then let tab_name = get_tab_name (file_name)
+in
+draw_string ctx 1 (1+(n*10)) tab_name ~style:sty;
+    else let () =
+           draw_string ctx 0 (1+(n*10)) file_name ~style:sty in ()
   done
 
 (* [draw_file st ctx] draws the currently selected file in [st]
@@ -28,14 +51,14 @@ let draw_file st ctx =
   (* draw horizontal line *)
   draw_hline ctx 0 0 (size ctx).cols Heavy;
 
-  let txt_ctx = sub ctx {row1=1; col1=0; row2=(size ctx).rows; 
-    col2=(size ctx).cols} in
+  let txt_ctx = sub ctx {row1=1; col1=0; row2=(size ctx).rows;
+                         col2=(size ctx).cols} in
 
   (* if file is open *)
   if is_on_file st then begin
 
     (* name of file at the top *)
-    get_current_file_name st 
+    get_current_file_name st
     |> draw_string_aligned ctx 0 H_align_center ~style:sty;
 
     (* contents of file *)
@@ -45,13 +68,13 @@ let draw_file st ctx =
     let cursor_loc = get_cursor_location st in
     get_text st cursor_loc (cursor_loc+1)
     |> fun s -> (if s = "\n" then " " else s)
-    |> draw_string txt_ctx (get_cursor_line_num st) (get_cursor_column st)
-      ~style: cursor_style
+                |> draw_string txt_ctx (get_cursor_line_num st) (get_cursor_column st)
+                  ~style: cursor_style
   end
 
   (* default display if no file open *)
   else begin
-    draw_string_aligned ctx 10 H_align_center 
+    draw_string_aligned ctx 10 H_align_center
       ~style:sty "Welcome to CamlCode"
   end
 
@@ -73,12 +96,12 @@ let draw_all ctx st =
   sub ctx {row1=0; col1=0; row2=tab_height; col2=size.cols}
   |> draw_tabs st
 
-(* [draw] is called by [repl] in command.ml after user input is received. 
- * It takes in the current state, updates the user interface to reflect any 
+(* [draw] is called by [repl] in command.ml after user input is received.
+ * It takes in the current state, updates the user interface to reflect any
  * change the user made to the state, and returns a unit. *)
-let draw term stref = 
-  LTerm_ui.create term (fun ui matrix -> 
-    let size = LTerm_ui.size ui in
-    let ctx = context matrix size in
-    draw_all ctx !stref
-  )
+let draw term stref =
+  LTerm_ui.create term (fun ui matrix ->
+      let size = LTerm_ui.size ui in
+      let ctx = context matrix size in
+      draw_all ctx !stref
+    )

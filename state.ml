@@ -61,7 +61,7 @@ let set_current_file st f = {st with current_file = Fname (get_name f)}
 (* [is_on_file st] returns [true] if there user is currently on a file,
  * and [false] if the user does not have a file open or if they
  * are typing on the command prompt. *)
-let is_on_file st = 
+let is_on_file st =
   match st.current_file with
   | Fname _ -> true
   | _ -> false
@@ -381,3 +381,5 @@ let replace_next st = fmap_st_f File.replace_next st
  * selected file in [st] and changes the currectly selected file to be the
  * the returned file *)
 let replace_all st = fmap_st_f File.replace_all st
+
+let num_open_files st = List.length st.files
