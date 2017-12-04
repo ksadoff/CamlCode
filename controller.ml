@@ -147,10 +147,12 @@ let rec repl ui stref =
           | Down -> !stref |> change_select shift |> cursor_down
           | Char c -> delete_or_fun !stref (fun x -> x)
             |> fun st -> insert_char st (UChar.char_of c)
-          | Enter -> insert_char !stref '\n'
+          | Enter -> delete_or_fun !stref (fun x -> x)
+            |> fun st -> insert_char st '\n'
           | Tab -> (* 1 tab = 4 spaces - can change w/ plugin *)
-            List.fold_left (fun st c -> insert_char st c) !stref 
-              [' '; ' '; ' '; ' ']
+            delete_or_fun !stref (fun x -> x)
+            |> fun st -> List.fold_left (fun st c -> insert_char st c) 
+              st [' '; ' '; ' '; ' ']
           | Backspace -> delete_or_fun !stref delete_char
           | Delete -> delete_or_fun !stref 
             (fun st -> st |> cursor_right |> delete_char)
