@@ -288,4 +288,33 @@ let tests = [
     ((set_command_in slstate "hi") |> close_terminal |> get_command_out));
   "command11" >:: (fun _ -> assert_equal None
     ((set_command_in slstate "hi") |> close_terminal |> get_command_in));
+  "command12" >:: (fun _ -> assert_equal (Some "a")
+    ((cmd_insert slstate 'a') |> get_command_in));
+  "command13" >:: (fun _ -> assert_equal (Some "ab")
+    (cmd_insert (cmd_insert slstate 'a') 'b' |> get_command_in));
+  "command14" >:: (fun _ -> assert_equal (Some "")
+    ((cmd_insert slstate 'a') |> cmd_delete |> get_command_in));
+  "command15" >:: (fun _ -> assert_equal (Some "a")
+    (cmd_insert (cmd_insert slstate 'a') 'b' |> cmd_delete |> get_command_in));
+  "command16" >:: (fun _ -> assert_equal 0
+    (slstate |>  get_cmd_cursor));
+  "command17" >:: (fun _ -> assert_equal 0
+    (slstate |> cmd_cursor_right |>  get_cmd_cursor));
+  "command18" >:: (fun _ -> assert_equal 0
+    (slstate |> cmd_cursor_left |>  get_cmd_cursor));
+  "command19" >:: (fun _ -> assert_equal 1
+    (cmd_insert slstate 'a' |> cmd_cursor_right |>  get_cmd_cursor));
+  "command20" >:: (fun _ -> assert_equal 0
+    (cmd_insert slstate 'a' |> cmd_cursor_left |>  get_cmd_cursor));
+  "command21" >:: (fun _ -> assert_equal " "
+    (cmd_insert slstate 'a' |> get_cmd_text));
+  "command22" >:: (fun _ -> assert_equal " "
+    (cmd_insert slstate 'a' |> cmd_delete |> get_cmd_text));
+  "command23" >:: (fun _ -> assert_equal "a"
+    (cmd_insert slstate 'a' |> cmd_cursor_left |> get_cmd_text));
+  (* tests for reading and toggling the typing area *)
+  "t_area0" >:: (fun _ -> assert_equal File (get_typing_area slstate));
+  "t_area1" >:: (fun _ -> assert_equal Command (slstate |> toggle_typing_area |> get_typing_area));
+  "t_area2" >:: (fun _ -> assert_equal File
+                    (slstate |> toggle_typing_area |> toggle_typing_area |> get_typing_area));
 ]

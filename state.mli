@@ -3,9 +3,10 @@
 
 open Color
 
-(* Represents the area where user is typing, i.e. in a file or
- * in the command line. *)
-type typing_area
+(* Indicates whether or not a file is open *)
+type opened_file
+
+type typing_area = Command | File
 
 type clipboard
 
@@ -43,6 +44,10 @@ val get_current_file : state -> File.file
 (* [set_current_file st f] sets the current file in [st] to [f]. *)
 val set_current_file : state -> File.file -> state
 
+
+(* [get_current_file_name st] returns the string of the name of the file being *)
+val get_file_names : state -> string list
+
  (* [get_current_file st] returns the file that is currently being manipulated *)
 val get_current_file : state -> File.file
 
@@ -54,6 +59,13 @@ val is_on_file : state -> bool
 (* [get_current_file_name st] returns the string of the name of the file being
  * manipulated. *)
 val get_current_file_name : state -> string
+
+(* [get_typing_area st] returns the typing area of [st], either the command
+ * prompt or a file *)
+val get_typing_area : state -> typing_area
+
+(* [toggle_typing_area st] returns a copy of [st] with its typing area swapped *)
+val toggle_typing_area : state -> state
 
 (* [open_file st s] constructs the file at path [s] and adds it
  * to the list of files in state [st].
@@ -116,6 +128,31 @@ val set_command_in : state -> string -> state
 
 (* [get_command_out st] returns the [command_out] field of [st] *)
 val get_command_in : state -> string option
+
+(* [cmd_insert st c] returns a copy of [st] with [c] inserted at the command
+ * cursor location in the command input and the cursor moved one space right *)
+val cmd_insert : state -> char -> state
+
+(* [cmd_delete st c] returns a copy of [st] with the character at the location
+ * of the command cursor in the command input deleted and the command cursor moved
+ * one space left *)
+val cmd_delete : state -> state
+
+(* [get_cmd_cursor st] returns the location of the cursor in the command prompt *)
+val get_cmd_cursor : state -> int
+
+(* [cmd_cursor_right st] returns a copy of [st] with the command cursor moved
+ * one space to the right *)
+val cmd_cursor_right : state -> state
+
+(* [cmd_cursor_left st] returns a copy of [st] with the command cursor moved
+ * one space to the left *)
+val cmd_cursor_left : state -> state
+
+(* [get_cmd_text st] returns a single character string located at the location
+ * of the command cursor in the command input, or " " if the command input is
+ * empty. Assumes the command input exists *)
+val get_cmd_text : state -> string
 
 (* [get_cursor_location st] gets the location of the cursor in the file open
  * in [st]. *)
@@ -252,3 +289,9 @@ val replace_next: state -> state
  * selected file in [st] and changes the currectly selected file to be the
  * the returned file *)
 val replace_all: state -> state
+
+(* [num_open_files st] returns the number of currently open files*)
+val num_open_files : state -> int
+
+(* is_on_file st] returns true if the current file has a name or false if not *)
+val is_on_file : state -> bool
