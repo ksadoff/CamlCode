@@ -137,7 +137,11 @@ let rec repl ui stref =
           | Down -> !stref |> change_select shift |> cursor_down
           | Char c -> insert_char !stref (UChar.char_of c)
           | Enter -> insert_char !stref '\n'
+          | Tab -> (* 1 tab = 4 spaces - can change w/ plugin *)
+            List.fold_left (fun st c -> insert_char st c) !stref 
+              [' '; ' '; ' '; ' ']
           | Backspace -> delete_char !stref
+          | Delete -> !stref |> cursor_right |> delete_char
           | F2 ->
             begin
               match get_command_in !stref with
