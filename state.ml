@@ -434,3 +434,5 @@ let replace_next st = fmap_st_f File.replace_next st
  * selected file in [st] and changes the currectly selected file to be the
  * the returned file *)
 let replace_all st = fmap_st_f File.replace_all st
+
+let num_open_files st = List.length st.files

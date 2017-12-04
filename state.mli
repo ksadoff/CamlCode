@@ -44,6 +44,10 @@ val get_current_file : state -> File.file
 (* [set_current_file st f] sets the current file in [st] to [f]. *)
 val set_current_file : state -> File.file -> state
 
+
+(* [get_current_file_name st] returns the string of the name of the file being *)
+val get_file_names : state -> string list
+
  (* [get_current_file st] returns the file that is currently being manipulated *)
 val get_current_file : state -> File.file
 
@@ -280,3 +284,9 @@ val replace_next: state -> state
  * selected file in [st] and changes the currectly selected file to be the
  * the returned file *)
 val replace_all: state -> state
+
+(* [num_open_files st] returns the number of currently open files*)
+val num_open_files : state -> int
+
+(* is_on_file st] returns true if the current file has a name or false if not *)
+val is_on_file : state -> bool

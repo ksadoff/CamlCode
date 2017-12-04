@@ -6,6 +6,6 @@ open State
 open LTerm_ui
 open LTerm_draw
 
-(* [draw term stref] draws the current state stored at [stref] on the 
+(* [draw term stref] draws the current state stored at [stref] on the
  * terminal [term]. *)
 val draw : LTerm.t  -> state ref -> LTerm_ui.t Lwt.t

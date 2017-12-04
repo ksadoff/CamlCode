@@ -4,12 +4,29 @@ open LTerm_style
 open LTerm_ui
 open LTerm_geom
 open LTerm_draw
+open Str
 
 let sty = {bold = None; underline = None; blink = None; reverse = None;
-  foreground = Some white; background = None}
+           foreground = Some white; background = None}
 
 let cursor_style = {bold = None; underline = None; blink = None; reverse = None;
-  foreground = Some black; background = Some white}
+                    foreground = Some black; background = Some white}
+
+let get_tab_name str =
+  (* if (String.sub str ((String.length str)-5) ((String.length str)-1)) =".txt"
+  then let () = print_endline (String.sub str ((String.length str)-5) ((String.length str)-1)) in
+  String.sub str 0 ((String.length str)-5)
+  else str *)
+  let file_name = Str.regexp "/[A-Za-z0-9]+[.][a-z]+\\b" in
+  let find = Str.search_forward file_name str 0 in
+  let full_name = Str.matched_string str in
+  let without_ext = String.sub full_name 1 ((String.length full_name)-5) in
+  if String.length without_ext > 7 then
+    (String.sub without_ext 0 5)^"..." else
+  without_ext
+
+
+
 
 (* [draw_tabs st ctx] draws the tabs in state [st] at the top of context
  * [ctx]. *)
@@ -19,7 +36,13 @@ let draw_tabs st ctx =
   for n = 0 to (num_tabs-1) do
     draw_frame ctx
       {row1 = 0; col1 = 0 + (n*10); row2 = tab_height; col2 = 10 + (n*10)}
-      Light
+      Light;
+    let file_name = (List.nth (get_file_names st) n) in
+    if (String.length file_name)>10 then let tab_name = get_tab_name (file_name)
+in
+draw_string ctx 1 (1+(n*10)) tab_name ~style:sty;
+    else let () =
+           draw_string ctx 0 (1+(n*10)) file_name ~style:sty in ()
   done
 
 (* [draw_file st ctx] draws the currently selected file in [st]
