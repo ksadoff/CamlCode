@@ -7,9 +7,10 @@ open File
 (* open Zed_edit *)
 open Rope
 
-(* Represents the area where user is typing, i.e. in a file or
- * in the command line. *)
-type typing_area = Nofile | Command | Fname of string
+(* Indicates whether or not a file is open *)
+type opened_file = Nofile | Fname of string
+
+type typing_area = Command | File
 
 type clipboard = rope
 
@@ -30,7 +31,9 @@ type state = {
    files will appear for split screen *)
   screens: string list;
   (* currently open file *)
-  current_file: typing_area;
+  current_file: opened_file;
+  (* Indicates whether or not a file is open *)
+  typing_loc : typing_area;
   (* clipboard *)
   clipboard: clipboard;
   (* text to be displayed to the user in the command prompt, [None] if
@@ -38,7 +41,9 @@ type state = {
   command_out : string option;
   (* text input to the command prompt from the user, [None] if the terminal
    * is not open *)
-  command_in : string option
+  command_in : string option;
+  (* indictes the position of the cursor in the command prompt *)
+  command_cursor : int;
 }
 
 (* [extract file_opt] takes in an 'a option and returns the 'a. *)
@@ -61,7 +66,7 @@ let set_current_file st f = {st with current_file = Fname (get_name f)}
 (* [is_on_file st] returns [true] if there user is currently on a file,
  * and [false] if the user does not have a file open or if they
  * are typing on the command prompt. *)
-let is_on_file st = 
+let is_on_file st =
   match st.current_file with
   | Fname _ -> true
   | _ -> false
@@ -111,9 +116,11 @@ let empty_state =
     files = [];
     screens = [];
     current_file = Nofile;
+    typing_loc = File;
     clipboard = new_clipboard;
     command_out = None;
     command_in = None;
+    command_cursor = 0;
   }
 
 (* [get_file_names st] returns a list of strings that represent the names of
@@ -127,6 +134,16 @@ let get_current_file_name st =
   match st.current_file with
   | Fname s -> s
   | _ -> raise (Invalid_argument "no file selected")
+
+(* [get_typing_area st] returns the typing area of [st], either the command
+ * prompt or a file *)
+let get_typing_area st = st.typing_loc
+
+(* [toggle_typing_area st] returns a copy of [st] with its typing area swapped *)
+let toggle_typing_area st =
+  match st.typing_loc with
+  | Command -> { st with typing_loc = File; }
+  | File -> { st with typing_loc = Command; }
 
 (* [open_file st s] constructs the file at path [s] and adds it
  * to the list of files in state [st].
@@ -218,12 +235,17 @@ let change_selected_file s st =
  * in [st] it returns [st] *)
 let open_terminal st =
   match st.command_out with
-  | None -> { st with command_out = Some ""; command_in = Some ""; }
+  | None -> { st with typing_loc = Command;
+                      command_out = Some "";
+                      command_in = Some "";
+                      command_cursor = 0; }
   | Some _ -> st
 
 (* [close_terminal st] returns a copy of [st] with both [command_out] and
  * and [command_in] both set to [None], indicating that the terminal is closed *)
-let close_terminal st = { st with command_out = None; command_in = None; }
+let close_terminal st = { st with typing_loc = File;
+                                  command_out = None;
+                                  command_in = None; }
 
 (* [set_command_out st s] returns a copy of [st] with [command_out] set to
  * [Some s], if the terminal is not open in [st] the returned value also has
@@ -243,6 +265,37 @@ let set_command_in st s =
   match st.command_out with
   | None -> { st with command_out = Some ""; command_in = Some s;}
   | Some _ -> { st with command_in = Some s; }
+
+(* [cmd_insert st c] returns a copy of [st] with [c] inserted at the command
+ * cursor location in the command input and the cursor moved one space right *)
+let cmd_insert st c =
+  match st.command_in with
+  | Some cmd_in ->
+    let cmd_in = st.command_in |> extract in
+    let new_cmd_in = String.((sub cmd_in 0 st.command_cursor)^
+                             (c |> Char.escaped)^
+                             (sub cmd_in st.command_cursor
+                                ((length cmd_in)-st.command_cursor))) in
+    { st with command_in = Some (new_cmd_in);
+              command_cursor = st.command_cursor + 1; }
+  | None -> { st with command_in = Some (Char.escaped c);
+                      command_cursor = 1; }
+
+(* [cmd_delete st c] returns a copy of [st] with the character at the location
+ * of the command cursor in the command input deleted and the command cursor moved
+ * one space left *)
+(* let cmd_delete st = failwith "Unimplemented" *)
+
+(* [get_cmd_cursor st] returns the location of the cursor in the command prompt *)
+(* let get_cmd_cursor = failwith "Unimplemented" *)
+
+(* [cmd_cursor_right st] returns a copy of [st] with the command cursor moved
+ * one space to the right *)
+(* let cmd_cursor_right st = failwith "Unimplemented" *)
+
+(* [cmd_cursor_left st] returns a copy of [st] with the command cursor moved
+ * one space to the left *)
+(* let cmd_cursor_left = failwith "Unimplemented" *)
 
 (* [get_command_out st] returns the [command_out] field of [st] *)
 let get_command_in st = st.command_in

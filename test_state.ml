@@ -288,4 +288,12 @@ let tests = [
     ((set_command_in slstate "hi") |> close_terminal |> get_command_out));
   "command11" >:: (fun _ -> assert_equal None
     ((set_command_in slstate "hi") |> close_terminal |> get_command_in));
+  "command12" >:: (fun _ -> assert_equal (Some "aa")
+    (cmd_insert (cmd_insert slstate 'a') 'a' |> get_command_in));
+
+  (* tests for reading and toggling the typing area *)
+  "t_area0" >:: (fun _ -> assert_equal File (get_typing_area slstate));
+  "t_area1" >:: (fun _ -> assert_equal Command (slstate |> toggle_typing_area |> get_typing_area));
+  "t_area2" >:: (fun _ -> assert_equal File
+                    (slstate |> toggle_typing_area |> toggle_typing_area |> get_typing_area));
 ]
