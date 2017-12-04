@@ -73,6 +73,7 @@ let txt_ctx = sub ctx {row1=1; col1=0; row2=(size ctx).rows;
     match get_select_start st, get_selected_range st with
     | Some (_, l, c), Some (i0, i1) -> 
       get_text st i0 i1
+      |> Str.global_replace (Str.regexp "\n") " \n"
       |> draw_string txt_ctx l c ~style:highlighted
     | _ -> ()
   end

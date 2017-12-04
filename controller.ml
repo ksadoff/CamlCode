@@ -130,6 +130,13 @@ let rec repl ui stref =
             | true, None -> start_selecting st 
             | false, Some _ -> unselect_text st
             | _ -> st in
+          (* depending on whether there is selected text,
+           * deletes selected text or calls a function on st *)
+          let delete_or_fun st f = 
+            match get_selected_range st with 
+            | None -> f st 
+            | Some (i0, i1) -> 
+              delete_text st i0 i1 |> unselect_text in
           stref := match keycode with
           | Right -> !stref |> change_select shift |> cursor_right
           | Left -> !stref |> change_select shift |> cursor_left
@@ -140,8 +147,9 @@ let rec repl ui stref =
           | Tab -> (* 1 tab = 4 spaces - can change w/ plugin *)
             List.fold_left (fun st c -> insert_char st c) !stref 
               [' '; ' '; ' '; ' ']
-          | Backspace -> delete_char !stref
-          | Delete -> !stref |> cursor_right |> delete_char
+          | Backspace -> delete_or_fun !stref delete_char
+          | Delete -> delete_or_fun !stref 
+            (fun st -> st |> cursor_right |> delete_char)
           | F2 ->
             begin
               match get_command_in !stref with

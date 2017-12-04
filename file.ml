@@ -224,7 +224,7 @@ let rec get_location lla loc1 i2 =
   let line_start = i1 - c1 in
   (* column number exceptions *)
   if c1 < 0 || c1 >= line_len
-  then raise (Invalid_argument ("invalid column " ^ (string_of_int ln1)))
+  then raise (Invalid_argument ("invalid column " ^ (string_of_int c1)))
   else
   (* if i1 and i2 on same line, return ln1 *)
   if i2 >= line_start && i2 < line_start + line_len 
@@ -393,7 +393,6 @@ let start_selecting f = {f with selectpoint = Some f.cursor}
  * The selection point is set to [l1] and the cursor is set to [l2]. *)
 let select_text f l1 l2 =
   let (l1', l2') = make_range_valid (l1, l2) (cont_length f) in
-  (* print_endline (string_of_int l1' ^ ", " ^ string_of_int l2'); *)
   {f with 
     cursor = get_location f.line_lengths f.cursor (l2'-1);
     selectpoint = Some (get_location f.line_lengths f.cursor l1');
@@ -509,13 +508,15 @@ let delete_text f l1' l2' =
   let len_rope = cont_length f in
   let end_rope = Rope.sub f.contents l2 (len_rope - l2) in
   let new_rope = concat_with_newline [begin_rope; end_rope] in
+  let new_lls = line_lengths_arr new_rope in
   let nf = add_undo f in
   { nf with
     contents = new_rope;
-    line_lengths = line_lengths_arr new_rope;
+    line_lengths = new_lls;
     was_saved = false;
     num_redos = 0;
     redo_list = [];
+    cursor = get_location nf.line_lengths nf.cursor l1
   }
 
 (* [delete_char f] deletes the character directly to the left of the
