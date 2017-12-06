@@ -107,6 +107,9 @@ let tests = [
   "line_lengths" >:: (fun _ -> assert_equal [6; 6; 1; 4]
     (somelines |> get_line_lengths)
     ~printer: int_list_printer);
+  "open_empty" >:: (fun _ -> assert_equal "\n"
+    (open_file "testtxts/empty.txt" |> get_all_text)
+  );
 
   (* cursor moving tests *)
   move_cursor_test "cursor0" somelines 1 (1, 0, 1);
