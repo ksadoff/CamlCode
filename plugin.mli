@@ -1,21 +1,22 @@
-(* Signature class used by all plugin modules *)
+(* Signature used by all plugin modules *)
 
 open File
 open State
-open Keystroke
 open Color
 
-(* List of string commands that can be entered into the editor terminal.
- * Each command is written as [(s, f)] where [s] is the keyword that
- * must be written at the beginning of the command, and [f] is a function
- * that takes current state [st] of the editor and the argument [a]
- * of the command, written as a string. [f] returns a new state. *)
-val commands : (string * (state -> string -> state)) list
+(* Type of commands that can be input by the user. *)
+type command
 
-(* List of keyboard commands. Each command is written as [(kb, f)], where
- * [kb] is the keyboard command, and [f] is a function that modifies
- * the editor state. *)
-val kb_commands : (keystroke * (state -> state)) list
+(* [parse_command s] converts a raw input command [s] from the user 
+ * to a command. Returns [None] if [s] is not a command for this plugin. *)
+val parse_command : string -> command option
 
-(* [text_coloring s] creates a new coloring for a file. *)
+(* [execute_command cmd st] changes the state based on command [cmd]. *)
+val execute_command : command -> state -> state
+
+(* [respond_to_event event st] changes the state based on some event, 
+ * such as a keyboard shorctut. *)
+val respond_to_event : LTerm_event.t -> state -> state
+
+(* [text_coloring f] creates a new coloring for file [f]. *)
 val text_coloring : file -> color_mapping
