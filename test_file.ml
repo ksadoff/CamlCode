@@ -438,4 +438,12 @@ let tests = [
   is_saved_test "issaved4" delete_char somelines true;
   is_saved_test "issaved5" (fun f -> move_cursor f 4 |> delete_char)
     somelines false;
+
+
+  (* color_text *)
+  (* "color text" >:: (fun _ -> assert_equal ) *)
+
+  (* get_coloring *)
+  (* "get_coloring" >:: (fun _ -> assert_equal ) *)
+
 ]
