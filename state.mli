@@ -67,7 +67,8 @@ val get_typing_area : state -> typing_area
 val toggle_typing_area : state -> state
 
 (* [open_file st s] constructs the file at path [s] and adds it
- * to the list of files in state [st].
+ * to the list of files in state [st]. Additionally, it sets the current_file to
+ * the file at path [s]. (i.e. the file we are trying to open)
  * Raises Sys_error if file read failed. *)
 val open_file : state -> string -> state
 
