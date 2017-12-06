@@ -11,6 +11,7 @@ type command =
   | Replace of string
   | Replace_All of string
   | Open_File of string
+  | New_File of string
   
 (* [parse_word s] returns the substring of [s] before the first [" "]. If
   * no [" "] occurs it returns [s] *)
@@ -35,7 +36,8 @@ let parse_command (s : string) : command option =
     | "find" -> Some (Find (parse_word remainder |> String.trim))
     | "replace" -> Some (Replace remainder)
     | "replace_all" -> Some (Replace_All remainder)
-    | "open" -> Some( Open_File (remainder)) 
+    | "open" -> Some(Open_File (remainder)) 
+    | "new" -> Some (New_File (remainder))
     | _ -> None
 
 (* [find_command st s_term] returns a copy of [st] with the next instance of
@@ -85,6 +87,11 @@ let open_command st file_path =
   with 
   |Sys_error s -> set_command_out (set_command_in st "") s
 
+let new_file_command st file_path = 
+  let path = parse_word file_path in 
+  State.new_file path;
+  State.open_file st path
+
 (* [execute_command cmd st] changes the state based on command [cmd]. *)
 let execute_command (cmd : command) (st : state) : state = 
   match cmd with 
@@ -92,6 +99,7 @@ let execute_command (cmd : command) (st : state) : state =
   | Replace s -> replace_command st s
   | Replace_All s -> replace_all_command st s
   | Open_File s -> open_command st s
+  | New_File s -> new_file_command st s
 
 (* [respond_to_event event st] changes the state based on some event, 
  * such as a keyboard shorctut. *)
@@ -110,9 +118,13 @@ let respond_to_event (event : LTerm_event.t) (st : state) : state =
         | Char s when (UChar.char_of s) = 's' ->
           State.save_file st (State.get_current_file st |> File.get_name)
         (* close file *)
-        (*  *)
+        (* known bug: when you close all the tabs and go to the welcome page,
+         * you currently cannot type anything and none of the key bindings work.
+         *)
         | Char w when (UChar.char_of w) = 'w' -> 
           State.close_file st
+        (* | Tab -> 
+           *)
         | _ -> st
         end
     else st

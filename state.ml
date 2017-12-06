@@ -59,6 +59,13 @@ let get_current_file st =
   | Fname s -> List.assoc s st.files
   | _ -> raise (Invalid_argument "no file selected")
 
+(* [tab_right st] takes in a state and returns a state with the current file 
+ * being replaced with the file that appears next in the list of open files. 
+ * If the current file is the last file in the list, 
+ * then it will return the current file. *)
+ (* let get_next_file st = 
+   *)
+
 (* [set_current_file st f] sets the current file in [st] to [f]. *)
 let set_current_file st f = {st with current_file = Fname (get_name f)}
 
