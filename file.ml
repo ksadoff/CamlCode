@@ -224,7 +224,7 @@ let rec get_location lla loc1 i2 =
   let line_start = i1 - c1 in
   (* column number exceptions *)
   if c1 < 0 || c1 >= line_len
-  then raise (Invalid_argument ("invalid column " ^ (string_of_int ln1)))
+  then raise (Invalid_argument ("invalid column " ^ (string_of_int c1)))
   else
   (* if i1 and i2 on same line, return ln1 *)
   if i2 >= line_start && i2 < line_start + line_len 
@@ -393,7 +393,6 @@ let start_selecting f = {f with selectpoint = Some f.cursor}
  * The selection point is set to [l1] and the cursor is set to [l2]. *)
 let select_text f l1 l2 =
   let (l1', l2') = make_range_valid (l1, l2) (cont_length f) in
-  (* print_endline (string_of_int l1' ^ ", " ^ string_of_int l2'); *)
   {f with 
     cursor = get_location f.line_lengths f.cursor (l2'-1);
     selectpoint = Some (get_location f.line_lengths f.cursor l1');
@@ -408,12 +407,12 @@ let unselect_text f = {f with selectpoint = None}
 let get_selected_range f = 
   match f.selectpoint with
   | None -> None
-  | Some sp -> Some (make_range_valid (f.cursor.index + 1, sp.index) 
-    (cont_length f))
+  | Some sp -> (make_range_valid (f.cursor.index, sp.index) (cont_length f))
+    |> fun (i0, i1) -> Some (i0, i1+1)
 
 (* [get_select_start f] returns [Some (i, l, c)] where [i]
  * is the index of the beginning of the selection region, [l] is the line 
- * number, and [c] is the column. If not selection has been made,
+ * number, and [c] is the column. If no selection has been made,
  * returns None. *)
 let get_select_start f = 
   match f.selectpoint with
@@ -421,6 +420,14 @@ let get_select_start f =
   | Some sp -> 
     if sp.index < f.cursor.index then Some (sp.index, sp.line_num, sp.column)
     else Some (f.cursor.index, f.cursor.line_num, f.cursor.column)
+
+(* [get_select_point f] returns [Some (i, l, c)] where [i]
+ * is the index of the fixed selection point, [l] is the line number,
+ * and [c] is the column. If no selection has been made, returns [None]. *)
+let get_select_point f = 
+  match f.selectpoint with
+  | Some {index=i; line_num=l; column=c} -> Some (i, l, c)
+  | None -> None
 
 (* [concat_with_newline ropes] concatenates a list of ropes
  * and appends a newline character to the end if it doesn't exist. *)
@@ -501,13 +508,15 @@ let delete_text f l1' l2' =
   let len_rope = cont_length f in
   let end_rope = Rope.sub f.contents l2 (len_rope - l2) in
   let new_rope = concat_with_newline [begin_rope; end_rope] in
+  let new_lls = line_lengths_arr new_rope in
   let nf = add_undo f in
   { nf with
     contents = new_rope;
-    line_lengths = line_lengths_arr new_rope;
+    line_lengths = new_lls;
     was_saved = false;
     num_redos = 0;
     redo_list = [];
+    cursor = get_location nf.line_lengths nf.cursor l1
   }
 
 (* [delete_char f] deletes the character directly to the left of the

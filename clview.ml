@@ -6,10 +6,10 @@ open LTerm_geom
 open LTerm_draw
 open Str
 
-let sty = {bold = None; underline = None; blink = None; reverse = None;
+let normal = {bold = None; underline = None; blink = None; reverse = None;
            foreground = Some white; background = None}
 
-let cursor_style = {bold = None; underline = None; blink = None; reverse = None;
+let highlighted = {bold = None; underline = None; blink = None; reverse = None;
                     foreground = Some black; background = Some white}
 
 let get_tab_name str =
@@ -25,9 +25,6 @@ let get_tab_name str =
     (String.sub without_ext 0 5)^"..." else
   without_ext
 
-
-
-
 (* [draw_tabs st ctx] draws the tabs in state [st] at the top of context
  * [ctx]. *)
 let draw_tabs st ctx =
@@ -40,9 +37,9 @@ let draw_tabs st ctx =
     let file_name = (List.nth (get_file_names st) n) in
     if (String.length file_name)>10 then let tab_name = get_tab_name (file_name)
 in
-draw_string ctx 1 (1+(n*10)) tab_name ~style:sty;
+draw_string ctx 1 (1+(n*10)) tab_name ~style:normal;
     else let () =
-           draw_string ctx 0 (1+(n*10)) file_name ~style:sty in ()
+           draw_string ctx 0 (1+(n*10)) file_name ~style:normal in ()
   done
 
 (* [draw_file st ctx] draws the currently selected file in [st]
@@ -59,10 +56,10 @@ let txt_ctx = sub ctx {row1=1; col1=0; row2=(size ctx).rows;
 
     (* name of file at the top *)
     get_current_file_name st
-    |> draw_string_aligned ctx 0 H_align_center ~style:sty;
+    |> draw_string_aligned ctx 0 H_align_center ~style:normal;
 
     (* contents of file *)
-    get_all_text st |> draw_string txt_ctx 0 0 ~style:sty;
+    get_all_text st |> draw_string txt_ctx 0 0 ~style:normal;
 
     (* cursor *)
     if (get_typing_area st) = File then
@@ -70,14 +67,21 @@ let txt_ctx = sub ctx {row1=1; col1=0; row2=(size ctx).rows;
       get_text st cursor_loc (cursor_loc+1)
       |> fun s -> (if s = "\n" then " " else s)
       |> draw_string txt_ctx (get_cursor_line_num st) (get_cursor_column st)
-        ~style: cursor_style
-    else ()
+        ~style: highlighted;
+
+    (* highlighted text *)
+    match get_select_start st, get_selected_range st with
+    | Some (_, l, c), Some (i0, i1) -> 
+      get_text st i0 i1
+      |> Str.global_replace (Str.regexp "\n") " \n"
+      |> draw_string txt_ctx l c ~style:highlighted
+    | _ -> ()
   end
 
   (* default display if no file open *)
   else begin
     draw_string_aligned ctx 10 H_align_center
-      ~style:sty "Welcome to CamlCode"
+      ~style:normal "Welcome to CamlCode"
   end
 (* returns the value represented by an option if it exists, assumes not [None] *)
 let extract = function
@@ -88,17 +92,17 @@ let draw_cmd st ctx =
   (* draw horizontal line *)
   draw_hline ctx 0 0 (size ctx).cols Heavy;
   (* label for command terminal *)
-  draw_string_aligned ctx 0 H_align_center ~style:sty "Command Terminal";
+  draw_string_aligned ctx 0 H_align_center ~style:normal "Command Terminal";
   let cmd_in = st |> get_command_in |> extract in
   let cmd_out = st |> get_command_out |> extract in
   (* boxes for terminal input/output *)
   draw_frame ctx {row1 = 1; col1 = 0; row2 = 4; col2 = (size ctx).cols} Light;
   draw_frame ctx {row1 = 4; col1 = 0; row2 = 7; col2 = (size ctx).cols} Light;
   (* display terminal input/output *)
-  draw_string ctx 2 1 ~style:sty (cmd_out);
-  draw_string ctx 5 1 ~style:sty (cmd_in);
+  draw_string ctx 2 1 ~style:normal (cmd_out);
+  draw_string ctx 5 1 ~style:normal (cmd_in);
   if (get_typing_area st) = Command then
-    draw_string ctx 5 ((get_cmd_cursor st)+1) ~style:cursor_style (get_cmd_text st)
+    draw_string ctx 5 ((get_cmd_cursor st)+1) ~style:highlighted (get_cmd_text st)
   else ()
 
 

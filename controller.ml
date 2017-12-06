@@ -13,7 +13,6 @@ type commands =
   | Invalid
   | Open_File
 
-
 (* [parse_word s] returns the substring of [s] before the first [" "]. If
  * no [" "] occurs it returns [s] *)
 let parse_word s =
@@ -140,19 +139,43 @@ let rec repl ui stref =
         | Char c when (UChar.char_of c) = 't' ->
           let old = get_current_file_name !stref in
                   let new = (List. *)
-  | LTerm_event.Key { code = keycode; _ } ->
+  | LTerm_event.Key { code = keycode; shift = shift; _ } ->
     if (is_on_file !stref) then begin
       match get_typing_area !stref with
       | File ->
         begin
+
+          (* changes selection based on whether shift is pressed *)
+          let change_select shift st =
+            match shift, (get_select_start st) with 
+            | true, None -> start_selecting st 
+            | false, Some _ -> unselect_text st
+            | _ -> st in
+
+          (* depending on whether there is selected text,
+           * deletes selected text or calls a function on st *)
+          let delete_or_fun st f = 
+            match get_selected_range st with 
+            | None -> f st 
+            | Some (i0, i1) -> 
+              delete_text st i0 i1 |> unselect_text in
+
           stref := match keycode with
-          | Right -> cursor_right !stref
-          | Left -> cursor_left !stref
-          | Up -> cursor_up !stref
-          | Down -> cursor_down !stref
-          | Char c -> insert_char !stref (UChar.char_of c)
-          | Enter -> insert_char !stref '\n'
-          | Backspace -> delete_char !stref
+          | Right -> !stref |> change_select shift |> cursor_right
+          | Left -> !stref |> change_select shift |> cursor_left
+          | Up -> !stref |> change_select shift |> cursor_up
+          | Down -> !stref |> change_select shift |> cursor_down
+          | Char c -> delete_or_fun !stref (fun x -> x)
+            |> fun st -> insert_char st (UChar.char_of c)
+          | Enter -> delete_or_fun !stref (fun x -> x)
+            |> fun st -> insert_char st '\n'
+          | Tab -> (* 1 tab = 4 spaces - can change w/ plugin *)
+            delete_or_fun !stref (fun x -> x)
+            |> fun st -> List.fold_left (fun st c -> insert_char st c) 
+              st [' '; ' '; ' '; ' ']
+          | Backspace -> delete_or_fun !stref delete_char
+          | Delete -> delete_or_fun !stref 
+            (fun st -> st |> cursor_right |> delete_char)
           | F2 ->
             begin
               match get_command_in !stref with
@@ -164,6 +187,7 @@ let rec repl ui stref =
                   else toggle_typing_area !stref
           | _ -> !stref
         end
+
       | Command ->
         begin
           stref := match keycode with
@@ -187,6 +211,7 @@ let rec repl ui stref =
           | _ -> !stref
         end
     end;
+
     LTerm_ui.draw ui;
     repl ui stref
   | _ -> repl ui stref
