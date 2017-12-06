@@ -157,7 +157,8 @@ let open_file s =
     end
     with End_of_file -> rope_acc in
   let channel = open_in s in
-  let contents = append_lines channel Rope.empty in
+  let contents = append_lines channel Rope.empty
+   |> fun r -> if Rope.to_string r = "" then Rope.of_string "\n" else r in
   {
     name = s;
     contents = contents;

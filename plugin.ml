@@ -104,8 +104,8 @@ let respond_to_event (event : LTerm_event.t) (st : state) : state =
         | Char y when (UChar.char_of y) = 'y' -> redo st
         (* create new file *)
         | Char n when (UChar.char_of n) = 'n' -> 
-        State.new_file "untitled";
-        State.open_file st "untitled"
+          State.new_file "untitled";
+          State.open_file st "untitled"
         (* save file *)
         | Char s when (UChar.char_of s) = 's' ->
           State.save_file st (State.get_current_file st |> File.get_name)

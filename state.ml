@@ -1,19 +1,16 @@
 (* The State module contains the entire state of the program,
  * including a list of all files being used. *)
 
-(* open Location *)
 open Color
 open File
 open Sys
-(* open Zed_edit *)
-open Rope
 
 (* Indicates whether or not a file is open *)
 type opened_file = Nofile | Fname of string
 
 type typing_area = Command | File
 
-type clipboard = rope
+type clipboard = Rope.t
 
 (* State of the program. Contains the following information:
  * * List of files currently open
@@ -108,9 +105,9 @@ let replace_current_file st f =
  * Raises [Sys_error] if creating file failed. *)
 let new_file s = let ch_out = open_out s in close_out ch_out
 
-let new_clipboard = empty
+let new_clipboard = Rope.empty
 
-let string_to_clipboard s = of_string s
+let string_to_clipboard s = Rope.of_string s
 
 (* New state with no files open yet *)
 let empty_state =
@@ -151,7 +148,7 @@ let toggle_typing_area st =
 (* [open_file st s] constructs the file at path [s] and adds it
  * to the list of files in state [st].
  * Raises Sys_error if file read failed. *)
-let open_file st s =
+let open_file st s = 
   let new_file = File.open_file s in
   { st with
     files = (s, new_file) :: st.files;
@@ -207,7 +204,7 @@ let copy st =
   | None -> st
   | Some (loc1, loc2) ->
     (* Pervasives.print_endline ((string_of_int loc1)^(string_of_int loc2)); *)
-    let new_clipboard = (File.get_text curr loc1 loc2 |> of_string) in
+    let new_clipboard = (File.get_text curr loc1 loc2 |> Rope.of_string) in
     (* let () = Pervasives.print_endline (to_string new_clipboard) in *)
   {st with clipboard = new_clipboard}
 
@@ -222,7 +219,7 @@ let paste st =
   let new_rope = st.clipboard in
      let new_rope' = concat2 rope_before new_rope |> concat2 rope_after in *)
   Pervasives.print_endline ("contents before: "^get_all_text curr);
-  let new_contents = File.insert_text curr (to_string st.clipboard) (File.get_cursor_location curr) in
+  let new_contents = File.insert_text curr (Rope.to_string st.clipboard) (File.get_cursor_location curr) in
   Pervasives.print_endline ("contents after: "^File.get_all_text new_contents);
   {st with current_file = Fname (File.get_name new_contents)}
 
