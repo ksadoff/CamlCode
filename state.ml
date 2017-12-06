@@ -4,6 +4,7 @@
 (* open Location *)
 open Color
 open File
+open Sys
 (* open Zed_edit *)
 open Rope
 
@@ -43,6 +44,8 @@ type state = {
   command_in : string option;
   (* indictes the position of the cursor in the command prompt *)
   command_cursor : int;
+  (* stores the absolute path of our current working directory *)
+  curr_dir : string;
 }
 
 (* [extract file_opt] takes in an 'a option and returns the 'a. *)
@@ -120,6 +123,7 @@ let empty_state =
     command_out = None;
     command_in = None;
     command_cursor = 0;
+    curr_dir = getcwd() ^ "/../.."
   }
 
 (* [get_file_names st] returns a list of strings that represent the names of

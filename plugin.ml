@@ -10,6 +10,7 @@ type command =
   | Find of string
   | Replace of string
   | Replace_All of string
+  | Open_File of string
   
 (* [parse_word s] returns the substring of [s] before the first [" "]. If
   * no [" "] occurs it returns [s] *)
@@ -34,6 +35,7 @@ let parse_command (s : string) : command option =
     | "find" -> Some (Find (parse_word remainder |> String.trim))
     | "replace" -> Some (Replace remainder)
     | "replace_all" -> Some (Replace_All remainder)
+    | "open" -> Some( Open_File (remainder)) 
     | _ -> None
 
 (* [find_command st s_term] returns a copy of [st] with the next instance of
@@ -76,12 +78,20 @@ let replace_all_command st terms =
     then set_command_out st' (s_term^" not found")
     else st'
 
+let open_command st file_path =
+  try
+  let path = parse_word file_path in 
+  State.open_file st path
+  with 
+  |Sys_error s -> set_command_out (set_command_in st "") s
+
 (* [execute_command cmd st] changes the state based on command [cmd]. *)
 let execute_command (cmd : command) (st : state) : state = 
   match cmd with 
   | Find s -> find_command st s
   | Replace s -> replace_command st s
   | Replace_All s -> replace_all_command st s
+  | Open_File s -> open_command st s
 
 (* [respond_to_event event st] changes the state based on some event, 
  * such as a keyboard shorctut. *)
@@ -92,6 +102,17 @@ let respond_to_event (event : LTerm_event.t) (st : state) : state =
       match keycode with
         | Char z when (UChar.char_of z) = 'z' -> undo st
         | Char y when (UChar.char_of y) = 'y' -> redo st
+        (* create new file *)
+        | Char n when (UChar.char_of n) = 'n' -> 
+        State.new_file "untitled";
+        State.open_file st "untitled"
+        (* save file *)
+        | Char s when (UChar.char_of s) = 's' ->
+          State.save_file st (State.get_current_file st |> File.get_name)
+        (* close file *)
+        (*  *)
+        | Char w when (UChar.char_of w) = 'w' -> 
+          State.close_file st
         | _ -> st
         end
     else st
