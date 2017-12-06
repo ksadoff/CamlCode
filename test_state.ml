@@ -4,15 +4,17 @@ open State
 let slstate = empty_state |> fun st -> open_file st "testtxts/somelines.txt"
 let slstate' = select_text slstate 0 5
 
+
 (* If [f st] returns [st'], this function returns a test case with
  * name [tname] that checks that [(get_cursor_location st', *)
 let basic_clipboard = string_to_clipboard "hello"
-let basic_state = empty_state |> fun st -> open_file st "testtxts/clipboardtest.txt"
-let basic_state_file = File.select_text (get_current_file basic_state) 0 9
-let basic_state' = change_selected_file (File.get_name basic_state_file) basic_state
-
-let basic_state_paste = move_cursor basic_state 4
-let paste_text = "aaaaaaaaaaaaaaaaaaaa\n\nhi"
+let basic_state = empty_state |> fun st -> open_file st "testtxts/easy.txt"
+(* let basic_state_file = File.select_text (get_current_file basic_state) 0 3
+   let basic_state' = change_selected_file (File.get_name basic_state_file) basic_state  *)
+let basic_state' = select_text basic_state 0 4
+let a_clipboard = string_to_clipboard "test"
+let basic_state_paste =  move_cursor basic_state' 1
+let paste_text = "testestt file\n"
 (* let basic_state_paste = change_selected_file (File.get_name basic_state_paste_file) basic_state' *)
 
 (* If [f st] returns [st'], this function returns a test case with
@@ -95,8 +97,9 @@ let tests = [
   "clipboard empty" >:: (fun _ -> assert_equal (string_to_clipboard "") (new_clipboard));
   "clipboard copy" >:: (fun _ -> assert_equal basic_clipboard (copy slstate' |>
                                                                get_clipboard));
-  (* "clipboard paste" >:: (fun _ -> assert_equal (paste_text)
-                            (paste basic_state_paste |> get_all_text)); *)
+  "clipboard copy 2" >:: (fun _ -> assert_equal a_clipboard (copy basic_state' |> get_clipboard));
+  "clipboard paste" >:: (fun _ -> assert_equal (paste_text)
+                            (paste (copy basic_state') |> get_all_text));
 
                             (* tests for setting and getting the search term of a file *)
   "find0" >:: (fun _ -> assert_equal (Some "hello")
