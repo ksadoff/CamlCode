@@ -8,6 +8,16 @@ type color
 type color_mapping
 
 
+(* 
+ *[compare lc1 lc2] takes in two [(location, color)] tuples and compares them
+ * based on their location. It returns -1 if the location of the first tuple 
+ * is greater than the location of the second tuple, 0 if the locations are 
+ * equal, and 1 if the location of the 2nd tuple is greater than the location
+ * of the 1st tuple.
+*)
+val compare' : (int * color) -> (int * color) -> int
+
+
 (* [make_color rgb] creates a new color from RGB value [rgb]. It looks at
  * the least significant 3 bytes of [rgb], of which the most significant
  * byte is the red value, the second is green, and the last is blue. *)

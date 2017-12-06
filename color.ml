@@ -19,7 +19,7 @@ let snd3 (_, s, _) = s
  * triple *)
 let thr3 (_, _, t) = t
 
-let compare lc1 lc2 = 
+let compare' lc1 lc2 = 
   if (fst lc1) < (fst lc2) then (-1)
   else if (fst lc1) = (fst lc2) then 0
   else if (fst lc1) > (fst lc2) then 1
@@ -68,10 +68,14 @@ let cm_to_list cm = cm
 let make_cm l = l
 
 (* [add_color cm (loc, c)] adds a new color [c] from [l1] to [l2]. 
- * ASK CHOPPER ABOUT IT TOMORROW *)
+ * Problem: If there is a current color that exists 
+ * in the second location, don't add it. *)
 let add_color cm (loc1, loc2, c) = 
   let new_list = List.filter (fun x -> (fst x) <> loc1) cm in
-  List.sort compare ((loc1, c)::(loc2, (255, 255, 255))::new_list) 
+  if(List.exists (fun x -> (fst x) = loc2) new_list) then
+    List.sort compare ((loc1, c)::new_list)
+  else
+    List.sort compare ((loc1, c)::(loc2, (255, 255, 255))::new_list) 
 
 (* [empty_cm] is the default color mapping in which all text is the
  * default color. *)

@@ -34,7 +34,8 @@ val save_file : file -> string -> file
 val is_saved : file -> bool
 
 (*
-(* [get_file_contents f] returns the rope that represents the context of the file *)
+(* [get_file_contents f] returns the rope that represents the context of the 
+file *)
 val get_file_contents : file -> Rope.t *)
 
 (* [get_cont_length f] returns the length of the file_contents of [f]. *)

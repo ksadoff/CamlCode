@@ -11,6 +11,7 @@ type commands =
   | Replace
   | Replace_All
   | Invalid
+  | Open_File
 
 
 (* [parse_word s] returns the substring of [s] before the first [" "]. If
@@ -36,6 +37,7 @@ let string_to_command s =
     | "find" -> Find, (parse_word remainder |> String.trim)
     | "replace" -> Replace, (remainder)
     | "replace_all" -> Replace_All, (remainder)
+    | "open" -> Open_File, (remainder)
     | _ -> Invalid, ""
 
 (* [execute_command s flst st] finds the function in [flst] mapped to [s] and
@@ -90,11 +92,19 @@ let replace_command st terms =
       then set_command_out st' (s_term^" not found")
       else st'
 
+  let open_command st file_path =
+    try
+    let path = parse_word file_path in 
+    State.open_file st path
+    with 
+    |_ -> failwith "you messed up"
+
 (* a mapping of [Command]'s to functions for the command prompt *)
 let flst = [
   (Find, find_command);
   (Replace, replace_command);
-  (Replace_All, replace_all_command)
+  (Replace_All, replace_all_command);
+  (Open_File, open_command);
 ]
 
 (* [repl ui stref] waits for input from the user. Once input is recieved it
@@ -108,8 +118,18 @@ let rec repl ui stref =
   | LTerm_event.Key{ control = true; code = keycode; _} ->
     if (is_on_file !stref) then begin
       stref := match keycode with
+        (* undo *)
         | Char z when (UChar.char_of z) = 'z' -> undo !stref
+        (* redo *)
         | Char y when (UChar.char_of y) = 'y' -> redo !stref
+        (* new file *)
+        | Char n when (UChar.char_of n) = 'n' -> 
+          State.new_file "untitled";
+          State.open_file !stref "untitled"
+        (* save file *)
+        | Char s when (UChar.char_of s) = 's' ->
+          let st = !stref in 
+          State.save_file st (State.get_current_file st |> File.get_name)
         | _ -> !stref
         end;
         LTerm_ui.draw ui;
