@@ -6,13 +6,13 @@ open Color
 open CamomileLibrary
 
 (* Type of commands that can be input by the user. *)
-type command = 
+type command =
   | Find of string
   | Replace of string
   | Replace_All of string
   | Open_File of string
   | New_File of string
-  
+
 (* [parse_word s] returns the substring of [s] before the first [" "]. If
   * no [" "] occurs it returns [s] *)
 let parse_word s =
@@ -22,9 +22,9 @@ let parse_word s =
   with
   | Not_found -> s
 
-(* [parse_command s] converts a raw input command [s] from the user 
+(* [parse_command s] converts a raw input command [s] from the user
  * to a command. Returns [None] if [s] is not a command for this plugin. *)
-let parse_command (s : string) : command option = 
+let parse_command (s : string) : command option =
   let first_word = parse_word s in
   (* single word commands *)
   if first_word = s then None
@@ -36,7 +36,7 @@ let parse_command (s : string) : command option =
     | "find" -> Some (Find (parse_word remainder |> String.trim))
     | "replace" -> Some (Replace remainder)
     | "replace_all" -> Some (Replace_All remainder)
-    | "open" -> Some(Open_File (remainder)) 
+    | "open" -> Some(Open_File (remainder))
     | "new" -> Some (New_File (remainder))
     | _ -> None
 
@@ -82,36 +82,36 @@ let replace_all_command st terms =
 
 let open_command st file_path =
   try
-  let path = parse_word file_path in 
+  let path = parse_word file_path in
   State.open_file st path
-  with 
+  with
   |Sys_error s -> set_command_out (set_command_in st "") s
 
-let new_file_command st file_path = 
-  let path = parse_word file_path in 
+let new_file_command st file_path =
+  let path = parse_word file_path in
   State.new_file path;
   State.open_file st path
 
 (* [execute_command cmd st] changes the state based on command [cmd]. *)
-let execute_command (cmd : command) (st : state) : state = 
-  match cmd with 
+let execute_command (cmd : command) (st : state) : state =
+  match cmd with
   | Find s -> find_command st s
   | Replace s -> replace_command st s
   | Replace_All s -> replace_all_command st s
   | Open_File s -> open_command st s
   | New_File s -> new_file_command st s
 
-(* [respond_to_event event st] changes the state based on some event, 
+(* [respond_to_event event st] changes the state based on some event,
  * such as a keyboard shorctut. *)
 let respond_to_event (event : LTerm_event.t) (st : state) : state =
-  match event with 
+  match event with
   | LTerm_event.Key{ control = true; code = keycode; _} ->
     if (is_on_file st) then begin
       match keycode with
         | Char z when (UChar.char_of z) = 'z' -> undo st
         | Char y when (UChar.char_of y) = 'y' -> redo st
         (* create new file *)
-        | Char n when (UChar.char_of n) = 'n' -> 
+        | Char n when (UChar.char_of n) = 'n' ->
           State.new_file "untitled";
           State.open_file st "untitled"
         (* save file *)
@@ -121,10 +121,13 @@ let respond_to_event (event : LTerm_event.t) (st : state) : state =
         (* known bug: when you close all the tabs and go to the welcome page,
          * you currently cannot type anything and none of the key bindings work.
          *)
-        | Char w when (UChar.char_of w) = 'w' -> 
+        | Char w when (UChar.char_of w) = 'w' ->
           State.close_file st
-        (* | Tab -> 
+        (* | Tab ->
            *)
+        | Char c when (UChar.char_of c) = 'c' -> copy st
+        | Char v when (UChar.char_of v) = 'v' -> paste st
+        | Char x when (UChar.char_of x) = 'x' -> cut st
         | _ -> st
         end
     else st
@@ -137,17 +140,17 @@ let respond_to_event (event : LTerm_event.t) (st : state) : state =
 
           (* changes selection based on whether shift is pressed *)
           let change_select shift st =
-            match shift, (get_select_start st) with 
-            | true, None -> start_selecting st 
+            match shift, (get_select_start st) with
+            | true, None -> start_selecting st
             | false, Some _ -> unselect_text st
             | _ -> st in
 
           (* depending on whether there is selected text,
           * deletes selected text or calls a function on st *)
-          let delete_or_fun st f = 
-            match get_selected_range st with 
-            | None -> f st 
-            | Some (i0, i1) -> 
+          let delete_or_fun st f =
+            match get_selected_range st with
+            | None -> f st
+            | Some (i0, i1) ->
               delete_text st i0 i1 |> unselect_text in
 
           match keycode with
@@ -161,10 +164,10 @@ let respond_to_event (event : LTerm_event.t) (st : state) : state =
             |> fun st -> insert_char st '\n'
           | Tab -> (* 1 tab = 4 spaces - can change w/ plugin *)
             delete_or_fun st (fun x -> x)
-            |> fun st -> List.fold_left (fun st c -> insert_char st c) 
+            |> fun st -> List.fold_left (fun st c -> insert_char st c)
               st [' '; ' '; ' '; ' ']
           | Backspace -> delete_or_fun st delete_char
-          | Delete -> delete_or_fun st 
+          | Delete -> delete_or_fun st
             (fun st -> st |> cursor_right |> delete_char)
           | F2 ->
             begin
@@ -189,12 +192,12 @@ let respond_to_event (event : LTerm_event.t) (st : state) : state =
               match get_command_in st with
               | None -> failwith "unused"
               (* User presses enter to execute a command *)
-              | Some cmd_str -> parse_command cmd_str 
+              | Some cmd_str -> parse_command cmd_str
                 |> fun cmd_opt -> begin
-                  match cmd_opt with 
+                  match cmd_opt with
                   | Some cmd_in -> execute_command cmd_in st
                   | None -> st
-                end 
+                end
             end
           | Backspace -> cmd_delete st
           | F2 ->
