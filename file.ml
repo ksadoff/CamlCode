@@ -239,6 +239,22 @@ let rec get_location lla loc1 i2 =
     else i1 - c1 + line_len in
   get_location lla {index=new_start; line_num=new_ln; column=0} i2
 
+(* [scroll_to f n] changes the line number of the scrolled view
+ * to [n]. If [n] is less than 0 or greater than the number of lines in
+ * contents, then the closest line number is chosen. *)
+let scroll_to f n =
+  {f with scroll_line_num =
+            let num_lines = Array.length f.line_lengths in
+            if n < 0 then 0
+            else if n >= num_lines then num_lines - 1
+            else n
+  }
+
+
+  (* [get_scroll_line f] returns the highest line that view is currently
+   * scrolled to *)
+  let get_scroll_line f = f.scroll_line_num
+
 (* [move_cursor f l] moves the cursor location in [f] to [l]. The cursor
  * index, line number, and column number are all updated. If [l] is an
  * invalid location, the cursor becomes the closest value to [l]. *)
@@ -262,7 +278,9 @@ let cursor_left f =
       index= f.cursor.index - 1;
       line_num = f.cursor.line_num - 1;
       column =  Array.get f.line_lengths (f.cursor.line_num - 1) - 1;
-    }
+    };
+    scroll_line_num = (get_scroll_line f) - 1
+
   }
   else { f with
     cursor = {
@@ -283,7 +301,8 @@ let cursor_right f =
       index = f.cursor.index + 1;
       line_num = f.cursor.line_num + 1;
       column = 0;
-    }
+    };
+    scroll_line_num = (get_scroll_line f) + 1
   }
   else { f with
     cursor = {
@@ -314,7 +333,8 @@ let cursor_up f =
       index = new_cursor;
       line_num = lnum;
       column = col;
-    }
+    };
+    scroll_line_num = (get_scroll_line f) - 1
   }
 
  (* [cursor_down f] returns [f] with cursor moved one line down.
@@ -340,23 +360,12 @@ let cursor_down f =
       index = new_cursor;
       line_num = lnum;
       column = col;
-    }
+    };
+    scroll_line_num = (get_scroll_line f) + 1
   }
 
-(* [scroll_to f n] changes the line number of the scrolled view
- * to [n]. If [n] is less than 0 or greater than the number of lines in
- * contents, then the closest line number is chosen. *)
-let scroll_to f n =
-  {f with scroll_line_num =
-    let num_lines = Array.length f.line_lengths in
-    if n < 0 then 0
-    else if n >= num_lines then num_lines - 1
-    else n
-  }
 
-(* [get_scroll_line f] returns the highest line that view is currently
- * scrolled to *)
-let get_scroll_line f = f.scroll_line_num
+
 
 (* [make_range_valid (i1, i2) cont_len] returns a new pair (i1', i2')
  * such that:
@@ -717,3 +726,25 @@ let replace_all f =
     num_redos = 0;
     redo_list = [];
   }
+
+(* [first_index_of_line f linenum] returns the index in the file contents that
+ * corresponds to the first index of the line *)
+let first_index_of_line f lineum =
+  Array.fold_left (+) 0 (Array.sub (line_lengths_arr f) 0 lineum) 
+
+
+
+
+let get_visible_text f numlines =
+  if numlines > List.length (get_line_lengths f) then get_all_text f
+  else
+  let before_lines =  Array.sub (line_lengths_arr f.contents)
+      0 (f.scroll_line_num) in
+  let start_ind =  Array.fold_left (+) 0 before_lines in
+  if f.scroll_line_num + numlines > (List.length (get_line_lengths f)) then
+    let end_ind  = Array.fold_left (+) 0 (line_lengths_arr f.contents) in
+    get_text f start_ind end_ind else
+  let visible_lines = Array.sub (line_lengths_arr f.contents)
+      (f.scroll_line_num) (f.scroll_line_num + numlines) in
+  let end_ind = (Array.fold_left (+) 0 visible_lines) + start_ind in
+  get_text f start_ind end_ind

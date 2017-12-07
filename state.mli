@@ -88,15 +88,15 @@ val save_file : state -> string -> state
  * If no file is currently selected, returns [st]. *)
 val close_file : state -> state
 
-(* [tab_right st] takes in a state and returns a state with the current file 
- * being replaced with the file that appears next in the list of open files. 
- * If the current file is the last file in the list, 
+(* [tab_right st] takes in a state and returns a state with the current file
+ * being replaced with the file that appears next in the list of open files.
+ * If the current file is the last file in the list,
  * then it will return the current file. *)
  val tab_right : state -> state
 
- (* [tab_left st] takes in a state and returns a state with the current file 
- * being replaced with the file that appears previous in the list of open files. 
- * If the current file is the first file in the list, 
+ (* [tab_left st] takes in a state and returns a state with the current file
+ * being replaced with the file that appears previous in the list of open files.
+ * If the current file is the first file in the list,
  * then it will return the current file. *)
  val tab_left : state -> state
 
@@ -322,3 +322,7 @@ val num_open_files : state -> int
 
 (* is_on_file st] returns true if the current file has a name or false if not *)
 val is_on_file : state -> bool
+
+(* [get_visible_text st numlines] returns the text from the current file's
+ * scroll_line_num to the line num_lines below it *)
+val get_visible_text : state -> int -> string

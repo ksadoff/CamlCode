@@ -34,7 +34,7 @@ val save_file : file -> string -> file
 val is_saved : file -> bool
 
 (*
-(* [get_file_contents f] returns the rope that represents the context of the 
+(* [get_file_contents f] returns the rope that represents the context of the
 file *)
 val get_file_contents : file -> Rope.t *)
 
@@ -102,7 +102,7 @@ val get_text : file -> int -> int -> string
 (* [get_all_text f] returns a string representing all of the text in [f] *)
 val get_all_text : file -> string
 
-(* [start_selecting f] sets the fixed selecting point to the current 
+(* [start_selecting f] sets the fixed selecting point to the current
  * location of the cursor in [f]. *)
 val start_selecting : file -> file
 
@@ -120,7 +120,7 @@ val unselect_text : file -> file
 val get_selected_range : file -> (int * int) option
 
 (* [get_select_start f] returns [Some (i, l, c)] where [i]
- * is the index of the beginning of the selection region, [l] is the line 
+ * is the index of the beginning of the selection region, [l] is the line
  * number, and [c] is the column. If not selection has been made,
  * returns None. *)
 val get_select_start : file -> (int * int * int) option
@@ -207,3 +207,7 @@ val replace_next: file -> file
  * If there is no instance of the search term or either the search or replace
  * term does not exist, returns [f] with no text selected *)
 val replace_all: file -> file
+
+(* [get_visible_text f numlines] returns the text from the file's scroll_line_num
+ * to the line num_lines below it *)
+val get_visible_text : file -> int -> string
