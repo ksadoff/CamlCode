@@ -463,7 +463,7 @@ let rec get_lines f l1 l2 wid =
  * is the current scroll line. [w] is the max width of each line,
  * and [h] is the max number of lines. *)
 let get_scrolled_lines f w h =
-  get_lines f (f.scroll_line_num) (f.scroll_line_num + h+  1) w
+  get_lines f (f.scroll_line_num) (f.scroll_line_num + h + 1) w
 
 (* [get_all_text f] returns a string representing all of the text in [f] *)
 let get_all_text f = Rope.to_string f.contents

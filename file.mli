@@ -33,11 +33,6 @@ val save_file : file -> string -> file
 (* [is_saved f] returns whether [f] was saved since the last modification. *)
 val is_saved : file -> bool
 
-(*
-(* [get_file_contents f] returns the rope that represents the context of the
-file *)
-val get_file_contents : file -> Rope.t *)
-
 (* [get_cont_length f] returns the length of the file_contents of [f]. *)
 val cont_length : file -> int
 
@@ -63,18 +58,18 @@ val move_cursor : file -> int -> file
 (* [cursor_left f] returns [f] with cursor moved one position left.
  * If the end of the line is reached, cursor moves to end of previous
  * line. If cursor at index 0, it doesn't move. *)
-(* val cursor_left : file -> file *)
+val cursor_left : file -> file
 
 (* [cursor_right f] returns [f] with cursor moved one position right.
  * If the end of the line is reached, cursor moves to beginning
  * of next line. If cursor at the end of file, it doesn't move. *)
-(* val cursor_right : file -> file *)
+val cursor_right : file -> file
 
 (* [cursor_up f] returns [f] with cursor moved one line up.
  * If the cursor is farther right then the length of the line it
  * moved to, then the cursor goes at the end of the line.
  * If on first line, cursor goes to farthest left position. *)
-(* val cursor_up : file -> file *)
+val cursor_up : file -> file
 
 (* [cursor_up_scroll f] calls cursor_up f and updates the top visible line based
  * on where the cursor is.*)
@@ -104,7 +99,7 @@ val delete_scroll : file -> int -> int -> file
  * If the cursor is farther right then the length of the line it
  * moved to, then the cursor goes at the end of the line.
  * If on last line, cursor goes to farthest right position. *)
-(* val cursor_down : file -> file *)
+val cursor_down : file -> file
 
 (* [scroll file w h] returns a copy of [f] with the top visible line
  * set relative to where the cursor is*)
