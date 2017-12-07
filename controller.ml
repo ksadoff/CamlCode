@@ -47,12 +47,9 @@ let main () =
 
   Lazy.force LTerm.stdout
   >>= fun term ->
-    let tabheight = 
-      match get_command_in !stref with 
-      | Some _ -> 8
-      | None -> 3 in
-    stref := set_height !stref ((LTerm.size term).rows - tabheight);
-    stref := set_width !stref (LTerm.size term).cols; Clview.draw term stref
+    stref := set_total_height !stref ((LTerm.size term).rows);
+    stref := set_width !stref (LTerm.size term).cols;
+    Clview.draw term stref
   >>= fun ui ->
     Lwt.finalize (fun () -> repl ui stref) (fun () -> LTerm_ui.quit ui)
 
