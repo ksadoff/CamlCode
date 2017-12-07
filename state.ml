@@ -5,7 +5,7 @@ open Color
 open File
 open Filename
 
-(* Raised when calling a function that requires an open file 
+(* Raised when calling a function that requires an open file
  * without an open file. *)
 exception No_file_exn of string
 
@@ -102,7 +102,7 @@ let file_to_state_fun f_fun st =
  * executes it on the currently selected file in [st] to get [f'],
  * and returns a new state with [f'] replacing [f].
  * If [st] not current on a file, returns [st]. *)
-let fmap_st_f f_fun st = 
+let fmap_st_f f_fun st =
   let f' = file_to_state_fun f_fun st in
   let s = File.get_name f' in
   { st with files = (s, f') :: (List.remove_assoc s st.files) }
@@ -126,7 +126,7 @@ let replace_current_file st f =
  * the currently open files. *)
 let get_file_names st =
   List.map (fun x -> fst x) st.files
-  
+
 (* [num_open_files st] is number of open files in [st] *)
 let num_open_files st = List.length st.files
 
@@ -139,7 +139,7 @@ let get_current_file_name st =
 
 (* [set_current_file st f] sets the current file in [st] to [f]. *)
 let set_current_file st f = {st with current_file = Fname (get_name f)}
-  
+
 (* [change_selected_file s st] changes the selected file in [st]
   * to the file with name [s].
   * Raises Not_found if [s] is not one of the files open in [st]. *)
@@ -152,7 +152,7 @@ let change_selected_file s st =
  * then it will return the current file. *)
 let tab_right st =
   let file_names = List.map (fun x -> fst x) st.files in
-  match st.current_file with 
+  match st.current_file with
   | Fname curr_fname -> begin
     let right_file_index = (find_index file_names curr_fname 0) + 1 in
     if (right_file_index >= List.length file_names)
@@ -186,14 +186,14 @@ let toggle_typing_area st =
   match st.typing_loc with
   | Command -> { st with typing_loc = File; }
   | File -> { st with typing_loc = Command; }
-  
+
 (* CURRENT DIRECTORY *)
 
 (* [change_directory d] changes the current directory of this program
  * to [d] in the way that Unix would. Returns whether the move worked. *)
 let change_directory d = try Unix.chdir d; true
   with Unix.Unix_error _ -> false
-  
+
 (* [get_directory ())] is the current directory in [st]. *)
 let get_directory = Sys.getcwd
 
@@ -201,9 +201,9 @@ let get_directory = Sys.getcwd
 
 (* [convert_path st p] returns the string filepath [p] appended
  * to the current working directory if it is a relative path. *)
-let convert_path p = 
-  if is_relative p 
-  then concat (get_directory ()) p 
+let convert_path p =
+  if is_relative p
+  then concat (get_directory ()) p
   else p
 
 (* [new_file st s] creates a new, empty file with name [s], relative
@@ -217,13 +217,13 @@ let new_file st s =
 (* [open_file st s] constructs the file with name [s] and adds it
  * to the list of files in state [st].
  * Raises [Sys_error] if file read failed. *)
-let open_file st s = 
+let open_file st s =
   let p = convert_path s in
   let file_names = List.map (fun x -> fst x) st.files in
   if (List.exists (fun x -> x = p) file_names) then
     {st with current_file = Fname p}
   else
-  let new_file = File.open_file p in 
+  let new_file = File.open_file p in
   { st with
     files = (p, new_file) :: st.files;
     screens = [];
@@ -626,10 +626,10 @@ let empty_state =
     files = [];
     screens = [];
     current_file = Nofile;
-    typing_loc = File;
+    typing_loc = Command;
     clipboard = new_clipboard;
-    command_out = None;
-    command_in = None;
+    command_out = Some "";
+    command_in = Some "";
     command_cursor = 0;
     up_cmds = [];
     down_cmds = [];
