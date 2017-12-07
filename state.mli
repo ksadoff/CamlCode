@@ -10,8 +10,10 @@ exception No_file_exn of string
 (* Indicates whether or not a file is open *)
 type opened_file
 
+(* Indicates where the user is typing *)
 type typing_area = Command | File
 
+(* abstract type for the clipboard text *)
 type clipboard
 
 (* State of the program. Contains the following information:
@@ -22,7 +24,7 @@ type clipboard
  * * Name of the current file
  * * First (top) visible line of text
  * * Start and end locations for a block of selected text
- * * Current search term 
+ * * Current search term
  * * Height of terminal
  * * Height of desired window
  * * Width of terminal *)
@@ -47,6 +49,7 @@ val cycle_down : state -> state
  * the down command stack cleared *)
 val update_commands : state ->  state
 
+(* an empty clipboard *)
 val new_clipboard : clipboard
 
 (* [string_to_clipboard s] converts s into our representation type
@@ -74,9 +77,6 @@ val get_current_file : state -> File.file
 
 (* [set_current_file st f] sets the current file in [st] to [f]. *)
 val set_current_file : state -> File.file -> state
-
-(* [get_current_file_name st] returns the string of the name of the file being *)
-val get_file_names : state -> string list
 
 (* [is_on_file st] returns [true] if there user is currently on a file,
  * and [false] if the user does not have a file open or if they
@@ -231,8 +231,6 @@ val cursor_right : state -> state
 (* [cursor_up st] moves the cursor up on the currently selected file
  * in [st]. *)
 val cursor_up : state -> state
-
-(* [cursor_up_scroll st]*)
 
 (* [cursor_down st] moves the cursor down on the currently selected file
  * in [st]. *)

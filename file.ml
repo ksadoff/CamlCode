@@ -13,11 +13,6 @@ type location = {
   column : int; (* column number *)
 }
 
-type undo_state = {
-  text : contents;
-  cursor_loc : location;
-}
-
 (* A file variable represents all the state that is recorded
  * for one file. It should contain the following information:
  * * file name/relative path
