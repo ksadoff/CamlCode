@@ -730,7 +730,9 @@ let replace_all f =
 (* [first_index_of_line f linenum] returns the index in the file contents that
  * corresponds to the first index of the line *)
 let first_index_of_line f lineum =
-  Array.fold_left (+) 0 (Array.sub (line_lengths_arr f) 0 lineum) 
+  Array.fold_left (+) 0 (Array.sub (line_lengths_arr f) 0 lineum)
+
+(* [last_index_]*)
 
 
 

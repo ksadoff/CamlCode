@@ -21,7 +21,7 @@ let get_tab_name str =
   let file_name = Str.regexp "[A-Za-z0-9]+[.][a-z]+\\b" in
   let find = Str.search_forward file_name str 0 in
   let full_name = Str.matched_string str in
-  let without_ext = String.sub full_name 0 ((String.length full_name)-5) in
+  let without_ext = String.sub full_name 0 ((String.length full_name)-4) in
   if String.length without_ext > 6 then
     (String.sub without_ext 0 5)^"..." else
   without_ext
