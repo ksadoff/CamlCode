@@ -104,8 +104,12 @@ val get_clipboard : state -> clipboard
 val copy : state -> state
 
 (* [paste st] returns a copy of state with the text from the clipboard of [st]
- * inserted at the cursor location in the open flie of [st] *)
+ * inserted at the cursor location in the open file of [st] *)
 val paste : state -> state
+
+(* [cut st] returns a copy of state with the text selected in the open file of st
+ * deleted from the contents and saved to the clipboard*)
+val cut : state -> state
 
 (* [open_terminal st] returns a copy of [st] with both [command_out] and
  * [command_in] set to [Some ""] if they are [None] in [st] which indicates
