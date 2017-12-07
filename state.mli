@@ -3,9 +3,9 @@
 
 open Color
 
-(* Raised when calling a function that requires an open file 
+(* Raised when calling a function that requires an open file
  * without an open file. *)
-exception No_file_exn of string 
+exception No_file_exn of string
 
 (* Indicates whether or not a file is open *)
 type opened_file
@@ -22,8 +22,17 @@ type clipboard
  * * Name of the current file
  * * First (top) visible line of text
  * * Start and end locations for a block of selected text
- * * Current search term *)
+ * * Current search term 
+ * * Height of terminal
+ * * Height of desired window
+ * * Width of terminal *)
 type state
+
+(* [set_height st h] returns a copy of [st] with the total height field set to h *)
+val set_total_height : state -> int -> state
+
+(* [set_width st w] returns a copy of [st] with the width field set to w *)
+val set_width : state -> int -> state
 
 (* [cycle_up st] returns a copy of [st] with the command input set to the next
  * command in the stack of previously used commands *)
@@ -223,6 +232,8 @@ val cursor_right : state -> state
  * in [st]. *)
 val cursor_up : state -> state
 
+(* [cursor_up_scroll st]*)
+
 (* [cursor_down st] moves the cursor down on the currently selected file
  * in [st]. *)
 val cursor_down : state -> state
@@ -235,11 +246,11 @@ val scroll_to : state -> int -> state
  * currently selected file in [st]. *)
 val get_scroll_line : state -> int
 
-(* [get_scrolled_lines st w h] displays the currently scrolled to lines, 
+(* [get_scrolled_lines st w h] displays the currently scrolled to lines,
  * so that the cursor is viewable horizontally and the first line displayed
  * is the current scroll line. [w] is the max width of each line,
  * and [h] is the max number of lines. *)
-val get_scrolled_lines : state -> int -> int -> string
+val get_scrolled_lines : state -> string
 
 (* [get_text st l1 l2] returns all text in the open file of [st] from
  * [l1] to [l2]. Raises Invalid_argument if [l2] comes before [l1].  *)
@@ -357,3 +368,13 @@ val is_on_file : state -> bool
 (* [get_visible_text st numlines] returns the text from the current file's
  * scroll_line_num to the line num_lines below it *)
 val get_visible_text : state -> int -> string
+
+(* [first_index_of_line st linenum] returns the index in the current file contents that
+ * corresponds to the first index of the line at linenum in the list of
+ * line lengths *)
+val first_index_of_line : state -> int -> int
+
+(* [last_index_of_line f linenum] returns the index in the file contents that
+ * corresponds to the last index of the line at linenum in the list of
+ * line lengths*)
+val last_index_of_line : state -> int -> int

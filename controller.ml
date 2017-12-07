@@ -41,20 +41,15 @@ let rec repl ui stref =
  * The argument should be optional, when not given a string the
  * function is the same as if the file was not found *)
 let main () =
-  (* TODO: Right now, a somelines.txt is automatically opened.
-   * We need to open [empty_state] by default instead, and then have
-   * the user choose the file with a command. *)
-
   Unix.chdir "../..";
-
-  (* let stref' = empty_state
-    |> fun st -> open_file st "testtxts/somelines.txt" in
-  let stref = open_file stref' "testtxts/easy.txt" |> fun x -> ref x in *)
 
   let stref = ref empty_state in
 
   Lazy.force LTerm.stdout
-  >>= fun term -> Clview.draw term stref
+  >>= fun term ->
+    stref := set_total_height !stref ((LTerm.size term).rows);
+    stref := set_width !stref (LTerm.size term).cols;
+    Clview.draw term stref
   >>= fun ui ->
     Lwt.finalize (fun () -> repl ui stref) (fun () -> LTerm_ui.quit ui)
 
