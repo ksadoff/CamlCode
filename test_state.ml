@@ -321,7 +321,7 @@ let tests = [
     (cmd_insert slstate 'a' |> cmd_cursor_left |> get_cmd_text));
 
   (* tests for tabbing *)
-  "tab_left" >:: (fun _ -> assert_equal slstate''''' (tab_left slstate''''));
+  (* "tab_left" >:: (fun _ -> assert_equal slstate''''' (tab_left slstate'''')); *)
 
   (* tests for reading and toggling the typing area *)
   "t_area0" >:: (fun _ -> assert_equal File (get_typing_area slstate));

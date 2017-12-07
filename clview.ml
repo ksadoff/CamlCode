@@ -10,18 +10,19 @@ let normal = {bold = None; underline = None; blink = None; reverse = None;
            foreground = Some white; background = None}
 
 let highlighted = {bold = None; underline = None; blink = None; reverse = None;
-                    foreground = Some black; background = Some white}
+                   foreground = Some black; background = Some white}
+
 
 let get_tab_name str =
   (* if (String.sub str ((String.length str)-5) ((String.length str)-1)) =".txt"
   then let () = print_endline (String.sub str ((String.length str)-5) ((String.length str)-1)) in
   String.sub str 0 ((String.length str)-5)
   else str *)
-  let file_name = Str.regexp "/[A-Za-z0-9]+[.][a-z]+\\b" in
+  let file_name = Str.regexp "[A-Za-z0-9]+[.][a-z]+\\b" in
   let find = Str.search_forward file_name str 0 in
   let full_name = Str.matched_string str in
-  let without_ext = String.sub full_name 1 ((String.length full_name)-5) in
-  if String.length without_ext > 7 then
+  let without_ext = String.sub full_name 0 ((String.length full_name)-4) in
+  if String.length without_ext > 6 then
     (String.sub without_ext 0 5)^"..." else
   without_ext
 
@@ -64,7 +65,9 @@ let txt_ctx = sub ctx {row1=1; col1=0; row2=(size ctx).rows;
     |> draw_string_aligned ctx 0 H_align_center ~style:normal;
 
     (* contents of file *)
-    get_all_text st |> draw_string txt_ctx 0 0 ~style:normal;
+    (* get_all_text st |> draw_string txt_ctx 0 0 ~style:normal; *)
+    get_visible_text st (size ctx).rows |>
+    draw_string txt_ctx 0 0 ~style:normal;
 
     (* highlighted text *)
     match get_select_start st, get_selected_range st with

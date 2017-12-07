@@ -12,6 +12,8 @@ type typing_area = Command | File
 
 type clipboard = Rope.t
 
+type size = LTerm_geom.size
+
 (* State of the program. Contains the following information:
  * * List of files currently open
  * * List of files displayed on screen (split screen)
@@ -41,8 +43,7 @@ type state = {
   command_in : string option;
   (* indictes the position of the cursor in the command prompt *)
   command_cursor : int;
-  (* stores the absolute path of our current working directory *)
-  curr_dir : string;
+  (* command history *)
   up_cmds : string list;
   down_cmds : string list;
 }
@@ -182,42 +183,55 @@ let toggle_typing_area st =
   match st.typing_loc with
   | Command -> { st with typing_loc = File; }
   | File -> { st with typing_loc = Command; }
+  
+(* CURRENT DIRECTORY *)
+
+(* [change_directory d] changes the current directory of this program
+ * to [d] in the way that Unix would. Returns whether the move worked. *)
+let change_directory d = try Unix.chdir d; true
+  with Unix.Unix_error _ -> false
+  
+(* [get_directory ())] is the current directory in [st]. *)
+let get_directory = Sys.getcwd
 
 (* FILE OPERATIONS *)
 
 (* [convert_path st p] returns the string filepath [p] appended
- * to the current working directory in [st] if it is a relative path. *)
-let convert_path st p = if is_relative p then concat st.curr_dir p else p
+ * to the current working directory if it is a relative path. *)
+let convert_path p = 
+  if is_relative p 
+  then concat (get_directory ()) p 
+  else p
 
 (* [new_file st s] creates a new, empty file with name [s], relative
  * to the current working directory of [st].
  * Raises [Sys_error] if creating file failed. *)
-let new_file st s = 
-  let p = convert_path st s in
-  let ch_out = open_out p in 
+let new_file st s =
+  let p = convert_path s in
+  let ch_out = open_out p in
   close_out ch_out
 
 (* [open_file st s] constructs the file with name [s] and adds it
  * to the list of files in state [st].
  * Raises [Sys_error] if file read failed. *)
-let open_file st s = 
-  let p = convert_path st s in
-  let file_names = List.map (fun x -> fst x) st.files in 
-  if (List.exists (fun x -> x = p) file_names) then 
+let open_file st s =
+  let p = convert_path s in
+  let file_names = List.map (fun x -> fst x) st.files in
+  if (List.exists (fun x -> x = p) file_names) then
     {st with current_file = Fname p}
-  else 
+  else
   let new_file = File.open_file p in
   { st with
     files = (p, new_file) :: st.files;
     screens = [];
     current_file = Fname p;
   }
-  
+
 (* [save_file st s] saves the currently selected file in [st]
  * at relative path [s].
  * Raises [Sys_error] if file write failed. *)
-let save_file st s = 
-  let p = convert_path st s in 
+let save_file st s =
+  let p = convert_path s in
   fmap_st_f (fun f -> File.save_file f p) st
 
 (* [is_filed_saved st s] returns the file named [s] in state [st] is saved.
@@ -243,15 +257,6 @@ let close_file st =
       end;
     }
   | _ -> st
-
-(* [change_directory st d] changes the current directory in [st].
- * Say [c] is the previous directory in [st]. If [d] is a relative path,
- * the new directory will be [c/d]. If [d] is an absolute path,
- * the new directory will be [d]. *)
-let change_directory st d = { st with curr_dir = convert_path st d; }
- 
-(* [get_directory st] is the current directory in [st]. *)
-let get_directory st = st.curr_dir
 
 (* CLIPBOARD *)
 
@@ -498,6 +503,10 @@ let get_text = file_to_state_fun File.get_text
  * the file opened in [st] *)
 let get_all_text = file_to_state_fun File.get_all_text
 
+let get_visible_text st numlines =
+  let curr = get_current_file st in
+  File.get_visible_text curr numlines
+
 (* SELECTING TEXT *)
 
 (* [start_selecting st] sets the fixed selecting point to the current
@@ -619,7 +628,6 @@ let empty_state =
     command_out = None;
     command_in = None;
     command_cursor = 0;
-    curr_dir = Sys.getcwd ();
     up_cmds = [];
     down_cmds = [];
   }

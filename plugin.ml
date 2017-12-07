@@ -102,11 +102,12 @@ let new_file_command st file_path =
 
 (* state after calling cd command *)
 let cd_command st p =
-  change_directory st p
-  |> fun st -> set_command_out st ("Switched to " ^ (get_directory st))
+  if change_directory p 
+  then set_command_out st (get_directory ())
+  else set_command_out st ("Failed to move to " ^ p)
 
 (* state after calling pwd command *)
-let pwd_command st = set_command_out st (get_directory st)
+let pwd_command st = set_command_out st (get_directory ())
 
 (* [execute_command cmd st] changes the state based on command [cmd]. *)
 let execute_command (cmd : command) (st : state) : state =
@@ -207,6 +208,10 @@ let respond_to_event (event : LTerm_event.t) (st : state) : state =
           | Left -> cmd_cursor_left st
           | Char c -> cmd_insert st (UChar.char_of c)
           | Backspace -> cmd_delete st
+          | Delete ->
+            if (st |> get_cmd_cursor) = (st |> cmd_cursor_right |> get_cmd_cursor)
+            then st
+            else st |> cmd_cursor_right |> cmd_delete
           | F2 ->
             begin
               match get_command_in st with
