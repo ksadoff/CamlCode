@@ -45,11 +45,13 @@ type state = {
   curr_dir : string;
 }
 
-(* [extract file_opt] takes in an 'a option and returns the 'a. *)
+(* [extract file_opt] takes in an 'a option and returns the 'a. Only to be 
+ * used on files we know exist.
+ *)
 let extract file_opt =
   match file_opt with
-  | Some f -> f
-  | None -> failwith "Unused"
+  | Fname f -> f
+  | Nofile -> failwith "Unused"
 
 (* [get_current_file st] returns the file that is currently being manipulated.
  * Raises [Invalid_argument] if no file currently selected and [Not_found]
@@ -59,12 +61,17 @@ let get_current_file st =
   | Fname s -> List.assoc s st.files
   | _ -> raise (Invalid_argument "no file selected")
 
-(* [tab_right st] takes in a state and returns a state with the current file 
- * being replaced with the file that appears next in the list of open files. 
- * If the current file is the last file in the list, 
- * then it will return the current file. *)
- (* let get_next_file st = 
-   *)
+
+(* [find_index lst x acc] Given an element and a list and an accumulator, this 
+ * function returns the index of that element in the first occurrance of the 
+ * element in the list. This function should only be called on lists where we 
+ * know the element we are looking for exists.
+ *)
+ let rec find_index lst x acc = 
+  match lst with 
+  |[] -> failwith "Unused - find_index"
+  |h::t -> if h = x then acc else find_index t x (acc+1)
+
 
 (* [set_current_file st f] sets the current file in [st] to [f]. *)
 let set_current_file st f = {st with current_file = Fname (get_name f)}
@@ -116,6 +123,8 @@ let new_clipboard = Rope.empty
 
 let string_to_clipboard s = Rope.of_string s
 
+let clipboard_to_string st = Rope.to_string st.clipboard
+
 (* New state with no files open yet *)
 let empty_state =
   {
@@ -142,6 +151,41 @@ let get_current_file_name st =
   | Fname s -> s
   | _ -> raise (Invalid_argument "no file selected")
 
+  (* [tab_right st] takes in a state and returns a state with the current file 
+ * being replaced with the file that appears next in the list of open files. 
+ * If the current file is the last file in the list, 
+ * then it will return the current file. *)
+ let tab_right st = 
+  let file_names = List.map (fun x -> fst x) st.files in
+  let curr_fname = st.current_file |> extract in 
+  let right_file_index = (find_index file_names curr_fname 0) + 1 in
+  if (right_file_index >= List.length file_names) 
+  then st 
+  else {st with current_file = Fname (List.nth file_names right_file_index)}
+
+(* [tab_left st] takes in a state and returns a state with the current file 
+ * being replaced with the file that appears previous in the list of open files. 
+ * If the current file is the first file in the list, 
+ * then it will return the current file. *)
+ let tab_left st = 
+  let file_names = List.map (fun x -> fst x) st.files in
+  let curr_fname = st.current_file |> extract in 
+  let curr_file_index = (find_index file_names curr_fname 0) in
+  let left_file_index = curr_file_index - 1 in 
+  print_endline (get_current_file_name st);
+  print_endline (string_of_int curr_file_index ^ " ");
+  List.iter (fun x -> print_endline x) file_names;
+  if (curr_file_index <= 0) 
+  then let () = (print_endline("same")) in st 
+  else
+  let new_st = 
+  {st with current_file = Fname (List.nth file_names left_file_index)} in 
+  let () = (print_endline("else case: " ^ (get_current_file_name new_st))) in 
+  new_st
+  
+
+
+
 (* [get_typing_area st] returns the typing area of [st], either the command
  * prompt or a file *)
 let get_typing_area st = st.typing_loc
@@ -156,6 +200,10 @@ let toggle_typing_area st =
  * to the list of files in state [st].
  * Raises Sys_error if file read failed. *)
 let open_file st s = 
+  let file_names = List.map (fun x -> fst x) st.files in 
+  if (List.exists (fun x -> x = s) file_names) then 
+    {st with current_file = Fname s}
+  else 
   let new_file = File.open_file s in
   { st with
     files = (s, new_file) :: st.files;
@@ -205,8 +253,6 @@ let get_clipboard st = st.clipboard
  * [st] saved to the clipboard *)
 let copy st =
   let curr = get_current_file st in
-  (* Pervasives.print_endline (File.get_name curr);
-  Pervasives.print_endline ("what I want: "^(File.get_text curr 0 5)); *)
   match (get_selected_range curr) with
   | None -> st
   | Some (loc1, loc2) ->
@@ -219,16 +265,17 @@ let copy st =
  * inserted at the cursor location in the open flie of [st] *)
 let paste st =
   let curr = get_current_file st in
-  (* let paste_text = to_string st.clipboard in *)
-  (* let rope_before = sub (File.get_all_text curr |> of_string) 0 (File.get_cursor_location curr) in
-  let rope_after =  sub (File.get_all_text curr |> of_string) (File.get_cursor_location curr)
-      (File.cont_length curr) in
-  let new_rope = st.clipboard in
-     let new_rope' = concat2 rope_before new_rope |> concat2 rope_after in *)
-  Pervasives.print_endline ("contents before: "^get_all_text curr);
-  let new_contents = File.insert_text curr (Rope.to_string st.clipboard) (File.get_cursor_location curr) in
-  Pervasives.print_endline ("contents after: "^File.get_all_text new_contents);
-  {st with current_file = Fname (File.get_name new_contents)}
+  let new_file = File.insert_text curr (Rope.to_string st.clipboard) (File.get_cursor_location curr) in
+  replace_current_file st new_file
+
+let cut st =
+  let curr = get_current_file st in
+  let new_st = copy st in
+  match (get_selected_range curr) with
+  | None -> st
+  | Some (loc1, loc2) -> let new_file = delete_text curr loc1 loc2 in
+    replace_current_file new_st new_file 
+
 
 (* [change_selected_file s st] changes the selected file in [st]
  * to the file with name [s].
@@ -383,7 +430,7 @@ let get_text = file_to_state_fun File.get_text
  * the file opened in [st] *)
 let get_all_text = file_to_state_fun File.get_all_text
 
-(* [start_selecting st] sets the fixed selecting point to the current 
+(* [start_selecting st] sets the fixed selecting point to the current
  * location of the cursor in the currently selected file in [st]. *)
 let start_selecting = fmap_st_f File.start_selecting
 
@@ -401,7 +448,7 @@ let unselect_text = fmap_st_f File.unselect_text
 let get_selected_range = file_to_state_fun File.get_selected_range
 
 (* [get_select_start f] returns [Some (i, l, c)] where [i]
- * is the index of the beginning of the selection region, [l] is the line 
+ * is the index of the beginning of the selection region, [l] is the line
  * number, and [c] is the column. If not selection has been made,
  * returns None. *)
 let get_select_start = file_to_state_fun File.get_select_start

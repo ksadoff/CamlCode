@@ -39,7 +39,7 @@ let draw_tabs st ctx =
 in
 draw_string ctx 1 (1+(n*10)) tab_name ~style:normal;
     else let () =
-           draw_string ctx 0 (1+(n*10)) file_name ~style:normal in ()
+           draw_string ctx 1 (1+(n*10)) file_name ~style:normal in ()
   done
 
 (* [draw_file st ctx] draws the currently selected file in [st]
@@ -61,21 +61,21 @@ let txt_ctx = sub ctx {row1=1; col1=0; row2=(size ctx).rows;
     (* contents of file *)
     get_all_text st |> draw_string txt_ctx 0 0 ~style:normal;
 
+    (* highlighted text *)
+    match get_select_start st, get_selected_range st with
+    | Some (_, l, c), Some (i0, i1) ->
+      get_text st i0 i1
+      |> Str.global_replace (Str.regexp "\n") " \n"
+      |> draw_string txt_ctx l c ~style:highlighted
+    | _ -> ();
+
     (* cursor *)
     if (get_typing_area st) = File then
       let cursor_loc = get_cursor_location st in
       get_text st cursor_loc (cursor_loc+1)
       |> fun s -> (if s = "\n" then " " else s)
       |> draw_string txt_ctx (get_cursor_line_num st) (get_cursor_column st)
-        ~style: highlighted;
-
-    (* highlighted text *)
-    match get_select_start st, get_selected_range st with
-    | Some (_, l, c), Some (i0, i1) -> 
-      get_text st i0 i1
-      |> Str.global_replace (Str.regexp "\n") " \n"
-      |> draw_string txt_ctx l c ~style:highlighted
-    | _ -> ()
+        ~style: highlighted
   end
 
   (* default display if no file open *)

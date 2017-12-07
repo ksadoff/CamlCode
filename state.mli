@@ -27,6 +27,10 @@ val new_clipboard : clipboard
  * for clipboard *)
 val string_to_clipboard : string -> clipboard
 
+(* [clipboard_to_string st] converts our representation type for clipboard
+ * into a string*)
+val clipboard_to_string : state -> string
+
 (* [new_file s] creates a new, empty file at path [s].
  * Raises Sys_error creating file failed. *)
 val new_file : string -> unit
@@ -46,9 +50,6 @@ val set_current_file : state -> File.file -> state
 
 (* [get_current_file_name st] returns the string of the name of the file being *)
 val get_file_names : state -> string list
-
- (* [get_current_file st] returns the file that is currently being manipulated *)
-val get_current_file : state -> File.file
 
 (* [is_on_file st] returns [true] if there user is currently on a file,
  * and [false] if the user does not have a file open or if they
@@ -87,6 +88,18 @@ val save_file : state -> string -> state
  * If no file is currently selected, returns [st]. *)
 val close_file : state -> state
 
+(* [tab_right st] takes in a state and returns a state with the current file 
+ * being replaced with the file that appears next in the list of open files. 
+ * If the current file is the last file in the list, 
+ * then it will return the current file. *)
+ val tab_right : state -> state
+
+ (* [tab_left st] takes in a state and returns a state with the current file 
+ * being replaced with the file that appears previous in the list of open files. 
+ * If the current file is the first file in the list, 
+ * then it will return the current file. *)
+ val tab_left : state -> state
+
 (* [change_selected_file s st] changes the selected file in [st]
  * to the file with name [s].
  * Raises Not_found if [s] is not one of the files open in [st]. *)
@@ -100,8 +113,12 @@ val get_clipboard : state -> clipboard
 val copy : state -> state
 
 (* [paste st] returns a copy of state with the text from the clipboard of [st]
- * inserted at the cursor location in the open flie of [st] *)
+ * inserted at the cursor location in the open file of [st] *)
 val paste : state -> state
+
+(* [cut st] returns a copy of state with the text selected in the open file of st
+ * deleted from the contents and saved to the clipboard*)
+val cut : state -> state
 
 (* [open_terminal st] returns a copy of [st] with both [command_out] and
  * [command_in] set to [Some ""] if they are [None] in [st] which indicates
@@ -201,7 +218,7 @@ val get_text : state -> int -> int -> string
  * the file opened in [st] *)
 val get_all_text : state -> string
 
-(* [start_selecting st] sets the fixed selecting point to the current 
+(* [start_selecting st] sets the fixed selecting point to the current
  * location of the cursor in the currently selected file in [st]. *)
 val start_selecting : state -> state
 
@@ -219,7 +236,7 @@ val unselect_text : state -> state
 val get_selected_range : state -> (int * int) option
 
 (* [get_select_start st] returns [Some (i, l, c)] where [i]
- * is the index of the beginning of the selection region, [l] is the line 
+ * is the index of the beginning of the selection region, [l] is the line
  * number, and [c] is the column. If not selection has been made,
  * returns None. *)
 val get_select_start : state -> (int * int * int) option
