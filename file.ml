@@ -239,6 +239,28 @@ let rec get_location lla loc1 i2 =
     else i1 - c1 + line_len in
   get_location lla {index=new_start; line_num=new_ln; column=0} i2
 
+(* [get_line_index lla ln] returns the index of the start of line [ln],
+ * given some valid location in [loc] and the array of line lengths [lla].
+ * Raises "Invalid_argument" if [ln] is out of range. *)
+let rec get_line_index lla loc ln = 
+  if ln < 0 || ln >= Array.length lla
+  then raise (Invalid_argument "invalid line number in get_line_index")
+  else
+  let line_start = loc.index - loc.column in
+  (* base case *)
+  if ln = loc.line_num then line_start
+  (* line num is before or after cursor *)
+  else
+  let new_ln = if ln < loc.line_num then loc.line_num - 1 
+    else loc.line_num + 1 in
+  let new_len = Array.get lla new_ln in
+  let new_start =
+    let {index=i1; line_num=ln1; column=c1} = loc in
+    let line_len = Array.get lla ln1 in
+    if ln < loc.line_num then i1 - c1 - new_len
+    else i1 - c1 + line_len in
+  get_line_index lla {index=new_start; line_num=new_ln; column=0} ln
+
 (* [scroll_to f n] changes the line number of the scrolled view
  * to [n]. If [n] is less than 0 or greater than the number of lines in
  * contents, then the closest line number is chosen. *)
@@ -364,9 +386,6 @@ let cursor_down f =
     scroll_line_num = (get_scroll_line f) + 1
   }
 
-
-
-
 (* [make_range_valid (i1, i2) cont_len] returns a new pair (i1', i2')
  * such that:
  * if [i1 < 0] or [i2 < 0], then [i1'] or [i2'] is 0
@@ -390,6 +409,13 @@ let make_range_valid (i1, i2) cont_len =
 let get_text f l1 l2 =
   let (l1', l2') = make_range_valid (l1, l2) (cont_length f) in
   Rope.sub f.contents l1' (l2' - l1') |> Rope.to_string
+
+(* [get_line_text f ln] is the text in [f] at line number [ln]. *)
+let get_line_text f ln = 
+  let l1 = get_line_index f.line_lengths f.cursor ln in
+  let llen = Array.get f.line_lengths ln in 
+  let l2 = l1 + llen in 
+  get_text f l1 l2
 
 (* [get_all_text f] returns a string representing all of the text in [f] *)
 let get_all_text f = Rope.to_string f.contents

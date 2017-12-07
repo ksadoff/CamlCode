@@ -99,6 +99,9 @@ val get_scroll_line : file -> int
  * Raises Invalid_argument if [l2] comes before [l1].  *)
 val get_text : file -> int -> int -> string
 
+(* [get_line_text f ln] is the text in [f] at line number [ln]. *)
+val get_line_text : file -> int -> string
+
 (* [get_all_text f] returns a string representing all of the text in [f] *)
 val get_all_text : file -> string
 

@@ -95,6 +95,15 @@ let is_saved_test test_name f_fun f exp =
     f |> f_fun |> is_saved
   ) ~printer: string_of_bool)
 
+(* get text of a line
+ * [test_name]: name of test
+ * [f]: file
+ * [ln]: line number
+ * [exp]: expected text *)
+let line_text_test test_name f ln exp =
+  test_name >:: (fun _ -> assert_equal exp (get_line_text f ln)
+  ~printer: (fun x -> x))
+
 (* Test cases for File module. *)
 let tests = [
   "read_file" >:: (fun _ -> assert_equal "test file\n"
@@ -445,6 +454,15 @@ let tests = [
   is_saved_test "issaved5" (fun f -> move_cursor f 4 |> delete_char)
     somelines false;
 
+  (* get line text *)
+  line_text_test "linetext0" somelines 0 "hello\n";
+  line_text_test "linetext1" somelines 1 "world\n";
+  line_text_test "linetext2" somelines 2 "\n";
+  line_text_test "linetext3" somelines 3 "!!!\n";
+  line_text_test "linetext4" somelines_moved 0 "hello\n";
+  line_text_test "linetext5" somelines_moved 1 "world\n";
+  line_text_test "linetext6" somelines_moved 2 "\n";
+  line_text_test "linetext7" somelines_moved 3 "!!!\n";
 
   (* color_text *)
   (* "color text" >:: (fun _ -> assert_equal ) *)
