@@ -31,6 +31,12 @@ let rec repl ui stref =
     end;
     LTerm_ui.draw ui;
     repl ui stref
+  (* resize size of window *)
+  | LTerm_event.Resize{ rows=rows; cols=cols }, _ -> 
+    stref := set_total_height !stref rows;
+    stref := set_width !stref cols;
+    LTerm_ui.draw ui;
+    repl ui stref
   (* for any other event, consult plugins *)
   | _ ->
     stref := Plugin.respond_to_event event !stref;
@@ -47,12 +53,8 @@ let main () =
 
   Lazy.force LTerm.stdout
   >>= fun term ->
-    let tabheight = 
-      match get_command_in !stref with 
-      | Some _ -> 8
-      | None -> 5 in
-    stref := set_height !stref ((LTerm.size term).rows - tabheight);
-    stref := set_width !stref (LTerm.size term).cols; 
+    stref := set_total_height !stref ((LTerm.size term).rows);
+    stref := set_width !stref (LTerm.size term).cols;
     Clview.draw term stref
   >>= fun ui ->
     Lwt.finalize (fun () -> repl ui stref) (fun () -> LTerm_ui.quit ui)

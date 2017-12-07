@@ -22,11 +22,14 @@ type clipboard
  * * Name of the current file
  * * First (top) visible line of text
  * * Start and end locations for a block of selected text
- * * Current search term *)
+ * * Current search term 
+ * * Height of terminal
+ * * Height of desired window
+ * * Width of terminal *)
 type state
 
-(* [set_height st h] returns a copy of [st] with the height field set to h *)
-val set_height : state -> int -> state
+(* [set_height st h] returns a copy of [st] with the total height field set to h *)
+val set_total_height : state -> int -> state
 
 (* [set_width st w] returns a copy of [st] with the width field set to w *)
 val set_width : state -> int -> state

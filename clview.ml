@@ -58,13 +58,6 @@ let draw_tabs st ctx =
   done
 
 
-let scroll_file_down st ctx =
-  let top_line = get_scroll_line st in
-  let cursor_line = get_cursor_line_num st in
-  if cursor_line > (size ctx).rows then
-    scroll_to st (top_line+1)
-  else st
-
 (* [draw_file st ctx] draws the currently selected file in [st]
  * on context [ctx]. *)
 let draw_file st ctx =
@@ -102,9 +95,9 @@ let draw_file st ctx =
         let col = get_cursor_column st in
         let wid = (size ctx).cols in
         if col >= wid then wid-1 else col in
-      let view_row = 
-        let row = get_cursor_line_num st in 
-        let scr = get_scroll_line st in 
+      let view_row =
+        let row = get_cursor_line_num st in
+        let scr = get_scroll_line st in
         row - scr in
       get_text st cursor_loc (cursor_loc+1)
         |> fun s -> (if s = "\n" then " " else s)
