@@ -51,9 +51,6 @@ val set_current_file : state -> File.file -> state
 (* [get_current_file_name st] returns the string of the name of the file being *)
 val get_file_names : state -> string list
 
- (* [get_current_file st] returns the file that is currently being manipulated *)
-val get_current_file : state -> File.file
-
 (* [is_on_file st] returns [true] if there user is currently on a file,
  * and [false] if the user does not have a file open or if they
  * are typing on the command prompt. *)
@@ -90,6 +87,18 @@ val save_file : state -> string -> state
  * becomes the file at the beginning of the list of files in [st].
  * If no file is currently selected, returns [st]. *)
 val close_file : state -> state
+
+(* [tab_right st] takes in a state and returns a state with the current file 
+ * being replaced with the file that appears next in the list of open files. 
+ * If the current file is the last file in the list, 
+ * then it will return the current file. *)
+ val tab_right : state -> state
+
+ (* [tab_left st] takes in a state and returns a state with the current file 
+ * being replaced with the file that appears previous in the list of open files. 
+ * If the current file is the first file in the list, 
+ * then it will return the current file. *)
+ val tab_left : state -> state
 
 (* [change_selected_file s st] changes the selected file in [st]
  * to the file with name [s].

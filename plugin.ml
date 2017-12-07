@@ -110,10 +110,6 @@ let respond_to_event (event : LTerm_event.t) (st : state) : state =
       match keycode with
         | Char z when (UChar.char_of z) = 'z' -> undo st
         | Char y when (UChar.char_of y) = 'y' -> redo st
-        (* create new file *)
-        | Char n when (UChar.char_of n) = 'n' ->
-          State.new_file "untitled";
-          State.open_file st "untitled"
         (* save file *)
         | Char s when (UChar.char_of s) = 's' ->
           State.save_file st (State.get_current_file st |> File.get_name)
@@ -128,10 +124,13 @@ let respond_to_event (event : LTerm_event.t) (st : state) : state =
         | Char c when (UChar.char_of c) = 'c' -> copy st
         | Char v when (UChar.char_of v) = 'v' -> paste st
         | Char x when (UChar.char_of x) = 'x' -> cut st
+        | Char w when (UChar.char_of w) = 'w' -> 
+          State.close_file st 
+        | Left -> State.tab_left st
+        | Right -> State.tab_right st
         | _ -> st
         end
     else st
-
   | LTerm_event.Key { code = keycode; shift = shift; _ } ->
     if (is_on_file st) then begin
       match get_typing_area st with
