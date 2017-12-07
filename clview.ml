@@ -12,7 +12,6 @@ let normal = {bold = None; underline = None; blink = None; reverse = None;
 let highlighted = {bold = None; underline = None; blink = None; reverse = None;
                    foreground = Some black; background = Some white}
 
-
 let get_tab_name str=
     let file_name = Str.regexp "[A-Za-z0-9]+[.][a-z]+\\b" in
     try (let find = Str.search_forward file_name str 0 in
@@ -32,9 +31,6 @@ let get_tab_name str=
     if String.length full_name > 14 then
       (String.sub full_name 0 10)^"..." else
       full_name
-
-
-
 
 (* [draw_tabs st ctx] draws the tabs in state [st] at the top of context
  * [ctx]. *)
@@ -56,7 +52,6 @@ let draw_tabs st ctx =
            if file_name = get_current_file_name st
            then draw_string ctx 1 (1+(n*15)) file_name ~style:highlighted; in ()
   done
-
 
 (* [draw_file st ctx] draws the currently selected file in [st]
  * on context [ctx]. *)
