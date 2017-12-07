@@ -184,18 +184,6 @@ let respond_to_event (event : LTerm_event.t) (st : state) : state =
           | Right -> cmd_cursor_right st
           | Left -> cmd_cursor_left st
           | Char c -> cmd_insert st (UChar.char_of c)
-          | Enter ->
-            begin
-              match get_command_in st with
-              | None -> failwith "unused"
-              (* User presses enter to execute a command *)
-              | Some cmd_str -> parse_command cmd_str 
-                |> fun cmd_opt -> begin
-                  match cmd_opt with 
-                  | Some cmd_in -> execute_command cmd_in st
-                  | None -> st
-                end 
-            end
           | Backspace -> cmd_delete st
           | F2 ->
             begin

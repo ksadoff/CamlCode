@@ -12,9 +12,26 @@ open CamomileLibrary
  * new state to another call of [repl] recursively *)
 let rec repl ui stref =
   LTerm_ui.wait ui >>= fun event ->
-  match event with
-  | LTerm_event.Key{ code = Escape; _ } ->
+  match event, State.get_typing_area !stref with
+  (* close program *)
+  | LTerm_event.Key{ code = Escape; _ }, _ ->
     return ()
+  (* enter command *)
+  | LTerm_event.Key{ code = Enter; _ }, Command ->
+    begin
+      stref := match get_command_in !stref with
+      | None -> failwith "unused"
+      (* User presses enter to execute a command *)
+      | Some cmd_str -> Plugin.parse_command cmd_str 
+        |> fun cmd_opt -> begin
+          match cmd_opt with 
+          | Some cmd_in -> Plugin.execute_command cmd_in !stref
+          | None -> !stref
+        end;
+    end;
+    LTerm_ui.draw ui;
+    repl ui stref
+  (* for any other event, consult plugins *)
   | _ -> 
     stref := Plugin.respond_to_event event !stref;
     LTerm_ui.draw ui;
