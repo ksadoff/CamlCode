@@ -29,8 +29,8 @@ let parse_word s =
 let parse_command (s : string) : command option =
   let first_word = parse_word s in
   (* single word commands *)
-  if first_word = s then 
-    match String.lowercase_ascii first_word with 
+  if first_word = s then
+    match String.lowercase_ascii first_word with
     | "pwd" -> Some Print_Dir
     | _ -> None
   (* commands that take atleast one argument *)
@@ -70,9 +70,9 @@ let replace_command st terms =
     then set_command_out st' (s_term^" not found")
     else set_command_out st' ("\""^s_term^"\" replaced by \""^r_term^"\"")
 
-(* [replace_command st terms] replaces the next instance of the first word in
+(* [replace_all_command st terms] replaces the all instances of the first word in
  * [terms] with the second word in [terms]. If there is only one word it changes
- * the output to indicate to the user that replace requires 2 terms *)
+ * the output to indicate to the user that replace_all requires 2 terms *)
 let replace_all_command st terms =
   let s_term = parse_word terms in
   if s_term = terms
@@ -92,7 +92,7 @@ let open_command st file_path =
   let path = parse_word file_path in
   State.open_file st path
   with
-  |Sys_error s -> set_command_out (set_command_in st "") s
+  |Sys_error s -> set_command_out st s
 
 (* state after calling new command *)
 let new_file_command st file_path =
@@ -102,7 +102,7 @@ let new_file_command st file_path =
 
 (* state after calling cd command *)
 let cd_command st p =
-  if change_directory p 
+  if change_directory p
   then set_command_out st (get_directory ())
   else set_command_out st ("Failed to move to " ^ p)
 
@@ -166,7 +166,7 @@ let press_key_file st k shift = LTerm_key.( try
   | _ -> st
   with No_file_exn _ -> st)
 
-(* [press_key_terminal st k shift] computes new state when user presses [k] 
+(* [press_key_terminal st k shift] computes new state when user presses [k]
  * while in the terminal. [shift] is whether the shift key is pressed. *)
 let press_key_terminal st k = LTerm_key.(
   match k with
@@ -199,11 +199,10 @@ let ctrl_command st kc = LTerm_key.(
   | Char s when (UChar.char_of s) = 's' ->
     State.save_file st (State.get_current_file st |> File.get_name)
   (* close file *)
-  (* known bug: when you close all the tabs and go to the welcome page,
-  * you currently cannot type anything and none of the key bindings work.
-  *)
   | Char w when (UChar.char_of w) = 'w' ->
-    State.close_file st
+    if is_on_file (State.close_file st) && get_typing_area st = File
+    then State.close_file st
+    else st |> State.close_file |> toggle_typing_area |> open_terminal
   (* | Tab ->
     *)
   | Char c when (UChar.char_of c) = 'c' -> copy st
@@ -221,7 +220,7 @@ let respond_to_event (event : LTerm_event.t) (st : state) : state =
   match event with
   | LTerm_event.Key{ control = true; code = keycode; _} ->
     if (is_on_file st) then ctrl_command st keycode else st
-  | LTerm_event.Key { code = keycode; shift = shift; _ } -> 
+  | LTerm_event.Key { code = keycode; shift = shift; _ } ->
     begin
       match get_typing_area st with
       | File -> press_key_file st keycode shift
