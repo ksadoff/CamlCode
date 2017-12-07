@@ -272,10 +272,9 @@ let scroll_to f n =
             else n
   }
 
-
-  (* [get_scroll_line f] returns the highest line that view is currently
-   * scrolled to *)
-  let get_scroll_line f = f.scroll_line_num
+(* [get_scroll_line f] returns the highest line that view is currently
+ * scrolled to *)
+let get_scroll_line f = f.scroll_line_num
 
 (* [move_cursor f l] moves the cursor location in [f] to [l]. The cursor
  * index, line number, and column number are all updated. If [l] is an
@@ -416,6 +415,32 @@ let get_line_text f ln =
   let llen = Array.get f.line_lengths ln in 
   let l2 = l1 + llen in 
   get_text f l1 l2
+
+(* Same as [get_line_text], but scrolls so that the line is at most
+ * length [wid]. If the cursor is on line [ln], the line is scrolled
+ * horizontally so that the cursor is visible. *)
+let get_scrolled_line_text f ln wid = 
+  if f.cursor.line_num <> ln || f.cursor.column < wid
+  (* unscrolled line *)
+  then get_line_text f ln 
+    |> fun s -> if String.length s > wid then String.sub s 0 wid else s
+  (* scrolled line *)
+  else get_line_text f ln 
+    |> fun s -> String.sub s (f.cursor.column - wid) wid
+
+(* [get_lines f l1 l2 wid] shows the horizontally-scrolled lines from
+ * [l1] to [l2]. [l1] is included, [l2] is not. [wid] is the max length of
+ * each line. *)
+let rec get_lines f l1 l2 wid = 
+  if l1 >= l2 || l1 >= Array.length f.line_lengths then ""
+  else get_scrolled_line_text f l1 wid ^ get_lines f (l1+1) l2 wid
+
+(* [get_scrolled_lines st w h] displays the currently scrolled to lines, 
+ * so that the cursor is viewable horizontally and the first line displayed
+ * is the current scroll line. [w] is the max width of each line,
+ * and [h] is the max number of lines. *)
+let get_scrolled_lines f w h = 
+  get_lines f (f.scroll_line_num) (f.scroll_line_num + h) w
 
 (* [get_all_text f] returns a string representing all of the text in [f] *)
 let get_all_text f = Rope.to_string f.contents

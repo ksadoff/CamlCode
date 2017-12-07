@@ -14,18 +14,25 @@ let highlighted = {bold = None; underline = None; blink = None; reverse = None;
 
 
 let get_tab_name str=
-    let file_name1 = Str.regexp "[A-Za-z0-9]+[.][a-z]+\\b" in
-    try (let find = Str.search_forward file_name1 str 0 in
+    let file_name = Str.regexp "[A-Za-z0-9]+[.][a-z]+\\b" in
+    try (let find = Str.search_forward file_name str 0 in
          let full_name = Str.matched_string str in
-         let ext_reg = Str.regexp "[.][a-z]+\\b" in
+         (* let ext_reg = Str.regexp "[.][a-z]+\\b" in
          let find_ext = Str.search_forward ext_reg str 0 in
          let ext = Str.matched_string str in
          let without_ext = String.sub full_name 0
              ((String.length full_name)-(String.length ext)) in
     if String.length without_ext > 6 then
       (String.sub without_ext 0 5)^"..." else
-      without_ext) with
-    | _ -> Filename.basename str
+            without_ext) with *)
+            if String.length full_name > 13 then
+              (String.sub full_name 0 10)^"..." else
+              full_name ) with
+    | _ -> let full_name = Filename.basename str in
+    if String.length full_name > 14 then
+      (String.sub full_name 0 10)^"..." else
+      full_name
+
 
 
 
@@ -36,18 +43,18 @@ let draw_tabs st ctx =
   let tab_height = (size ctx).rows in
   for n = 0 to (num_tabs-1) do
     draw_frame ctx
-      {row1 = 0; col1 = 0 + (n*10); row2 = tab_height; col2 = 10 + (n*10)}
+      {row1 = 0; col1 = 0 + (n*15); row2 = tab_height; col2 = 15 + (n*15)}
       Light;
     let file_name = (List.nth (get_file_names st) n) in
-    if (String.length file_name)>10
+    if (String.length file_name)>14
     then let tab_name = get_tab_name (file_name) in
-      draw_string ctx 1 (1+(n*10)) tab_name ~style:normal;
+      draw_string ctx 1 (1+(n*15)) tab_name ~style:normal;
       if file_name = get_current_file_name st
-      then draw_string ctx 1 (1+(n*10)) tab_name ~style:highlighted;
+      then draw_string ctx 1 (1+(n*15)) tab_name ~style:highlighted;
     else let () =
-           draw_string ctx 1 (1+(n*10)) file_name ~style:normal;
+           draw_string ctx 1 (1+(n*15)) file_name ~style:normal;
            if file_name = get_current_file_name st
-           then draw_string ctx 1 (1+(n*10)) file_name ~style:highlighted; in ()
+           then draw_string ctx 1 (1+(n*15)) file_name ~style:highlighted; in ()
   done
 
 
@@ -77,7 +84,7 @@ let draw_file st ctx =
 
     (* contents of file *)
     (* get_all_text st |> draw_string txt_ctx 0 0 ~style:normal; *)
-    get_visible_text st (size ctx).rows |>
+    get_scrolled_lines st ((size ctx).cols-1) (size ctx).rows |>
     draw_string txt_ctx 0 0 ~style:normal;
 
     (* highlighted text *)
@@ -88,20 +95,25 @@ let draw_file st ctx =
       |> draw_string txt_ctx l c ~style:highlighted
     | _ -> ();
 
-      (* cursor *)
-      if (get_typing_area st) = File then
-        let cursor_loc = get_cursor_location st in
-        get_text st cursor_loc (cursor_loc+1)
+    (* cursor *)
+    if (get_typing_area st) = File then
+      let cursor_loc = get_cursor_location st in
+      let view_col = 
+        let col = get_cursor_column st in
+        let wid = (size ctx).cols in 
+        if col >= wid then wid-1 else col in
+      get_text st cursor_loc (cursor_loc+1)
         |> fun s -> (if s = "\n" then " " else s)
-                    |> draw_string txt_ctx (get_cursor_line_num st) (get_cursor_column st)
-                      ~style: highlighted
+        |> draw_string txt_ctx (get_cursor_line_num st) view_col
+        ~style: highlighted
   end
 
   (* default display if no file open *)
   else begin
     draw_string_aligned ctx 10 H_align_center
-      ~style:normal "Welcome to CamlCode!\nPress F2 to open the command prompt
-and open a new or existing file."
+      ~style:normal "Welcome to CamlCode!\nPress F2 to open or close the command terminal
+and open a new or existing file by typing
+\"open <filename>\" or \"new <filename>\"."
   end
 
 (* returns the value represented by an option if it exists, assumes not [None] *)
