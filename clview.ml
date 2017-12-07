@@ -41,7 +41,7 @@ let draw_tabs st ctx =
       if file_name = get_current_file_name st
       then draw_string ctx 1 (1+(n*10)) tab_name ~style:highlighted;
     else let () =
-           draw_string ctx 1 (1+(n*10)) file_name ~style:highlighted;
+           draw_string ctx 1 (1+(n*10)) file_name ~style:normal;
            if file_name = get_current_file_name st
            then draw_string ctx 1 (1+(n*10)) file_name ~style:highlighted; in ()
   done
