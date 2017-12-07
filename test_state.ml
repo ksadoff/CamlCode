@@ -271,9 +271,9 @@ let tests = [
     ((set_replace_term (find slstate "l") "L") |> replace_all |> undo |> redo |> undo |> redo |> undo |> redo |> get_cursor_location));
 
   (* command terminal tests *)
-  "command0" >:: (fun _ -> assert_equal None
+  "command0" >:: (fun _ -> assert_equal (Some "")
     (slstate |> get_command_out));
-  "command1" >:: (fun _ -> assert_equal None
+  "command1" >:: (fun _ -> assert_equal (Some "")
     (slstate |> get_command_in));
   "command2" >:: (fun _ -> assert_equal (Some "")
     (slstate |> open_terminal |> get_command_out));
@@ -324,8 +324,8 @@ let tests = [
   (* "tab_left" >:: (fun _ -> assert_equal slstate''''' (tab_left slstate'''')); *)
 
   (* tests for reading and toggling the typing area *)
-  "t_area0" >:: (fun _ -> assert_equal File (get_typing_area slstate));
-  "t_area1" >:: (fun _ -> assert_equal Command (slstate |> toggle_typing_area |> get_typing_area));
-  "t_area2" >:: (fun _ -> assert_equal File
+  "t_area0" >:: (fun _ -> assert_equal Command (get_typing_area slstate));
+  "t_area1" >:: (fun _ -> assert_equal File (slstate |> toggle_typing_area |> get_typing_area));
+  "t_area2" >:: (fun _ -> assert_equal Command
                     (slstate |> toggle_typing_area |> toggle_typing_area |> get_typing_area));
 ]

@@ -161,7 +161,7 @@ let press_key_file st k shift = LTerm_key.( try
       | Some _ -> close_terminal st
     end
   | F3 -> if get_command_in st = None
-          then st
+          then st |> open_terminal
           else toggle_typing_area st
   | _ -> st
   with No_file_exn _ -> st)
@@ -212,6 +212,9 @@ let ctrl_command st kc = LTerm_key.(
     State.close_file st
   | Left -> State.tab_left st
   | Right -> State.tab_right st
+  | Up -> if get_command_in st = None
+          then st |> open_terminal
+          else toggle_typing_area st
   | _ -> st)
 
 (* [respond_to_event event st] changes the state based on some event,
