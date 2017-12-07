@@ -1,3 +1,12 @@
+Before we begin, we need to make sure that Oasis and Rope, Lterm, and Lwt are 
+installed. These can all be installed with opam with the following commands: 
+- opam install oasis
+- opam install rope
+- opam install lambda-term
+- opam install lwt
+
+Compilation and Running CamlCode
+--------------------------------
 In order to compile and run this project, make sure that you are in the 
 texteditor directory. Then, you can run our test cases by typing [make test].
 In order to compile the code, you can type [make compile]. After you edit any 
@@ -32,5 +41,7 @@ file with <string2>.
 - "open <file_path>": opens the file at the given file path in the text editor.
 - "new <file_path>": creates a new file at the relative file path given and 
 opens it in CamlCode. 
+- "cd <file_path>": allows you to move within the file system, similar to UNIX
+- "pwd": prints out the current working directory
 
 

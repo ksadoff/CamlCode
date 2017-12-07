@@ -6,34 +6,29 @@ open LTerm_geom
 open LTerm_draw
 open Str
 
+    (* normal text coloring *)
 let normal = {bold = None; underline = None; blink = None; reverse = None;
            foreground = Some white; background = None}
 
+    (* highlighted text coloring *)
 let highlighted = {bold = None; underline = None; blink = None; reverse = None;
                    foreground = Some black; background = Some white}
 
-
+(* [get_tab_name str] uses regular expressions to find the file name from
+ * the full path name and returns a substring of the name that is short enough
+ * to fit in a tab in the view *)
 let get_tab_name str=
     let file_name = Str.regexp "[A-Za-z0-9]+[.][a-z]+\\b" in
     try (let find = Str.search_forward file_name str 0 in
          let full_name = Str.matched_string str in
-         (* let ext_reg = Str.regexp "[.][a-z]+\\b" in
-         let find_ext = Str.search_forward ext_reg str 0 in
-         let ext = Str.matched_string str in
-         let without_ext = String.sub full_name 0
-             ((String.length full_name)-(String.length ext)) in
-    if String.length without_ext > 6 then
-      (String.sub without_ext 0 5)^"..." else
-            without_ext) with *)
             if String.length full_name > 13 then
               (String.sub full_name 0 10)^"..." else
               full_name ) with
+      (* if name has no file extension *)
     | _ -> let full_name = Filename.basename str in
     if String.length full_name > 14 then
       (String.sub full_name 0 10)^"..." else
       full_name
-
-
 
 
 (* [draw_tabs st ctx] draws the tabs in state [st] at the top of context
@@ -56,7 +51,6 @@ let draw_tabs st ctx =
            if file_name = get_current_file_name st
            then draw_string ctx 1 (1+(n*15)) file_name ~style:highlighted; in ()
   done
-
 
 (* [draw_file st ctx] draws the currently selected file in [st]
  * on context [ctx]. *)
@@ -85,7 +79,8 @@ let draw_file st ctx =
     | Some (_, l, c), Some (i0, i1) ->
       get_text st i0 i1
       |> Str.global_replace (Str.regexp "\n") " \n"
-      |> draw_string txt_ctx l c ~style:highlighted
+      |> draw_string txt_ctx (l - get_scroll_line st) c 
+        ~style:highlighted
     | _ -> ();
 
     (* cursor *)

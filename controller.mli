@@ -7,8 +7,9 @@ open State
 open Clview
 open Lwt
 
-(* Function to be called when starting the text editor with no files open. *)
+(* Function that begins running the text editor with no files open. *)
 val main : unit -> unit Lwt.t
+
 
 (* [repl ui stref] reads input from the user, evaluates it to a new state,
  * changes the UI accordingly, and repeats. Returns when user quits. *)

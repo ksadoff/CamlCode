@@ -325,10 +325,6 @@ let open_terminal st =
                       command_in = Some "";
                       command_cursor = 0;
                       height = st.total_height - 8}
-                        (* let tabheight =
-                  match get_command_in st with
-                  | Some _ -> 8
-                  | None -> 5 in st.height - 8} *)
   | Some _ -> st
 
 let close_terminal st = { st with typing_loc = File;

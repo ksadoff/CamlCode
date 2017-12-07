@@ -438,13 +438,17 @@ let get_line_text f ln =
  * length [wid]. If the cursor is on line [ln], the line is scrolled
  * horizontally so that the cursor is visible. *)
 let get_scrolled_line_text f ln wid =
-  if f.cursor.line_num <> ln || f.cursor.column < wid
-  (* unscrolled line *)
-  then get_line_text f ln
-    |> fun s -> if String.length s > wid then String.sub s 0 wid else s
-  (* scrolled line *)
-  else get_line_text f ln
-    |> fun s -> String.sub s (f.cursor.column - wid) wid
+  begin
+    if f.cursor.line_num <> ln || f.cursor.column < wid
+    (* unscrolled line *)
+    then get_line_text f ln
+      |> fun s -> if String.length s > wid then String.sub s 0 wid else s
+    (* scrolled line *)
+    else get_line_text f ln
+      |> fun s -> String.sub s (f.cursor.column - wid + 1) wid
+  end |> fun s -> 
+    if String.get s (String.length s - 1) = '\n' then s
+    else s ^ "\n"
 
 (* [get_lines f l1 l2 wid] shows the horizontally-scrolled lines from
  * [l1] to [l2]. [l1] is included, [l2] is not. [wid] is the max length of
@@ -458,7 +462,7 @@ let rec get_lines f l1 l2 wid =
  * is the current scroll line. [w] is the max width of each line,
  * and [h] is the max number of lines. *)
 let get_scrolled_lines f w h =
-  get_lines f (f.scroll_line_num) (f.scroll_line_num + h+  1) w
+  get_lines f (f.scroll_line_num) (f.scroll_line_num + h + 1) w
 
 (* [get_all_text f] returns a string representing all of the text in [f] *)
 let get_all_text f = Rope.to_string f.contents
