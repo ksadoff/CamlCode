@@ -5,7 +5,7 @@ open State
 open Color
 open CamomileLibrary
 
-(* Type of commands that can be input by the user. *)
+
 type command =
   | Find of string
   | Replace of string
@@ -24,8 +24,7 @@ let parse_word s =
   with
   | Not_found -> s
 
-(* [parse_command s] converts a raw input command [s] from the user
- * to a command. Returns [None] if [s] is not a command for this plugin. *)
+
 let parse_command (s : string) : command option =
   let first_word = parse_word s in
   (* single word commands *)
@@ -109,7 +108,6 @@ let cd_command st p =
 (* state after calling pwd command *)
 let pwd_command st = set_command_out st (get_directory ())
 
-(* [execute_command cmd st] changes the state based on command [cmd]. *)
 let execute_command (cmd : command) (st : state) : state =
   match cmd with
   | Find s -> find_command st s
@@ -139,7 +137,6 @@ let last_sep s c =
   match String.rindex_opt s c with
   | None -> s
   | Some ind -> String.sub s (ind+1) (String.length s - ind - 1)
-
 
 let starts_with s b =
   String.(length s >= length b) && String.(sub s 0 (length b)) = b
@@ -195,7 +192,7 @@ let press_key_file st k shift = LTerm_key.( try
   | Char c -> delete_or_fun st (fun x -> x)
     |> fun st -> insert_char st (UChar.char_of c)
   | Enter -> delete_or_fun st (fun x -> x)
-    |> fun st -> insert_char st '\n'
+             |> fun st -> insert_char st '\n'
   | Tab -> (* 1 tab = 4 spaces - can change w/ plugin *)
     delete_or_fun st (fun x -> x)
     |> fun st -> List.fold_left (fun st c -> insert_char st c)
@@ -267,8 +264,7 @@ let ctrl_command st kc = LTerm_key.(
           else toggle_typing_area st
   | _ -> st)
 
-(* [respond_to_event event st] changes the state based on some event,
- * such as a keyboard shorctut. *)
+
 let respond_to_event (event : LTerm_event.t) (st : state) : state =
   match event with
   | LTerm_event.Key{ control = true; code = keycode; _} ->
@@ -281,5 +277,4 @@ let respond_to_event (event : LTerm_event.t) (st : state) : state =
     end
   | _ -> st
 
-(* [text_coloring f] creates a new coloring for file [f]. *)
 let text_coloring (f : file) : color_mapping = failwith "Unimplemented"
