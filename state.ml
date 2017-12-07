@@ -542,10 +542,6 @@ let get_text = file_to_state_fun File.get_text
  * the file opened in [st] *)
 let get_all_text = file_to_state_fun File.get_all_text
 
-let get_visible_text st numlines =
-  let curr = get_current_file st in
-  File.get_visible_text curr numlines
-
 (* SELECTING TEXT *)
 
 (* [start_selecting st] sets the fixed selecting point to the current
@@ -675,12 +671,3 @@ let empty_state =
     height = 0;
     width = 0
   }
-let first_index_of_line st linenum =
-  File.first_index_of_line (get_current_file st) linenum
-
-let last_index_of_line st linenum =
-  File.last_index_of_line (get_current_file st) linenum
-
-let get_visible_text st numlines =
-  let curr = get_current_file st in
-  File.get_visible_text curr numlines

@@ -22,7 +22,7 @@ type clipboard
  * * Name of the current file
  * * First (top) visible line of text
  * * Start and end locations for a block of selected text
- * * Current search term 
+ * * Current search term
  * * Height of terminal
  * * Height of desired window
  * * Width of terminal *)
@@ -364,17 +364,3 @@ val num_open_files : state -> int
 
 (* is_on_file st] returns true if the current file has a name or false if not *)
 val is_on_file : state -> bool
-
-(* [get_visible_text st numlines] returns the text from the current file's
- * scroll_line_num to the line num_lines below it *)
-val get_visible_text : state -> int -> string
-
-(* [first_index_of_line st linenum] returns the index in the current file contents that
- * corresponds to the first index of the line at linenum in the list of
- * line lengths *)
-val first_index_of_line : state -> int -> int
-
-(* [last_index_of_line f linenum] returns the index in the file contents that
- * corresponds to the last index of the line at linenum in the list of
- * line lengths*)
-val last_index_of_line : state -> int -> int
