@@ -46,7 +46,7 @@ let find_command st s_term =
   let st' = s_term |> find st |> select_search_term in
   if get_selected_range st' = None
   then set_command_out st' (s_term^" not found")
-  else st'
+  else set_command_out st' (s_term^" found")
 
 (* [replace_command st terms] replaces the next instance of the first word in
  * [terms] with the second word in [terms]. If there is only one word it changes
@@ -62,7 +62,7 @@ let replace_command st terms =
     let st' = set_replace_term (find st s_term) r_term |> replace_next in
     if get_all_text st' = get_all_text st
     then set_command_out st' (s_term^" not found")
-    else st'
+    else set_command_out st' ("\""^s_term^"\" replaced by \""^r_term^"\"")
 
 (* [replace_command st terms] replaces the next instance of the first word in
  * [terms] with the second word in [terms]. If there is only one word it changes
@@ -70,7 +70,7 @@ let replace_command st terms =
 let replace_all_command st terms =
   let s_term = parse_word terms in
   if s_term = terms
-  then set_command_out (set_command_in st "") "replace requires 2 terms"
+  then set_command_out (set_command_in st "") "replace_all requires 2 terms"
   else
     let remainder = String.(sub terms (length s_term+1)
                               (length terms - length s_term-1)) in
@@ -78,7 +78,7 @@ let replace_all_command st terms =
     let st' = set_replace_term (find st s_term) r_term |> replace_all in
     if get_all_text st = get_all_text st'
     then set_command_out st' (s_term^" not found")
-    else st'
+    else set_command_out st' ("all \""^s_term^"\" replaced by \""^r_term^"\"")
 
 let open_command st file_path =
   try
@@ -95,11 +95,11 @@ let new_file_command st file_path =
 (* [execute_command cmd st] changes the state based on command [cmd]. *)
 let execute_command (cmd : command) (st : state) : state =
   match cmd with
-  | Find s -> set_command_in (find_command st s) ""
-  | Replace s -> set_command_in (replace_command st s) ""
-  | Replace_All s -> set_command_in (replace_all_command st s) ""
-  | Open_File s -> set_command_in (open_command st s) ""
-  | New_File s -> set_command_in (new_file_command st s) ""
+  | Find s -> find_command st s
+  | Replace s -> replace_command st s
+  | Replace_All s ->replace_all_command st s
+  | Open_File s ->open_command st s
+  | New_File s ->new_file_command st s
 
 (* [respond_to_event event st] changes the state based on some event,
  * such as a keyboard shorctut. *)
@@ -110,10 +110,6 @@ let respond_to_event (event : LTerm_event.t) (st : state) : state =
       match keycode with
         | Char z when (UChar.char_of z) = 'z' -> undo st
         | Char y when (UChar.char_of y) = 'y' -> redo st
-        (* create new file *)
-        | Char n when (UChar.char_of n) = 'n' ->
-          State.new_file "untitled";
-          State.open_file st "untitled"
         (* save file *)
         | Char s when (UChar.char_of s) = 's' ->
           State.save_file st (State.get_current_file st |> File.get_name)
@@ -128,10 +124,13 @@ let respond_to_event (event : LTerm_event.t) (st : state) : state =
         | Char c when (UChar.char_of c) = 'c' -> copy st
         | Char v when (UChar.char_of v) = 'v' -> paste st
         | Char x when (UChar.char_of x) = 'x' -> cut st
+        | Char w when (UChar.char_of w) = 'w' ->
+          State.close_file st
+        | Left -> State.tab_left st
+        | Right -> State.tab_right st
         | _ -> st
         end
     else st
-
   | LTerm_event.Key { code = keycode; shift = shift; _ } ->
     if (is_on_file st) then begin
       match get_typing_area st with
@@ -184,21 +183,11 @@ let respond_to_event (event : LTerm_event.t) (st : state) : state =
       | Command ->
         begin
           match keycode with
+          | Up -> cycle_up st
+          | Down -> cycle_down st
           | Right -> cmd_cursor_right st
           | Left -> cmd_cursor_left st
           | Char c -> cmd_insert st (UChar.char_of c)
-          | Enter ->
-            begin
-              match get_command_in st with
-              | None -> failwith "unused"
-              (* User presses enter to execute a command *)
-              | Some cmd_str -> parse_command cmd_str
-                |> fun cmd_opt -> begin
-                  match cmd_opt with
-                  | Some cmd_in -> execute_command cmd_in st
-                  | None -> st
-                end
-            end
           | Backspace -> cmd_delete st
           | F2 ->
             begin

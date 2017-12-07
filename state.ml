@@ -47,6 +47,7 @@ type state = {
   down_cmds : string list;
 }
 
+
 let max_cmds = 50
 
 (* [rem_tail lst] returns a copy of [lst] with the last element removed *)
@@ -88,7 +89,7 @@ let cycle_up st =
 (* [cycle_down st] returns a copy of [st] with the command input set to the next
  * command in the stack of things popped from the previously used commands*)
 let cycle_down st =
-  match st.up_cmds with
+  match st.down_cmds with
   | [] -> st
   | h::t -> { st with
               command_in = Some h;
@@ -105,11 +106,13 @@ let update_commands st =
             down_cmds = [];
   }
 
-(* [extract file_opt] takes in an 'a option and returns the 'a. *)
+(* [extract file_opt] takes in an 'a option and returns the 'a. Only to be
+ * used on files we know exist.
+ *)
 let extract file_opt =
   match file_opt with
-  | Some f -> f
-  | None -> failwith "Unused"
+  | Fname f -> f
+  | Nofile -> failwith "Unused"
 
 (* [get_current_file st] returns the file that is currently being manipulated.
  * Raises [Invalid_argument] if no file currently selected and [Not_found]
@@ -119,12 +122,17 @@ let get_current_file st =
   | Fname s -> List.assoc s st.files
   | _ -> raise (Invalid_argument "no file selected")
 
-(* [tab_right st] takes in a state and returns a state with the current file
- * being replaced with the file that appears next in the list of open files.
- * If the current file is the last file in the list,
- * then it will return the current file. *)
- (* let get_next_file st =
-   *)
+
+(* [find_index lst x acc] Given an element and a list and an accumulator, this
+ * function returns the index of that element in the first occurrance of the
+ * element in the list. This function should only be called on lists where we
+ * know the element we are looking for exists.
+ *)
+ let rec find_index lst x acc =
+  match lst with
+  |[] -> failwith "Unused - find_index"
+  |h::t -> if h = x then acc else find_index t x (acc+1)
+
 
 (* [set_current_file st f] sets the current file in [st] to [f]. *)
 let set_current_file st f = {st with current_file = Fname (get_name f)}
@@ -206,6 +214,41 @@ let get_current_file_name st =
   | Fname s -> s
   | _ -> raise (Invalid_argument "no file selected")
 
+  (* [tab_right st] takes in a state and returns a state with the current file
+ * being replaced with the file that appears next in the list of open files.
+ * If the current file is the last file in the list,
+ * then it will return the current file. *)
+ let tab_right st =
+  let file_names = List.map (fun x -> fst x) st.files in
+  let curr_fname = st.current_file |> extract in
+  let right_file_index = (find_index file_names curr_fname 0) + 1 in
+  if (right_file_index >= List.length file_names)
+  then st
+  else {st with current_file = Fname (List.nth file_names right_file_index)}
+
+(* [tab_left st] takes in a state and returns a state with the current file
+ * being replaced with the file that appears previous in the list of open files.
+ * If the current file is the first file in the list,
+ * then it will return the current file. *)
+ let tab_left st =
+  let file_names = List.map (fun x -> fst x) st.files in
+  let curr_fname = st.current_file |> extract in
+  let curr_file_index = (find_index file_names curr_fname 0) in
+  let left_file_index = curr_file_index - 1 in
+  print_endline (get_current_file_name st);
+  print_endline (string_of_int curr_file_index ^ " ");
+  List.iter (fun x -> print_endline x) file_names;
+  if (curr_file_index <= 0)
+  then let () = (print_endline("same")) in st
+  else
+  let new_st =
+  {st with current_file = Fname (List.nth file_names left_file_index)} in
+  let () = (print_endline("else case: " ^ (get_current_file_name new_st))) in
+  new_st
+
+
+
+
 (* [get_typing_area st] returns the typing area of [st], either the command
  * prompt or a file *)
 let get_typing_area st = st.typing_loc
@@ -220,6 +263,10 @@ let toggle_typing_area st =
  * to the list of files in state [st].
  * Raises Sys_error if file read failed. *)
 let open_file st s =
+  let file_names = List.map (fun x -> fst x) st.files in
+  if (List.exists (fun x -> x = s) file_names) then
+    {st with current_file = Fname s}
+  else
   let new_file = File.open_file s in
   { st with
     files = (s, new_file) :: st.files;

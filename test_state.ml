@@ -3,6 +3,11 @@ open State
 
 let slstate = empty_state |> fun st -> open_file st "testtxts/somelines.txt"
 let slstate' = select_text slstate 0 5
+let slstate'' = State.open_file slstate "testtxts/temp.txt"
+let slstate''' = State.open_file slstate'' "testtxts/easy.txt"
+let slstate'''' = State.set_current_file slstate''' (File.open_file "testtxts/temp.txt")
+let slstate''''' = State.set_current_file slstate'''' (File.open_file "testtxts/easy.txt")
+
 
 
 (* If [f st] returns [st'], this function returns a test case with
@@ -315,6 +320,11 @@ let tests = [
     (cmd_insert slstate 'a' |> cmd_delete |> get_cmd_text));
   "command23" >:: (fun _ -> assert_equal "a"
     (cmd_insert slstate 'a' |> cmd_cursor_left |> get_cmd_text));
+
+  (* tests for tabbing *)
+  "tab_left" >:: (fun _ -> assert_equal slstate''''' (tab_left slstate''''));
+
+
   (* tests for reading and toggling the typing area *)
   "t_area0" >:: (fun _ -> assert_equal File (get_typing_area slstate));
   "t_area1" >:: (fun _ -> assert_equal Command (slstate |> toggle_typing_area |> get_typing_area));
