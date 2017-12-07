@@ -6,10 +6,7 @@ open State
 open Clview
 open CamomileLibrary
 
-(* [repl ui stref] waits for input from the user. Once input is recieved it
- * creates a new state, updates the ui according to the new state
- * (by calling update in CLView) and passes the
- * new state to another call of [repl] recursively *)
+
 let rec repl ui stref =
   LTerm_ui.wait ui >>= fun event ->
   match event, State.get_typing_area !stref with
@@ -32,7 +29,7 @@ let rec repl ui stref =
     LTerm_ui.draw ui;
     repl ui stref
   (* resize size of window *)
-  | LTerm_event.Resize{ rows=rows; cols=cols }, _ -> 
+  | LTerm_event.Resize{ rows=rows; cols=cols }, _ ->
     stref := set_total_height !stref rows;
     stref := set_width !stref cols;
     LTerm_ui.draw ui;
@@ -43,9 +40,7 @@ let rec repl ui stref =
     LTerm_ui.draw ui;
     repl ui stref
 
-(* Function to be called when starting the text editor with no files open.
- * The argument should be optional, when not given a string the
- * function is the same as if the file was not found *)
+
 let main () =
   Unix.chdir "../..";
 
