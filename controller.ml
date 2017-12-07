@@ -53,7 +53,7 @@ let execute_command s flst st =
  * [s_term] selected *)
 let find_command st s_term =
   let st' = s_term |> find st |> select_search_term in
-  if get_selected_range st = get_selected_range st'
+  if get_selected_range st' = None
   then set_command_out st' (s_term^" not found")
   else st'
 
@@ -127,17 +127,17 @@ let rec repl ui stref =
 
           (* changes selection based on whether shift is pressed *)
           let change_select shift st =
-            match shift, (get_select_start st) with 
-            | true, None -> start_selecting st 
+            match shift, (get_select_start st) with
+            | true, None -> start_selecting st
             | false, Some _ -> unselect_text st
             | _ -> st in
 
           (* depending on whether there is selected text,
            * deletes selected text or calls a function on st *)
-          let delete_or_fun st f = 
-            match get_selected_range st with 
-            | None -> f st 
-            | Some (i0, i1) -> 
+          let delete_or_fun st f =
+            match get_selected_range st with
+            | None -> f st
+            | Some (i0, i1) ->
               delete_text st i0 i1 |> unselect_text in
 
           stref := match keycode with
@@ -151,10 +151,10 @@ let rec repl ui stref =
             |> fun st -> insert_char st '\n'
           | Tab -> (* 1 tab = 4 spaces - can change w/ plugin *)
             delete_or_fun !stref (fun x -> x)
-            |> fun st -> List.fold_left (fun st c -> insert_char st c) 
+            |> fun st -> List.fold_left (fun st c -> insert_char st c)
               st [' '; ' '; ' '; ' ']
           | Backspace -> delete_or_fun !stref delete_char
-          | Delete -> delete_or_fun !stref 
+          | Delete -> delete_or_fun !stref
             (fun st -> st |> cursor_right |> delete_char)
           | F2 ->
             begin
