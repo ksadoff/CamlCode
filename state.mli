@@ -44,9 +44,10 @@ val string_to_clipboard : string -> clipboard
  * into a string*)
 val clipboard_to_string : state -> string
 
-(* [new_file s] creates a new, empty file at path [s].
- * Raises Sys_error creating file failed. *)
-val new_file : string -> unit
+(* [new_file st s] creates a new, empty file with name [s], relative
+ * to the current working directory of [st].
+ * Raises [Sys_error] if creating file failed. *)
+val new_file : state -> string -> unit
 
 (* New state with no files open yet *)
 val empty_state : state
@@ -94,6 +95,15 @@ val is_file_saved : state -> string -> bool
  * relative path [s].
  * Raises Sys_error if file write failed. *)
 val save_file : state -> string -> state
+
+(* [change_directory st d] changes the current directory in [st].
+ * Say [c] is the previous directory in [st]. If [d] is a relative path,
+ * the new directory will be [c/d]. If [d] is an absolute path,
+ * the new directory will be [d]. *)
+val change_directory : state -> string -> state
+ 
+(* [get_directory st] is the current directory in [st]. *)
+val get_directory : state -> string
 
 (* [close_file st] removes the currently selected file [f]
  * from the list of open files in [st]. The newly selected file
@@ -335,3 +345,7 @@ val num_open_files : state -> int
 
 (* is_on_file st] returns true if the current file has a name or false if not *)
 val is_on_file : state -> bool
+
+(* [get_visible_text st numlines] returns the text from the current file's
+ * scroll_line_num to the line num_lines below it *)
+val get_visible_text : state -> int -> string
