@@ -43,7 +43,67 @@ type state = {
   command_cursor : int;
   (* stores the absolute path of our current working directory *)
   curr_dir : string;
+  up_cmds : string list;
+  down_cmds : string list;
 }
+
+let max_cmds = 50
+
+(* [rem_tail lst] returns a copy of [lst] with the last element removed *)
+let rec rem_tail = function
+  | []
+  | _::[] -> []
+  | h::t -> h::(rem_tail t)
+
+(* [add_up_cmds st] returns the previous commands queue of [st] with its
+ * current command input pushed, if it not [None] *)
+let add_up_cmds st =
+  match st.command_in with
+  | None -> st.down_cmds
+  | Some cmd_in ->
+    if List.length st.up_cmds < max_cmds
+    then cmd_in::st.up_cmds
+    else  cmd_in::(rem_tail st.up_cmds)
+
+(* [add_down_cmds st] returns the previous commands down queue of [st] with its
+ * current command input pushed, if it not [None] *)
+let add_down_cmds st =
+  match st.command_in with
+  | None -> st.up_cmds
+  | Some cmd_in ->
+    if List.length st.down_cmds < max_cmds
+    then cmd_in::st.down_cmds
+    else  cmd_in::(rem_tail st.down_cmds)
+
+(* [cycle_up st] returns a copy of [st] with the command input set to the next
+ * command in the stack of previously used commands *)
+let cycle_up st =
+  match st.up_cmds with
+  | [] -> st
+  | h::t -> { st with
+              command_in = Some h;
+              up_cmds = t;
+              down_cmds = add_down_cmds st  }
+
+(* [cycle_down st] returns a copy of [st] with the command input set to the next
+ * command in the stack of things popped from the previously used commands*)
+let cycle_down st =
+  match st.up_cmds with
+  | [] -> st
+  | h::t -> { st with
+              command_in = Some h;
+              up_cmds = add_up_cmds st;
+              down_cmds = t }
+
+(* [update_commands st] returns [st], with the command input set to empty,
+ * the previous commant input of [st] pushed to the previous command stack, and
+ * the down command stack cleared *)
+let update_commands st =
+  { st with command_in = Some "";
+            command_cursor = 0;
+            up_cmds = add_up_cmds st;
+            down_cmds = [];
+  }
 
 (* [extract file_opt] takes in an 'a option and returns the 'a. *)
 let extract file_opt =
@@ -129,7 +189,9 @@ let empty_state =
     command_out = None;
     command_in = None;
     command_cursor = 0;
-    curr_dir = getcwd() ^ "/../.."
+    curr_dir = getcwd() ^ "/../..";
+    up_cmds = [];
+    down_cmds = [];
   }
 
 (* [get_file_names st] returns a list of strings that represent the names of
@@ -228,7 +290,7 @@ let cut st =
   match (get_selected_range curr) with
   | None -> st
   | Some (loc1, loc2) -> let new_file = delete_text curr loc1 loc2 in
-    replace_current_file new_st new_file 
+    replace_current_file new_st new_file
 
 
 (* [change_selected_file s st] changes the selected file in [st]

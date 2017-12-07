@@ -21,6 +21,19 @@ type clipboard
  * * Current search term *)
 type state
 
+(* [cycle_up st] returns a copy of [st] with the command input set to the next
+ * command in the stack of previously used commands *)
+val cycle_up : state -> state
+
+(* [cycle_down st] returns a copy of [st] with the command input set to the next
+ * command in the stack of things popped from the previously used commands*)
+val cycle_down : state -> state
+
+(* [update_commands st] returns [st], with the command input set to empty,
+ * the previous commant input of [st] pushed to the previous command stack, and
+ * the down command stack cleared *)
+val execute : state -> (state -> state) -> state
+
 val new_clipboard : clipboard
 
 (* [string_to_clipboard s] converts s into our representation type
