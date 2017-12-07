@@ -189,6 +189,10 @@ let respond_to_event (event : LTerm_event.t) (st : state) : state =
           | Left -> cmd_cursor_left st
           | Char c -> cmd_insert st (UChar.char_of c)
           | Backspace -> cmd_delete st
+          | Delete ->
+            if (st |> get_cmd_cursor) = (st |> cmd_cursor_right |> get_cmd_cursor)
+            then st
+            else st |> cmd_cursor_right |> cmd_delete
           | F2 ->
             begin
               match get_command_in st with
