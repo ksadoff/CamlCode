@@ -21,6 +21,19 @@ type clipboard
  * * Current search term *)
 type state
 
+(* [cycle_up st] returns a copy of [st] with the command input set to the next
+ * command in the stack of previously used commands *)
+val cycle_up : state -> state
+
+(* [cycle_down st] returns a copy of [st] with the command input set to the next
+ * command in the stack of things popped from the previously used commands*)
+val cycle_down : state -> state
+
+(* [update_commands st] returns [st], with the command input set to empty,
+ * the previous commant input of [st] pushed to the previous command stack, and
+ * the down command stack cleared *)
+val update_commands : state ->  state
+
 val new_clipboard : clipboard
 
 (* [string_to_clipboard s] converts s into our representation type
@@ -98,15 +111,15 @@ val get_directory : state -> string
  * If no file is currently selected, returns [st]. *)
 val close_file : state -> state
 
-(* [tab_right st] takes in a state and returns a state with the current file 
- * being replaced with the file that appears next in the list of open files. 
- * If the current file is the last file in the list, 
+(* [tab_right st] takes in a state and returns a state with the current file
+ * being replaced with the file that appears next in the list of open files.
+ * If the current file is the last file in the list,
  * then it will return the current file. *)
  val tab_right : state -> state
 
- (* [tab_left st] takes in a state and returns a state with the current file 
- * being replaced with the file that appears previous in the list of open files. 
- * If the current file is the first file in the list, 
+ (* [tab_left st] takes in a state and returns a state with the current file
+ * being replaced with the file that appears previous in the list of open files.
+ * If the current file is the first file in the list,
  * then it will return the current file. *)
  val tab_left : state -> state
 

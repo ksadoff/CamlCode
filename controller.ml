@@ -22,17 +22,17 @@ let rec repl ui stref =
       stref := match get_command_in !stref with
       | None -> failwith "unused"
       (* User presses enter to execute a command *)
-      | Some cmd_str -> Plugin.parse_command cmd_str 
+      | Some cmd_str -> Plugin.parse_command cmd_str
         |> fun cmd_opt -> begin
-          match cmd_opt with 
-          | Some cmd_in -> Plugin.execute_command cmd_in !stref
-          | None -> !stref
+          match cmd_opt with
+          | Some cmd_in -> Plugin.execute_command cmd_in !stref |> update_commands
+          | None -> set_command_out (!stref |> update_commands) "unrecognized command"
         end;
     end;
     LTerm_ui.draw ui;
     repl ui stref
   (* for any other event, consult plugins *)
-  | _ -> 
+  | _ ->
     stref := Plugin.respond_to_event event !stref;
     LTerm_ui.draw ui;
     repl ui stref

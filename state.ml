@@ -43,9 +43,72 @@ type state = {
   command_cursor : int;
   (* stores the absolute path of our current working directory *)
   curr_dir : string;
+  up_cmds : string list;
+  down_cmds : string list;
 }
 
-(* [extract file_opt] takes in an 'a option and returns the 'a. Only to be 
+
+let max_cmds = 50
+
+(* [rem_tail lst] returns a copy of [lst] with the last element removed *)
+let rec rem_tail = function
+  | []
+  | _::[] -> []
+  | h::t -> h::(rem_tail t)
+
+(* [add_up_cmds st] returns the previous commands queue of [st] with its
+ * current command input pushed, if it not [None] *)
+let add_up_cmds st =
+  match st.command_in with
+  | None -> st.down_cmds
+  | Some cmd_in ->
+    if List.length st.up_cmds < max_cmds
+    then cmd_in::st.up_cmds
+    else  cmd_in::(rem_tail st.up_cmds)
+
+(* [add_down_cmds st] returns the previous commands down queue of [st] with its
+ * current command input pushed, if it not [None] *)
+let add_down_cmds st =
+  match st.command_in with
+  | None -> st.up_cmds
+  | Some cmd_in ->
+    if List.length st.down_cmds < max_cmds
+    then cmd_in::st.down_cmds
+    else  cmd_in::(rem_tail st.down_cmds)
+
+(* [cycle_up st] returns a copy of [st] with the command input set to the next
+ * command in the stack of previously used commands *)
+let cycle_up st =
+  match st.up_cmds with
+  | [] -> st
+  | h::t -> { st with
+              command_in = Some h;
+              command_cursor = String.length h;
+              up_cmds = t;
+              down_cmds = add_down_cmds st  }
+
+(* [cycle_down st] returns a copy of [st] with the command input set to the next
+ * command in the stack of things popped from the previously used commands*)
+let cycle_down st =
+  match st.down_cmds with
+  | [] -> st
+  | h::t -> { st with
+              command_in = Some h;
+              command_cursor = String.length h;
+              up_cmds = add_up_cmds st;
+              down_cmds = t }
+
+(* [update_commands st] returns [st], with the command input set to empty,
+ * the previous commant input of [st] pushed to the previous command stack, and
+ * the down command stack cleared *)
+let update_commands st =
+  { st with command_in = Some "";
+            command_cursor = 0;
+            up_cmds = add_up_cmds st;
+            down_cmds = [];
+  }
+
+(* [extract file_opt] takes in an 'a option and returns the 'a. Only to be
  * used on files we know exist.
  *)
 let extract file_opt =
@@ -62,13 +125,13 @@ let get_current_file st =
   | _ -> raise (Invalid_argument "no file selected")
 
 
-(* [find_index lst x acc] Given an element and a list and an accumulator, this 
- * function returns the index of that element in the first occurrance of the 
- * element in the list. This function should only be called on lists where we 
+(* [find_index lst x acc] Given an element and a list and an accumulator, this
+ * function returns the index of that element in the first occurrance of the
+ * element in the list. This function should only be called on lists where we
  * know the element we are looking for exists.
  *)
- let rec find_index lst x acc = 
-  match lst with 
+ let rec find_index lst x acc =
+  match lst with
   |[] -> failwith "Unused - find_index"
   |h::t -> if h = x then acc else find_index t x (acc+1)
 
@@ -133,6 +196,8 @@ let empty_state =
     command_in = None;
     command_cursor = 0;
     curr_dir = Sys.getcwd ();
+    up_cmds = [];
+    down_cmds = [];
   }
 
 (* [get_file_names st] returns a list of strings that represent the names of
@@ -147,37 +212,30 @@ let get_current_file_name st =
   | Fname s -> s
   | _ -> raise (Invalid_argument "no file selected")
 
-  (* [tab_right st] takes in a state and returns a state with the current file 
- * being replaced with the file that appears next in the list of open files. 
- * If the current file is the last file in the list, 
+  (* [tab_right st] takes in a state and returns a state with the current file
+ * being replaced with the file that appears next in the list of open files.
+ * If the current file is the last file in the list,
  * then it will return the current file. *)
- let tab_right st = 
+ let tab_right st =
   let file_names = List.map (fun x -> fst x) st.files in
-  let curr_fname = st.current_file |> extract in 
+  let curr_fname = st.current_file |> extract in
   let right_file_index = (find_index file_names curr_fname 0) + 1 in
-  if (right_file_index >= List.length file_names) 
-  then st 
+  if (right_file_index >= List.length file_names)
+  then st
   else {st with current_file = Fname (List.nth file_names right_file_index)}
 
-(* [tab_left st] takes in a state and returns a state with the current file 
- * being replaced with the file that appears previous in the list of open files. 
- * If the current file is the first file in the list, 
+(* [tab_left st] takes in a state and returns a state with the current file
+ * being replaced with the file that appears previous in the list of open files.
+ * If the current file is the first file in the list,
  * then it will return the current file. *)
- let tab_left st = 
+ let tab_left st =
   let file_names = List.map (fun x -> fst x) st.files in
-  let curr_fname = st.current_file |> extract in 
+  let curr_fname = st.current_file |> extract in
   let curr_file_index = (find_index file_names curr_fname 0) in
-  let left_file_index = curr_file_index - 1 in 
-  print_endline (get_current_file_name st);
-  print_endline (string_of_int curr_file_index ^ " ");
-  List.iter (fun x -> print_endline x) file_names;
-  if (curr_file_index <= 0) 
-  then let () = (print_endline("same")) in st 
-  else
-  let new_st = 
-  {st with current_file = Fname (List.nth file_names left_file_index)} in 
-  let () = (print_endline("else case: " ^ (get_current_file_name new_st))) in 
-  new_st
+  let left_file_index = curr_file_index - 1 in
+  if (curr_file_index <= 0)
+  then st
+  else {st with current_file = Fname (List.nth file_names left_file_index)}
 
 (* [get_typing_area st] returns the typing area of [st], either the command
  * prompt or a file *)
@@ -291,7 +349,7 @@ let cut st =
   match (get_selected_range curr) with
   | None -> st
   | Some (loc1, loc2) -> let new_file = delete_text curr loc1 loc2 in
-    replace_current_file new_st new_file 
+    replace_current_file new_st new_file
 
 
 (* [change_selected_file s st] changes the selected file in [st]
