@@ -52,7 +52,6 @@ let draw_tabs st ctx =
            then draw_string ctx 1 (1+(n*15)) file_name ~style:highlighted; in ()
   done
 
-
 (* [draw_file st ctx] draws the currently selected file in [st]
  * on context [ctx]. *)
 let draw_file st ctx =

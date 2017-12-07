@@ -31,6 +31,12 @@ let rec repl ui stref =
     end;
     LTerm_ui.draw ui;
     repl ui stref
+  (* resize size of window *)
+  | LTerm_event.Resize{ rows=rows; cols=cols }, _ -> 
+    stref := set_total_height !stref rows;
+    stref := set_width !stref cols;
+    LTerm_ui.draw ui;
+    repl ui stref
   (* for any other event, consult plugins *)
   | _ ->
     stref := Plugin.respond_to_event event !stref;

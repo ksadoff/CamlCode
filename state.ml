@@ -372,8 +372,8 @@ let update_commands st =
   }
 
 
-  (* [get_command_out st] returns the [command_out] field of [st] *)
-  let get_command_in st = st.command_in
+(* [get_command_out st] returns the [command_out] field of [st] *)
+let get_command_in st = st.command_in
 
 (* [open_terminal st] returns a copy of [st] with both [command_out] and
  * [command_in] set to [Some ""] if they are [None] in [st] which indicates
