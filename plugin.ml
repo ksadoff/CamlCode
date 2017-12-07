@@ -135,6 +135,55 @@ let delete_or_fun st f =
   | Some (i0, i1) ->
     delete_text st i0 i1 |> unselect_text
 
+let last_sep s c =
+  match String.rindex_opt s c with
+  | None -> s
+  | Some ind -> String.sub s (ind+1) (String.length s - ind - 1)
+
+
+let starts_with s b =
+  String.(length s >= length b) && String.(sub s 0 (length b)) = b
+
+let get_head = function
+  | [] -> ""
+  | h::t -> h
+
+let tab_infer st =
+  match get_command_in st with
+  | None -> st
+  | Some cmd_in ->
+    let matches = ref [] in
+    let full_path = last_sep cmd_in ' ' in
+    let to_infer = last_sep full_path '/' in
+    try
+      if full_path <> to_infer
+      (* there is some path before what is being inferred *)
+      then
+        let path = String.sub full_path 0 (String.length full_path - String.length to_infer) in
+        let files = Sys.readdir (Filename.concat (get_directory()) path) in
+        for n = 0 to (Array.length files - 1) do
+          if (starts_with files.(n) to_infer)
+          then matches := files.(n)::!matches
+        done;
+        match List.length !matches with
+        | 0 -> st
+        | _ -> let inferred = get_head !matches in
+          set_command_in st (Filename.concat (String.sub cmd_in 0 ((String.length cmd_in) - (String.length to_infer))) (inferred))
+      else
+        (* there is no path before what is being inferred *)
+        let files = Sys.readdir (get_directory()) in
+        for n = 0 to (Array.length files - 1) do
+          if (starts_with files.(n) to_infer)
+          then matches := files.(n)::!matches
+        done;
+        match List.length !matches with
+        | 0 -> st
+        | _ ->
+          let inferred = get_head !matches in
+          set_command_in st ((String.sub cmd_in 0 ((String.length cmd_in) - (String.length to_infer)))^(inferred))
+    with
+    | Sys_error _ -> st
+
 (* [press_key_file st k shift] computes new state when user presses [k]
  * while in a file. [shift] is whether the shift key is pressed. *)
 let press_key_file st k shift = LTerm_key.( try
@@ -187,6 +236,7 @@ let press_key_terminal st k = LTerm_key.(
       | Some _ -> close_terminal st
     end
   | F3 -> toggle_typing_area st
+  | Tab -> tab_infer st
   | _ -> st)
 
 (* [ctrl_command st kc] returns the new state after the user presses

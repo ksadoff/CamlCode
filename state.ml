@@ -50,7 +50,9 @@ type state = {
   (* command history *)
   up_cmds : string list;
   down_cmds : string list;
-  (* the height of the terminal window *)
+  (* the height of the terminal *)
+  total_height : int;
+  (* the height of the window we want *)
   height : int;
   (* the width of the terminal window *)
   width : int;
@@ -61,8 +63,8 @@ let max_cmds = 50
 
 (* HELPER FUNCTIONS *)
 
-let set_height st h =
-  {st with height = h}
+let set_total_height st h =
+  {st with total_height = h; height = h}
 
 let set_width st w =
   {st with width = w}
@@ -369,6 +371,10 @@ let update_commands st =
             down_cmds = [];
   }
 
+
+  (* [get_command_out st] returns the [command_out] field of [st] *)
+  let get_command_in st = st.command_in
+
 (* [open_terminal st] returns a copy of [st] with both [command_out] and
  * [command_in] set to [Some ""] if they are [None] in [st] which indicates
  * that the terminal is open but no text is displayed. If the terminal is open
@@ -378,14 +384,20 @@ let open_terminal st =
   | None -> { st with typing_loc = Command;
                       command_out = Some "";
                       command_in = Some "";
-                      command_cursor = 0; }
+                      command_cursor = 0;
+                      height = st.total_height - 8}
+                        (* let tabheight =
+                  match get_command_in st with
+                  | Some _ -> 8
+                  | None -> 5 in st.height - 8} *)
   | Some _ -> st
 
 (* [close_terminal st] returns a copy of [st] with both [command_out] and
  * and [command_in] both set to [None], indicating that the terminal is closed *)
 let close_terminal st = { st with typing_loc = File;
                                   command_out = None;
-                                  command_in = None; }
+                                  command_in = None;
+                        height = st.total_height - 5}
 
 (* [set_command_out st s] returns a copy of [st] with [command_out] set to
  * [Some s], if the terminal is not open in [st] the returned value also has
@@ -466,8 +478,6 @@ let get_cmd_text st =
               then String.(sub s st.command_cursor 1)
               else " "
 
-(* [get_command_out st] returns the [command_out] field of [st] *)
-let get_command_in st = st.command_in
 
 (* CURSOR *)
 
@@ -520,7 +530,7 @@ let get_scroll_line = file_to_state_fun File.get_scroll_line
  * so that the cursor is viewable horizontally and the first line displayed
  * is the current scroll line. *)
 let get_scrolled_lines st =
-  file_to_state_fun (fun f -> File.get_scrolled_lines f st.width st.height) st
+  file_to_state_fun (fun f -> File.get_scrolled_lines f st.width (st.height+1)) st
 
 (* READ TEXT *)
 
@@ -661,6 +671,7 @@ let empty_state =
     command_cursor = 0;
     up_cmds = [];
     down_cmds = [];
+    total_height = 0;
     height = 0;
     width = 0
   }
