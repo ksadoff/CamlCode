@@ -102,6 +102,12 @@ val get_text : file -> int -> int -> string
 (* [get_line_text f ln] is the text in [f] at line number [ln]. *)
 val get_line_text : file -> int -> string
 
+(* [get_scrolled_lines st w h] displays the currently scrolled to lines, 
+ * so that the cursor is viewable horizontally and the first line displayed
+ * is the current scroll line. [w] is the max width of each line,
+ * and [h] is the max number of lines. *)
+val get_scrolled_lines : file -> int -> int -> string
+
 (* [get_all_text f] returns a string representing all of the text in [f] *)
 val get_all_text : file -> string
 

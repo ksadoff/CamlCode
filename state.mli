@@ -235,6 +235,12 @@ val scroll_to : state -> int -> state
  * currently selected file in [st]. *)
 val get_scroll_line : state -> int
 
+(* [get_scrolled_lines st w h] displays the currently scrolled to lines, 
+ * so that the cursor is viewable horizontally and the first line displayed
+ * is the current scroll line. [w] is the max width of each line,
+ * and [h] is the max number of lines. *)
+val get_scrolled_lines : state -> int -> int -> string
+
 (* [get_text st l1 l2] returns all text in the open file of [st] from
  * [l1] to [l2]. Raises Invalid_argument if [l2] comes before [l1].  *)
 val get_text : state -> int -> int -> string

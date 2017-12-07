@@ -496,6 +496,12 @@ let scroll_to st n = fmap_st_f (fun f -> File.scroll_to f n) st
  * currently selected file in [st]. *)
 let get_scroll_line = file_to_state_fun File.get_scroll_line
 
+(* [get_scrolled_lines st w h] displays the currently scrolled to lines, 
+ * so that the cursor is viewable horizontally and the first line displayed
+ * is the current scroll line. [w] is the max width of each line,
+ * and [h] is the max number of lines. *)
+let get_scrolled_lines = file_to_state_fun File.get_scrolled_lines
+
 (* READ TEXT *)
 
 (* [get_text st l1 l2] returns all text in the open file of [st] from
