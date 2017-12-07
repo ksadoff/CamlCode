@@ -217,13 +217,13 @@ let new_file st s =
 (* [open_file st s] constructs the file with name [s] and adds it
  * to the list of files in state [st].
  * Raises [Sys_error] if file read failed. *)
-let open_file st s =
+let open_file st s = 
   let p = convert_path s in
   let file_names = List.map (fun x -> fst x) st.files in
   if (List.exists (fun x -> x = p) file_names) then
     {st with current_file = Fname p}
   else
-  let new_file = File.open_file p in
+  let new_file = File.open_file p in 
   { st with
     files = (p, new_file) :: st.files;
     screens = [];

@@ -13,18 +13,18 @@ let highlighted = {bold = None; underline = None; blink = None; reverse = None;
                    foreground = Some black; background = Some white}
 
 
-let get_tab_name str =
+let get_tab_name = Filename.basename
   (* if (String.sub str ((String.length str)-5) ((String.length str)-1)) =".txt"
   then let () = print_endline (String.sub str ((String.length str)-5) ((String.length str)-1)) in
   String.sub str 0 ((String.length str)-5)
   else str *)
-  let file_name = Str.regexp "[A-Za-z0-9]+[.][a-z]+\\b" in
+  (* let file_name = Str.regexp "[A-Za-z0-9]+[.][a-z]+\\b" in
   let find = Str.search_forward file_name str 0 in
   let full_name = Str.matched_string str in
   let without_ext = String.sub full_name 0 ((String.length full_name)-4) in
   if String.length without_ext > 6 then
     (String.sub without_ext 0 5)^"..." else
-  without_ext
+  without_ext *)
 
 (* [draw_tabs st ctx] draws the tabs in state [st] at the top of context
  * [ctx]. *)
