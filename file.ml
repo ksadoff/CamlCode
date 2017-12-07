@@ -242,7 +242,7 @@ let rec get_location lla loc1 i2 =
 (* [get_line_index lla ln] returns the index of the start of line [ln],
  * given some valid location in [loc] and the array of line lengths [lla].
  * Raises "Invalid_argument" if [ln] is out of range. *)
-let rec get_line_index lla loc ln = 
+let rec get_line_index lla loc ln =
   if ln < 0 || ln >= Array.length lla
   then raise (Invalid_argument "invalid line number in get_line_index")
   else
@@ -251,7 +251,7 @@ let rec get_line_index lla loc ln =
   if ln = loc.line_num then line_start
   (* line num is before or after cursor *)
   else
-  let new_ln = if ln < loc.line_num then loc.line_num - 1 
+  let new_ln = if ln < loc.line_num then loc.line_num - 1
     else loc.line_num + 1 in
   let new_len = Array.get lla new_ln in
   let new_start =
@@ -300,7 +300,7 @@ let cursor_left f =
       line_num = f.cursor.line_num - 1;
       column =  Array.get f.line_lengths (f.cursor.line_num - 1) - 1;
     };
-    scroll_line_num = (get_scroll_line f) - 1
+    (* scroll_line_num = (get_scroll_line f) - 1 *)
 
   }
   else { f with
@@ -323,7 +323,7 @@ let cursor_right f =
       line_num = f.cursor.line_num + 1;
       column = 0;
     };
-    scroll_line_num = (get_scroll_line f) + 1
+    (* scroll_line_num = (get_scroll_line f) + 1 *)
   }
   else { f with
     cursor = {
@@ -355,8 +355,9 @@ let cursor_up f =
       line_num = lnum;
       column = col;
     };
-    scroll_line_num = (get_scroll_line f) - 1
+    (* scroll_line_num = (get_scroll_line f) - 1 *)
   }
+
 
  (* [cursor_down f] returns [f] with cursor moved one line down.
   * If the cursor is farther right then the length of the line it
@@ -382,8 +383,30 @@ let cursor_down f =
       line_num = lnum;
       column = col;
     };
-    scroll_line_num = (get_scroll_line f) + 1
+    (* scroll_line_num = (get_scroll_line f) + 1 *)
   }
+
+
+let scroll f w h =
+  if get_cursor_line_num f < get_scroll_line f then
+    scroll_to f (get_cursor_line_num f) else
+  if get_cursor_line_num f > (get_scroll_line f) + h then
+    scroll_to f ((get_cursor_line_num f)-h)
+  else f
+
+
+let cursor_up_scroll f w h =
+  cursor_up f |> fun f -> scroll f w h
+
+
+let cursor_down_scroll f w h =
+  cursor_down f |> fun f -> scroll f w h
+
+let cursor_right_scroll f w h =
+  cursor_right f |> fun f -> scroll f w h
+
+let cursor_left_scroll f w h =
+  cursor_left f |> fun f -> scroll f w h
 
 (* [make_range_valid (i1, i2) cont_len] returns a new pair (i1', i2')
  * such that:
@@ -410,36 +433,36 @@ let get_text f l1 l2 =
   Rope.sub f.contents l1' (l2' - l1') |> Rope.to_string
 
 (* [get_line_text f ln] is the text in [f] at line number [ln]. *)
-let get_line_text f ln = 
+let get_line_text f ln =
   let l1 = get_line_index f.line_lengths f.cursor ln in
-  let llen = Array.get f.line_lengths ln in 
-  let l2 = l1 + llen in 
+  let llen = Array.get f.line_lengths ln in
+  let l2 = l1 + llen in
   get_text f l1 l2
 
 (* Same as [get_line_text], but scrolls so that the line is at most
  * length [wid]. If the cursor is on line [ln], the line is scrolled
  * horizontally so that the cursor is visible. *)
-let get_scrolled_line_text f ln wid = 
+let get_scrolled_line_text f ln wid =
   if f.cursor.line_num <> ln || f.cursor.column < wid
   (* unscrolled line *)
-  then get_line_text f ln 
+  then get_line_text f ln
     |> fun s -> if String.length s > wid then String.sub s 0 wid else s
   (* scrolled line *)
-  else get_line_text f ln 
+  else get_line_text f ln
     |> fun s -> String.sub s (f.cursor.column - wid) wid
 
 (* [get_lines f l1 l2 wid] shows the horizontally-scrolled lines from
  * [l1] to [l2]. [l1] is included, [l2] is not. [wid] is the max length of
  * each line. *)
-let rec get_lines f l1 l2 wid = 
+let rec get_lines f l1 l2 wid =
   if l1 >= l2 || l1 >= Array.length f.line_lengths then ""
   else get_scrolled_line_text f l1 wid ^ get_lines f (l1+1) l2 wid
 
-(* [get_scrolled_lines st w h] displays the currently scrolled to lines, 
+(* [get_scrolled_lines st w h] displays the currently scrolled to lines,
  * so that the cursor is viewable horizontally and the first line displayed
  * is the current scroll line. [w] is the max width of each line,
  * and [h] is the max number of lines. *)
-let get_scrolled_lines f w h = 
+let get_scrolled_lines f w h =
   get_lines f (f.scroll_line_num) (f.scroll_line_num + h) w
 
 (* [get_all_text f] returns a string representing all of the text in [f] *)
@@ -561,6 +584,9 @@ let insert_char f c =
     redo_list = [];
   } |> cursor_right
 
+  let insert_scroll f c w h =
+    insert_char f c |> fun f -> scroll f w h
+
 (* [delete_text l1 l2] deletes all text in [f] from location
  * [l1] to [l2]. The new file contents contains everything up
  * to and not including [l1] and everything including [l2]
@@ -630,6 +656,8 @@ let delete_char f =
     redo_list = [];
   }
 
+  let delete_scroll f w h =
+    delete_char f |> fun f -> scroll f w h
 (* [undo f] undoes the last change recorded in [f]. If there
  * is nothing left to undo, [undo f] will return [f] unchanged. *)
 let undo f =
@@ -778,15 +806,12 @@ let replace_all f =
     redo_list = [];
   }
 
-(* [first_index_of_line f linenum] returns the index in the file contents that
- * corresponds to the first index of the line *)
-let first_index_of_line f lineum =
-  Array.fold_left (+) 0 (Array.sub (line_lengths_arr f) 0 lineum)
 
-(* [last_index_]*)
+let first_index_of_line f linenum =
+  Array.fold_left (+) 0 (Array.sub (line_lengths_arr f.contents) 0 linenum)
 
-
-
+let last_index_of_line f linenum =
+  (Array.fold_left (+) 0 (Array.sub (line_lengths_arr f.contents) 0 (linenum+1))) - 1
 
 let get_visible_text f numlines =
   if numlines > List.length (get_line_lengths f) then get_all_text f

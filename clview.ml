@@ -84,7 +84,7 @@ let draw_file st ctx =
 
     (* contents of file *)
     (* get_all_text st |> draw_string txt_ctx 0 0 ~style:normal; *)
-    get_scrolled_lines st ((size ctx).cols-1) (size ctx).rows |>
+    get_scrolled_lines st  |>
     draw_string txt_ctx 0 0 ~style:normal;
 
     (* highlighted text *)
@@ -98,9 +98,9 @@ let draw_file st ctx =
     (* cursor *)
     if (get_typing_area st) = File then
       let cursor_loc = get_cursor_location st in
-      let view_col = 
+      let view_col =
         let col = get_cursor_column st in
-        let wid = (size ctx).cols in 
+        let wid = (size ctx).cols in
         if col >= wid then wid-1 else col in
       get_text st cursor_loc (cursor_loc+1)
         |> fun s -> (if s = "\n" then " " else s)

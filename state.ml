@@ -50,11 +50,28 @@ type state = {
   (* command history *)
   up_cmds : string list;
   down_cmds : string list;
+  (* the height of the terminal window *)
+  height : int;
+  (* the width of the terminal window *)
+  width : int;
+
 }
 
 let max_cmds = 50
 
 (* HELPER FUNCTIONS *)
+
+let set_height st h =
+  {st with height = h}
+
+let set_width st w =
+  {st with width = w}
+
+let get_width st =
+  st.width
+
+let get_height st =
+  st.height
 
 (* [rem_tail lst] returns a copy of [lst] with the last element removed *)
 let rec rem_tail = function
@@ -181,6 +198,7 @@ let tab_left st =
  * prompt or a file *)
 let get_typing_area st = st.typing_loc
 
+
 (* [toggle_typing_area st] returns a copy of [st] with its typing area swapped *)
 let toggle_typing_area st =
   match st.typing_loc with
@@ -279,9 +297,7 @@ let copy st =
   match (get_selected_range curr) with
   | None -> st
   | Some (loc1, loc2) ->
-    (* Pervasives.print_endline ((string_of_int loc1)^(string_of_int loc2)); *)
     let new_clipboard = (File.get_text curr loc1 loc2 |> Rope.of_string) in
-    (* let () = Pervasives.print_endline (to_string new_clipboard) in *)
   {st with clipboard = new_clipboard}
 
 (* [paste st] returns a copy of state with the text from the clipboard of [st]
@@ -472,19 +488,23 @@ let move_cursor st l = fmap_st_f (fun f -> File.move_cursor f l) st
 
 (* [cursor_left st] moves the cursor left on the currently selected
  * file in [st]. *)
-let cursor_left = fmap_st_f File.cursor_left
+let cursor_left st =
+  fmap_st_f (fun f -> File.cursor_left_scroll f st.width st.height) st
 
 (* [cursor_right st] moves the cursor right on the currently selected
  * file in [st]. *)
-let cursor_right = fmap_st_f File.cursor_right
+let cursor_right st =
+  fmap_st_f (fun f -> File.cursor_right_scroll f st.width st.height) st
 
 (* [cursor_up st] moves the cursor up on the currently selected file
  * in [st]. *)
-let cursor_up = fmap_st_f File.cursor_up
+let cursor_up st = fmap_st_f
+    (fun f -> File.cursor_up_scroll f st.width st.height) st
 
 (* [cursor_down st] moves the cursor down on the currently selected file
  * in [st]. *)
-let cursor_down = fmap_st_f File.cursor_down
+let cursor_down st =
+  fmap_st_f (fun f -> File.cursor_down_scroll f st.width st.height) st
 
 (* SCROLLING *)
 
@@ -496,11 +516,11 @@ let scroll_to st n = fmap_st_f (fun f -> File.scroll_to f n) st
  * currently selected file in [st]. *)
 let get_scroll_line = file_to_state_fun File.get_scroll_line
 
-(* [get_scrolled_lines st w h] displays the currently scrolled to lines, 
+(* [get_scrolled_lines st] displays the currently scrolled to lines,
  * so that the cursor is viewable horizontally and the first line displayed
- * is the current scroll line. [w] is the max width of each line,
- * and [h] is the max number of lines. *)
-let get_scrolled_lines = file_to_state_fun File.get_scrolled_lines
+ * is the current scroll line. *)
+let get_scrolled_lines st =
+  file_to_state_fun (fun f -> File.get_scrolled_lines f st.width st.height) st
 
 (* READ TEXT *)
 
@@ -550,7 +570,8 @@ let insert_text st s l = fmap_st_f (fun f -> File.insert_text f s l) st
 (* [insert_char st c] inserts a character [c] at the cursor position
  * in the currently selected file in [f] and moves the cursor one
  * position to the right. *)
-let insert_char st c = fmap_st_f (fun f -> File.insert_char f c) st
+let insert_char st c =
+  fmap_st_f (fun f -> File.insert_scroll f c st.width st.height) st
 
 (* [delete_text st l1 l2] deletes all the text in the currently held
  * file from location [l1] to [l2]. *)
@@ -559,7 +580,8 @@ let delete_text st l1 l2 = fmap_st_f (fun f -> File.delete_text f l1 l2) st
 (* [delete_char st] deletes the character before the cursor postion
  * in the currently selected file in [st] and moves the cursor
  * to the left accordingly. *)
-let delete_char = fmap_st_f File.delete_char
+let delete_char st =
+  fmap_st_f (fun f -> File.delete_scroll f st.width st.height) st
 
 (* UNDO/REDO *)
 
@@ -639,4 +661,15 @@ let empty_state =
     command_cursor = 0;
     up_cmds = [];
     down_cmds = [];
+    height = 0;
+    width = 0
   }
+let first_index_of_line st linenum =
+  File.first_index_of_line (get_current_file st) linenum
+
+let last_index_of_line st linenum =
+  File.last_index_of_line (get_current_file st) linenum
+
+let get_visible_text st numlines =
+  let curr = get_current_file st in
+  File.get_visible_text curr numlines

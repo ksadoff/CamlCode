@@ -40,11 +40,6 @@ val get_file_contents : file -> Rope.t *)
 
 (* [get_cont_length f] returns the length of the file_contents of [f]. *)
 val cont_length : file -> int
-(*
-(* [get_contents f] returns the *)
-(* [set_file_contents f r] returns a new file with all the old fields of f
- * except with file_contents now set to r *)
-val set_file_contents : file -> Rope.t -> file *)
 
 (* [get_name f] is the relative path of [f]. *)
 val get_name : file -> string
@@ -81,11 +76,39 @@ val cursor_right : file -> file
  * If on first line, cursor goes to farthest left position. *)
 val cursor_up : file -> file
 
+(* [cursor_up_scroll f] calls cursor_up f and updates the top visible line based
+ * on where the cursor is.*)
+val cursor_up_scroll : file -> int -> int -> file
+
+(* [cursor_down_scroll f] calls cursor_up f and updates the top visible line based
+ * on where the cursor is.*)
+val cursor_down_scroll : file -> int -> int -> file
+
+(* [cursor_right_scroll f] calls cursor_up f and updates the top visible line based
+ * on where the cursor is.*)
+val cursor_right_scroll : file -> int -> int -> file
+
+(* [cursor_lft_scroll f] calls insert_char f and updates the top visible line based
+ * on where the cursor is.*)
+val cursor_left_scroll : file -> int -> int -> file
+
+(* [insert_scroll f] calls delete_char f and updates the top visible line based
+ * on where the cursor is.*)
+val insert_scroll : file -> char -> int -> int -> file
+
+(* [delete_scroll f c] calls delete_char f c and updates the top visible line based
+ * on where the cursor is.*)
+val delete_scroll : file -> int -> int -> file
+
 (* [cursor_down f] returns [f] with cursor moved one line down.
  * If the cursor is farther right then the length of the line it
  * moved to, then the cursor goes at the end of the line.
  * If on last line, cursor goes to farthest right position. *)
 val cursor_down : file -> file
+
+(* [scroll file w h] returns a copy of [f] with the top visible line
+ * set relative to where the cursor is*)
+val scroll : file -> int -> int -> file
 
 (* [scroll_to f n] changes the line number of the scrolled view
  * to [n]. *)
@@ -102,7 +125,7 @@ val get_text : file -> int -> int -> string
 (* [get_line_text f ln] is the text in [f] at line number [ln]. *)
 val get_line_text : file -> int -> string
 
-(* [get_scrolled_lines st w h] displays the currently scrolled to lines, 
+(* [get_scrolled_lines st w h] displays the currently scrolled to lines,
  * so that the cursor is viewable horizontally and the first line displayed
  * is the current scroll line. [w] is the max width of each line,
  * and [h] is the max number of lines. *)
@@ -220,3 +243,13 @@ val replace_all: file -> file
 (* [get_visible_text f numlines] returns the text from the file's scroll_line_num
  * to the line num_lines below it *)
 val get_visible_text : file -> int -> string
+
+(* [first_index_of_line f linenum] returns the index in the file contents that
+ * corresponds to the first index of the line at linenum in the list of
+ * line lengths *)
+val first_index_of_line : file -> int -> int
+
+(* [last_index_of_line f linenum] returns the index in the file contents that
+ * corresponds to the last index of the line at linenum in the list of
+ * line lengths*)
+val last_index_of_line : file -> int -> int
