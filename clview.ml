@@ -79,7 +79,8 @@ let draw_file st ctx =
     | Some (_, l, c), Some (i0, i1) ->
       get_text st i0 i1
       |> Str.global_replace (Str.regexp "\n") " \n"
-      |> draw_string txt_ctx l c ~style:highlighted
+      |> draw_string txt_ctx (l - get_scroll_line st) c 
+        ~style:highlighted
     | _ -> ();
 
     (* cursor *)
