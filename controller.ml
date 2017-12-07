@@ -44,10 +44,13 @@ let main () =
   (* TODO: Right now, a somelines.txt is automatically opened.
    * We need to open [empty_state] by default instead, and then have
    * the user choose the file with a command. *)
-  let stref' = empty_state
-    |> fun st -> open_file st "../../testtxts/somelines.txt" in
 
-  let stref = open_file stref' "../../testtxts/easy.txt" |> fun x -> ref x in
+  Unix.chdir "../..";
+
+  let stref' = empty_state
+    |> fun st -> open_file st "testtxts/somelines.txt" in
+  let stref = open_file stref' "testtxts/easy.txt" |> fun x -> ref x in
+
   Lazy.force LTerm.stdout
   >>= fun term -> Clview.draw term stref
   >>= fun ui ->
