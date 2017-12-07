@@ -13,18 +13,21 @@ let highlighted = {bold = None; underline = None; blink = None; reverse = None;
                    foreground = Some black; background = Some white}
 
 
-let get_tab_name = Filename.basename
-  (* if (String.sub str ((String.length str)-5) ((String.length str)-1)) =".txt"
-  then let () = print_endline (String.sub str ((String.length str)-5) ((String.length str)-1)) in
-  String.sub str 0 ((String.length str)-5)
-  else str *)
-  (* let file_name = Str.regexp "[A-Za-z0-9]+[.][a-z]+\\b" in
-  let find = Str.search_forward file_name str 0 in
-  let full_name = Str.matched_string str in
-  let without_ext = String.sub full_name 0 ((String.length full_name)-4) in
-  if String.length without_ext > 6 then
-    (String.sub without_ext 0 5)^"..." else
-  without_ext *)
+let get_tab_name str=
+    let file_name1 = Str.regexp "[A-Za-z0-9]+[.][a-z]+\\b" in
+    try (let find = Str.search_forward file_name1 str 0 in
+         let full_name = Str.matched_string str in
+         let ext_reg = Str.regexp "[.][a-z]+\\b" in
+         let find_ext = Str.search_forward ext_reg str 0 in
+         let ext = Str.matched_string str in
+         let without_ext = String.sub full_name 0
+             ((String.length full_name)-(String.length ext)) in
+    if String.length without_ext > 6 then
+      (String.sub without_ext 0 5)^"..." else
+      without_ext) with
+    | _ -> Filename.basename str
+
+
 
 (* [draw_tabs st ctx] draws the tabs in state [st] at the top of context
  * [ctx]. *)
@@ -47,14 +50,22 @@ let draw_tabs st ctx =
            then draw_string ctx 1 (1+(n*10)) file_name ~style:highlighted; in ()
   done
 
+
+let scroll_file_down st ctx =
+  let top_line = get_scroll_line st in
+  let cursor_line = get_cursor_line_num st in
+  if cursor_line > (size ctx).rows then
+    scroll_to st (top_line+1)
+  else st
+
 (* [draw_file st ctx] draws the currently selected file in [st]
  * on context [ctx]. *)
 let draw_file st ctx =
   (* draw horizontal line *)
   draw_hline ctx 0 0 (size ctx).cols Heavy;
 
-let txt_ctx = sub ctx {row1=1; col1=0; row2=(size ctx).rows;
-              col2=(size ctx).cols} in
+  let txt_ctx = sub ctx {row1=1; col1=0; row2=(size ctx).rows;
+                         col2=(size ctx).cols} in
 
   (* if file is open *)
   if is_on_file st then begin
@@ -77,20 +88,22 @@ let txt_ctx = sub ctx {row1=1; col1=0; row2=(size ctx).rows;
       |> draw_string txt_ctx l c ~style:highlighted
     | _ -> ();
 
-    (* cursor *)
-    if (get_typing_area st) = File then
-      let cursor_loc = get_cursor_location st in
-      get_text st cursor_loc (cursor_loc+1)
-      |> fun s -> (if s = "\n" then " " else s)
-      |> draw_string txt_ctx (get_cursor_line_num st) (get_cursor_column st)
-        ~style: highlighted
+      (* cursor *)
+      if (get_typing_area st) = File then
+        let cursor_loc = get_cursor_location st in
+        get_text st cursor_loc (cursor_loc+1)
+        |> fun s -> (if s = "\n" then " " else s)
+                    |> draw_string txt_ctx (get_cursor_line_num st) (get_cursor_column st)
+                      ~style: highlighted
   end
 
   (* default display if no file open *)
   else begin
     draw_string_aligned ctx 10 H_align_center
-      ~style:normal "Welcome to CamlCode"
+      ~style:normal "Welcome to CamlCode!\nPress F2 to open the command prompt
+and open a new or existing file."
   end
+
 (* returns the value represented by an option if it exists, assumes not [None] *)
 let extract = function
   | None -> failwith "not used"
