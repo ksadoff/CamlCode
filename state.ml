@@ -64,7 +64,7 @@ let max_cmds = 50
 (* HELPER FUNCTIONS *)
 
 let set_total_height st h =
-  {st with total_height = h; height = h}
+  {st with total_height = h; height = h-8}
 
 let set_width st w =
   {st with width = w}
