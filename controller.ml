@@ -50,9 +50,10 @@ let main () =
     let tabheight = 
       match get_command_in !stref with 
       | Some _ -> 8
-      | None -> 3 in
+      | None -> 5 in
     stref := set_height !stref ((LTerm.size term).rows - tabheight);
-    stref := set_width !stref (LTerm.size term).cols; Clview.draw term stref
+    stref := set_width !stref (LTerm.size term).cols; 
+    Clview.draw term stref
   >>= fun ui ->
     Lwt.finalize (fun () -> repl ui stref) (fun () -> LTerm_ui.quit ui)
 
