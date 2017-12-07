@@ -520,7 +520,7 @@ let get_scroll_line = file_to_state_fun File.get_scroll_line
  * so that the cursor is viewable horizontally and the first line displayed
  * is the current scroll line. *)
 let get_scrolled_lines st =
-  file_to_state_fun (fun f -> File.get_scrolled_lines f st.width st.height) st
+  file_to_state_fun (fun f -> File.get_scrolled_lines f st.width (st.height+1)) st
 
 (* READ TEXT *)
 

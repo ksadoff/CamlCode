@@ -102,9 +102,13 @@ let draw_file st ctx =
         let col = get_cursor_column st in
         let wid = (size ctx).cols in
         if col >= wid then wid-1 else col in
+      let view_row = 
+        let row = get_cursor_line_num st in 
+        let scr = get_scroll_line st in 
+        row - scr in
       get_text st cursor_loc (cursor_loc+1)
         |> fun s -> (if s = "\n" then " " else s)
-        |> draw_string txt_ctx (get_cursor_line_num st) view_col
+        |> draw_string txt_ctx view_row view_col
         ~style: highlighted
   end
 
