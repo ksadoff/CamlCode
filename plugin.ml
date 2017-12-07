@@ -54,7 +54,7 @@ let find_command st s_term =
 let replace_command st terms =
   let s_term = parse_word terms in
   if s_term = terms
-  then set_command_out (set_command_in st "") "replace requires 2 terms"
+  then set_command_out st "replace requires 2 terms"
   else
     let remainder = String.(sub terms (length s_term+1)
                               (length terms - length s_term-1)) in
@@ -70,7 +70,7 @@ let replace_command st terms =
 let replace_all_command st terms =
   let s_term = parse_word terms in
   if s_term = terms
-  then set_command_out (set_command_in st "") "replace_all requires 2 terms"
+  then set_command_out st "replace_all requires 2 terms"
   else
     let remainder = String.(sub terms (length s_term+1)
                               (length terms - length s_term-1)) in

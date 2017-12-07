@@ -83,6 +83,7 @@ let cycle_up st =
   | [] -> st
   | h::t -> { st with
               command_in = Some h;
+              command_cursor = String.length h;
               up_cmds = t;
               down_cmds = add_down_cmds st  }
 
@@ -93,6 +94,7 @@ let cycle_down st =
   | [] -> st
   | h::t -> { st with
               command_in = Some h;
+              command_cursor = String.length h;
               up_cmds = add_up_cmds st;
               down_cmds = t }
 
