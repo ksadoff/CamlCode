@@ -5,6 +5,10 @@ open Color
 open File
 open Filename
 
+(* Raised when calling a function that requires an open file 
+ * without an open file. *)
+exception No_file_exn of string
+
 (* Indicates whether or not a file is open *)
 type opened_file = Nofile | Fname of string
 
@@ -58,21 +62,13 @@ let rec rem_tail = function
   | _::[] -> []
   | h::t -> h::(rem_tail t)
 
-(* [extract file_opt] takes in an 'a option and returns the 'a. Only to be
- * used on files we know exist.
- *)
-let extract file_opt =
-  match file_opt with
-  | Fname f -> f
-  | Nofile -> failwith "Unused"
-
 (* [get_current_file st] returns the file that is currently being manipulated.
  * Raises [Invalid_argument] if no file currently selected and [Not_found]
  * if [current_file] holds a string that is not a file being used. *)
 let get_current_file st =
   match st.current_file with
   | Fname s -> List.assoc s st.files
-  | _ -> raise (Invalid_argument "no file selected")
+  | _ -> raise (No_file_exn "no file selected")
 
 (* [find_index lst x acc] Given an element and a list and an accumulator, this
  * function returns the index of that element in the first occurrance of the
@@ -81,7 +77,7 @@ let get_current_file st =
  *)
 let rec find_index lst x acc =
   match lst with
-  |[] -> failwith "Unused - find_index"
+  |[] -> raise (No_file_exn "Unused - find_index")
   |h::t -> if h = x then acc else find_index t x (acc+1)
 
 (* [is_on_file st] returns [true] if there user is currently on a file,
@@ -100,12 +96,13 @@ let is_on_file st =
 let file_to_state_fun f_fun st =
   match st.current_file with
   | Fname s -> f_fun (get_current_file st)
-  | _ -> raise (Invalid_argument "no file selected")
+  | _ -> raise (No_file_exn "no file selected")
 
 (* [fmap_st_f f_fun st] takes a function [f_fun : file -> file],
  * executes it on the currently selected file in [st] to get [f'],
- * and returns a new state with [f'] replacing [f]. *)
-let fmap_st_f f_fun st =
+ * and returns a new state with [f'] replacing [f].
+ * If [st] not current on a file, returns [st]. *)
+let fmap_st_f f_fun st = 
   let f' = file_to_state_fun f_fun st in
   let s = File.get_name f' in
   { st with files = (s, f') :: (List.remove_assoc s st.files) }
@@ -138,7 +135,7 @@ let num_open_files st = List.length st.files
 let get_current_file_name st =
   match st.current_file with
   | Fname s -> s
-  | _ -> raise (Invalid_argument "no file selected")
+  | _ -> raise (No_file_exn "no file selected")
 
 (* [set_current_file st f] sets the current file in [st] to [f]. *)
 let set_current_file st f = {st with current_file = Fname (get_name f)}
@@ -155,11 +152,14 @@ let change_selected_file s st =
  * then it will return the current file. *)
 let tab_right st =
   let file_names = List.map (fun x -> fst x) st.files in
-  let curr_fname = st.current_file |> extract in
-  let right_file_index = (find_index file_names curr_fname 0) + 1 in
-  if (right_file_index >= List.length file_names)
-  then st
-  else {st with current_file = Fname (List.nth file_names right_file_index)}
+  match st.current_file with 
+  | Fname curr_fname -> begin
+    let right_file_index = (find_index file_names curr_fname 0) + 1 in
+    if (right_file_index >= List.length file_names)
+    then st
+    else {st with current_file = Fname (List.nth file_names right_file_index)}
+  end
+  | Nofile -> st
 
 (* [tab_left st] takes in a state and returns a state with the current file
  * being replaced with the file that appears previous in the list of open files.
@@ -167,12 +167,15 @@ let tab_right st =
  * then it will return the current file. *)
 let tab_left st =
   let file_names = List.map (fun x -> fst x) st.files in
-  let curr_fname = st.current_file |> extract in
-  let curr_file_index = (find_index file_names curr_fname 0) in
-  let left_file_index = curr_file_index - 1 in
-  if (curr_file_index <= 0)
-  then st
-  else {st with current_file = Fname (List.nth file_names left_file_index)}
+  match st.current_file with
+  | Fname curr_fname -> begin
+    let curr_file_index = (find_index file_names curr_fname 0) in
+    let left_file_index = curr_file_index - 1 in
+    if (curr_file_index <= 0)
+    then st
+    else {st with current_file = Fname (List.nth file_names left_file_index)}
+  end
+  | Nofile -> st
 
 (* [get_typing_area st] returns the typing area of [st], either the command
  * prompt or a file *)

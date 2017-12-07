@@ -3,6 +3,10 @@
 
 open Color
 
+(* Raised when calling a function that requires an open file 
+ * without an open file. *)
+exception No_file_exn of string 
+
 (* Indicates whether or not a file is open *)
 type opened_file
 

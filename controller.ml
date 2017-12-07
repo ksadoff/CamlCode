@@ -47,9 +47,11 @@ let main () =
 
   Unix.chdir "../..";
 
-  let stref' = empty_state
+  (* let stref' = empty_state
     |> fun st -> open_file st "testtxts/somelines.txt" in
-  let stref = open_file stref' "testtxts/easy.txt" |> fun x -> ref x in
+  let stref = open_file stref' "testtxts/easy.txt" |> fun x -> ref x in *)
+
+  let stref = ref empty_state in
 
   Lazy.force LTerm.stdout
   >>= fun term -> Clview.draw term stref

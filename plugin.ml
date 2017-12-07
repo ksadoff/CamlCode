@@ -120,109 +120,113 @@ let execute_command (cmd : command) (st : state) : state =
   | Change_Dir s -> cd_command st s
   | Print_Dir -> pwd_command st
 
+(* changes selection based on whether shift is pressed *)
+let change_select shift st =
+  match shift, (get_select_start st) with
+  | true, None -> start_selecting st
+  | false, Some _ -> unselect_text st
+  | _ -> st
+
+(* depending on whether there is selected text,
+ * deletes selected text or calls a function on st *)
+let delete_or_fun st f =
+  match get_selected_range st with
+  | None -> f st
+  | Some (i0, i1) ->
+    delete_text st i0 i1 |> unselect_text
+
+(* [press_key_file st k shift] computes new state when user presses [k]
+ * while in a file. [shift] is whether the shift key is pressed. *)
+let press_key_file st k shift = LTerm_key.( try
+  match k with
+  | Right -> st |> change_select shift |> cursor_right
+  | Left -> st |> change_select shift |> cursor_left
+  | Up -> st |> change_select shift |> cursor_up
+  | Down -> st |> change_select shift |> cursor_down
+  | Char c -> delete_or_fun st (fun x -> x)
+    |> fun st -> insert_char st (UChar.char_of c)
+  | Enter -> delete_or_fun st (fun x -> x)
+    |> fun st -> insert_char st '\n'
+  | Tab -> (* 1 tab = 4 spaces - can change w/ plugin *)
+    delete_or_fun st (fun x -> x)
+    |> fun st -> List.fold_left (fun st c -> insert_char st c)
+      st [' '; ' '; ' '; ' ']
+  | Backspace -> delete_or_fun st delete_char
+  | Delete -> delete_or_fun st
+    (fun st -> st |> cursor_right |> delete_char)
+  | F2 ->
+    begin
+      match get_command_in st with
+      | None -> open_terminal st
+      | Some _ -> close_terminal st
+    end
+  | F3 -> if get_command_in st = None
+          then st
+          else toggle_typing_area st
+  | _ -> st
+  with No_file_exn _ -> st)
+
+(* [press_key_terminal st k shift] computes new state when user presses [k] 
+ * while in the terminal. [shift] is whether the shift key is pressed. *)
+let press_key_terminal st k = LTerm_key.(
+  match k with
+  | Up -> cycle_up st
+  | Down -> cycle_down st
+  | Right -> cmd_cursor_right st
+  | Left -> cmd_cursor_left st
+  | Char c -> cmd_insert st (UChar.char_of c)
+  | Backspace -> cmd_delete st
+  | Delete ->
+    if (st |> get_cmd_cursor) = (st |> cmd_cursor_right |> get_cmd_cursor)
+    then st
+    else st |> cmd_cursor_right |> cmd_delete
+  | F2 ->
+    begin
+      match get_command_in st with
+      | None -> open_terminal st
+      | Some _ -> close_terminal st
+    end
+  | F3 -> toggle_typing_area st
+  | _ -> st)
+
+(* [ctrl_command st kc] returns the new state after the user presses
+ * ctrl + [kc]. *)
+let ctrl_command st kc = LTerm_key.(
+  match kc with
+  | Char z when (UChar.char_of z) = 'z' -> undo st
+  | Char y when (UChar.char_of y) = 'y' -> redo st
+  (* save file *)
+  | Char s when (UChar.char_of s) = 's' ->
+    State.save_file st (State.get_current_file st |> File.get_name)
+  (* close file *)
+  (* known bug: when you close all the tabs and go to the welcome page,
+  * you currently cannot type anything and none of the key bindings work.
+  *)
+  | Char w when (UChar.char_of w) = 'w' ->
+    State.close_file st
+  (* | Tab ->
+    *)
+  | Char c when (UChar.char_of c) = 'c' -> copy st
+  | Char v when (UChar.char_of v) = 'v' -> paste st
+  | Char x when (UChar.char_of x) = 'x' -> cut st
+  | Char w when (UChar.char_of w) = 'w' ->
+    State.close_file st
+  | Left -> State.tab_left st
+  | Right -> State.tab_right st
+  | _ -> st)
+
 (* [respond_to_event event st] changes the state based on some event,
  * such as a keyboard shorctut. *)
 let respond_to_event (event : LTerm_event.t) (st : state) : state =
   match event with
   | LTerm_event.Key{ control = true; code = keycode; _} ->
-    if (is_on_file st) then begin
-      match keycode with
-        | Char z when (UChar.char_of z) = 'z' -> undo st
-        | Char y when (UChar.char_of y) = 'y' -> redo st
-        (* save file *)
-        | Char s when (UChar.char_of s) = 's' ->
-          State.save_file st (State.get_current_file st |> File.get_name)
-        (* close file *)
-        (* known bug: when you close all the tabs and go to the welcome page,
-         * you currently cannot type anything and none of the key bindings work.
-         *)
-        | Char w when (UChar.char_of w) = 'w' ->
-          State.close_file st
-        (* | Tab ->
-           *)
-        | Char c when (UChar.char_of c) = 'c' -> copy st
-        | Char v when (UChar.char_of v) = 'v' -> paste st
-        | Char x when (UChar.char_of x) = 'x' -> cut st
-        | Char w when (UChar.char_of w) = 'w' ->
-          State.close_file st
-        | Left -> State.tab_left st
-        | Right -> State.tab_right st
-        | _ -> st
-        end
-    else st
-  | LTerm_event.Key { code = keycode; shift = shift; _ } ->
-    if (is_on_file st) then begin
+    if (is_on_file st) then ctrl_command st keycode else st
+  | LTerm_event.Key { code = keycode; shift = shift; _ } -> 
+    begin
       match get_typing_area st with
-      | File ->
-        begin
-
-          (* changes selection based on whether shift is pressed *)
-          let change_select shift st =
-            match shift, (get_select_start st) with
-            | true, None -> start_selecting st
-            | false, Some _ -> unselect_text st
-            | _ -> st in
-
-          (* depending on whether there is selected text,
-          * deletes selected text or calls a function on st *)
-          let delete_or_fun st f =
-            match get_selected_range st with
-            | None -> f st
-            | Some (i0, i1) ->
-              delete_text st i0 i1 |> unselect_text in
-
-          match keycode with
-          | Right -> st |> change_select shift |> cursor_right
-          | Left -> st |> change_select shift |> cursor_left
-          | Up -> st |> change_select shift |> cursor_up
-          | Down -> st |> change_select shift |> cursor_down
-          | Char c -> delete_or_fun st (fun x -> x)
-            |> fun st -> insert_char st (UChar.char_of c)
-          | Enter -> delete_or_fun st (fun x -> x)
-            |> fun st -> insert_char st '\n'
-          | Tab -> (* 1 tab = 4 spaces - can change w/ plugin *)
-            delete_or_fun st (fun x -> x)
-            |> fun st -> List.fold_left (fun st c -> insert_char st c)
-              st [' '; ' '; ' '; ' ']
-          | Backspace -> delete_or_fun st delete_char
-          | Delete -> delete_or_fun st
-            (fun st -> st |> cursor_right |> delete_char)
-          | F2 ->
-            begin
-              match get_command_in st with
-              | None -> open_terminal st
-              | Some _ -> close_terminal st
-            end
-          | F3 -> if get_command_in st = None
-                  then st
-                  else toggle_typing_area st
-          | _ -> st
-        end
-
-      | Command ->
-        begin
-          match keycode with
-          | Up -> cycle_up st
-          | Down -> cycle_down st
-          | Right -> cmd_cursor_right st
-          | Left -> cmd_cursor_left st
-          | Char c -> cmd_insert st (UChar.char_of c)
-          | Backspace -> cmd_delete st
-          | Delete ->
-            if (st |> get_cmd_cursor) = (st |> cmd_cursor_right |> get_cmd_cursor)
-            then st
-            else st |> cmd_cursor_right |> cmd_delete
-          | F2 ->
-            begin
-              match get_command_in st with
-              | None -> open_terminal st
-              | Some _ -> close_terminal st
-            end
-          | F3 -> toggle_typing_area st
-          | _ -> st
-        end
-      end
-  else st
+      | File -> press_key_file st keycode shift
+      | Command -> press_key_terminal st keycode
+    end
   | _ -> st
 
 (* [text_coloring f] creates a new coloring for file [f]. *)
