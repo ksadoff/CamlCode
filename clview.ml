@@ -35,11 +35,15 @@ let draw_tabs st ctx =
       {row1 = 0; col1 = 0 + (n*10); row2 = tab_height; col2 = 10 + (n*10)}
       Light;
     let file_name = (List.nth (get_file_names st) n) in
-    if (String.length file_name)>10 then let tab_name = get_tab_name (file_name)
-in
-draw_string ctx 1 (1+(n*10)) tab_name ~style:normal;
+    if (String.length file_name)>10
+    then let tab_name = get_tab_name (file_name) in
+      draw_string ctx 1 (1+(n*10)) tab_name ~style:normal;
+      if file_name = get_current_file_name st
+      then draw_string ctx 1 (1+(n*10)) tab_name ~style:highlighted;
     else let () =
-           draw_string ctx 1 (1+(n*10)) file_name ~style:normal in ()
+           draw_string ctx 1 (1+(n*10)) file_name ~style:highlighted;
+           if file_name = get_current_file_name st
+           then draw_string ctx 1 (1+(n*10)) file_name ~style:highlighted; in ()
   done
 
 (* [draw_file st ctx] draws the currently selected file in [st]

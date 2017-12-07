@@ -237,19 +237,9 @@ let get_current_file_name st =
   let curr_fname = st.current_file |> extract in
   let curr_file_index = (find_index file_names curr_fname 0) in
   let left_file_index = curr_file_index - 1 in
-  print_endline (get_current_file_name st);
-  print_endline (string_of_int curr_file_index ^ " ");
-  List.iter (fun x -> print_endline x) file_names;
   if (curr_file_index <= 0)
-  then let () = (print_endline("same")) in st
-  else
-  let new_st =
-  {st with current_file = Fname (List.nth file_names left_file_index)} in
-  let () = (print_endline("else case: " ^ (get_current_file_name new_st))) in
-  new_st
-
-
-
+  then st
+  else {st with current_file = Fname (List.nth file_names left_file_index)}
 
 (* [get_typing_area st] returns the typing area of [st], either the command
  * prompt or a file *)
