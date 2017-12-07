@@ -60,7 +60,7 @@ let replace_command st terms =
                               (length terms - length s_term-1)) in
     let r_term = parse_word remainder |> String.trim in
     let st' = set_replace_term (find st s_term) r_term |> replace_next in
-    if get_all_text st' = get_all_text st'
+    if get_all_text st' = get_all_text st
     then set_command_out st' (s_term^" not found")
     else st'
 
@@ -95,11 +95,11 @@ let new_file_command st file_path =
 (* [execute_command cmd st] changes the state based on command [cmd]. *)
 let execute_command (cmd : command) (st : state) : state =
   match cmd with
-  | Find s -> find_command st s
-  | Replace s -> replace_command st s
-  | Replace_All s -> replace_all_command st s
-  | Open_File s -> open_command st s
-  | New_File s -> new_file_command st s
+  | Find s -> set_command_in (find_command st s) ""
+  | Replace s -> set_command_in (replace_command st s) ""
+  | Replace_All s -> set_command_in (replace_all_command st s) ""
+  | Open_File s -> set_command_in (open_command st s) ""
+  | New_File s -> set_command_in (new_file_command st s) ""
 
 (* [respond_to_event event st] changes the state based on some event,
  * such as a keyboard shorctut. *)
