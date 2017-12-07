@@ -56,6 +56,7 @@ let txt_ctx = sub ctx {row1=1; col1=0; row2=(size ctx).rows;
 
     (* name of file at the top *)
     get_current_file_name st
+    |> Filename.basename
     |> draw_string_aligned ctx 0 H_align_center ~style:normal;
 
     (* contents of file *)

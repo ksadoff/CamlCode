@@ -12,6 +12,8 @@ type command =
   | Replace_All of string
   | Open_File of string
   | New_File of string
+  | Change_Dir of string
+  | Print_Dir
 
 (* [parse_word s] returns the substring of [s] before the first [" "]. If
   * no [" "] occurs it returns [s] *)
@@ -27,7 +29,10 @@ let parse_word s =
 let parse_command (s : string) : command option =
   let first_word = parse_word s in
   (* single word commands *)
-  if first_word = s then None
+  if first_word = s then 
+    match String.lowercase_ascii first_word with 
+    | "pwd" -> Some Print_Dir
+    | _ -> None
   (* commands that take atleast one argument *)
   else
     let remainder = String.(sub s (length first_word+1)
@@ -38,6 +43,7 @@ let parse_command (s : string) : command option =
     | "replace_all" -> Some (Replace_All remainder)
     | "open" -> Some(Open_File (remainder))
     | "new" -> Some (New_File (remainder))
+    | "cd" -> Some (Change_Dir remainder)
     | _ -> None
 
 (* [find_command st s_term] returns a copy of [st] with the next instance of
@@ -89,8 +95,14 @@ let open_command st file_path =
 
 let new_file_command st file_path =
   let path = parse_word file_path in
-  State.new_file path;
+  State.new_file st path;
   State.open_file st path
+
+let cd_command st p =
+  change_directory st p
+  |> fun st -> set_command_out st ("Switched to " ^ (get_directory st))
+
+let pwd_command st = set_command_out st (get_directory st)
 
 (* [execute_command cmd st] changes the state based on command [cmd]. *)
 let execute_command (cmd : command) (st : state) : state =
@@ -100,6 +112,8 @@ let execute_command (cmd : command) (st : state) : state =
   | Replace_All s -> set_command_in (replace_all_command st s) ""
   | Open_File s -> set_command_in (open_command st s) ""
   | New_File s -> set_command_in (new_file_command st s) ""
+  | Change_Dir s -> set_command_in (cd_command st s) ""
+  | Print_Dir -> set_command_in (pwd_command st) ""
 
 (* [respond_to_event event st] changes the state based on some event,
  * such as a keyboard shorctut. *)
