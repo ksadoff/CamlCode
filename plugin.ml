@@ -12,6 +12,8 @@ type command =
   | Replace_All of string
   | Open_File of string
   | New_File of string
+  | Change_Dir of string
+  | Print_Dir
 
 (* [parse_word s] returns the substring of [s] before the first [" "]. If
   * no [" "] occurs it returns [s] *)
@@ -27,7 +29,10 @@ let parse_word s =
 let parse_command (s : string) : command option =
   let first_word = parse_word s in
   (* single word commands *)
-  if first_word = s then None
+  if first_word = s then 
+    match String.lowercase_ascii first_word with 
+    | "pwd" -> Some Print_Dir
+    | _ -> None
   (* commands that take atleast one argument *)
   else
     let remainder = String.(sub s (length first_word+1)
@@ -38,6 +43,7 @@ let parse_command (s : string) : command option =
     | "replace_all" -> Some (Replace_All remainder)
     | "open" -> Some(Open_File (remainder))
     | "new" -> Some (New_File (remainder))
+    | "cd" -> Some (Change_Dir remainder)
     | _ -> None
 
 (* [find_command st s_term] returns a copy of [st] with the next instance of
@@ -46,7 +52,7 @@ let find_command st s_term =
   let st' = s_term |> find st |> select_search_term in
   if get_selected_range st' = None
   then set_command_out st' (s_term^" not found")
-  else st'
+  else set_command_out st' (s_term^" found")
 
 (* [replace_command st terms] replaces the next instance of the first word in
  * [terms] with the second word in [terms]. If there is only one word it changes
@@ -54,7 +60,7 @@ let find_command st s_term =
 let replace_command st terms =
   let s_term = parse_word terms in
   if s_term = terms
-  then set_command_out (set_command_in st "") "replace requires 2 terms"
+  then set_command_out st "replace requires 2 terms"
   else
     let remainder = String.(sub terms (length s_term+1)
                               (length terms - length s_term-1)) in
@@ -62,7 +68,7 @@ let replace_command st terms =
     let st' = set_replace_term (find st s_term) r_term |> replace_next in
     if get_all_text st' = get_all_text st
     then set_command_out st' (s_term^" not found")
-    else st'
+    else set_command_out st' ("\""^s_term^"\" replaced by \""^r_term^"\"")
 
 (* [replace_command st terms] replaces the next instance of the first word in
  * [terms] with the second word in [terms]. If there is only one word it changes
@@ -70,7 +76,7 @@ let replace_command st terms =
 let replace_all_command st terms =
   let s_term = parse_word terms in
   if s_term = terms
-  then set_command_out (set_command_in st "") "replace requires 2 terms"
+  then set_command_out st "replace_all requires 2 terms"
   else
     let remainder = String.(sub terms (length s_term+1)
                               (length terms - length s_term-1)) in
@@ -78,8 +84,9 @@ let replace_all_command st terms =
     let st' = set_replace_term (find st s_term) r_term |> replace_all in
     if get_all_text st = get_all_text st'
     then set_command_out st' (s_term^" not found")
-    else st'
+    else set_command_out st' ("all \""^s_term^"\" replaced by \""^r_term^"\"")
 
+(* state after calling open command *)
 let open_command st file_path =
   try
   let path = parse_word file_path in
@@ -87,19 +94,30 @@ let open_command st file_path =
   with
   |Sys_error s -> set_command_out (set_command_in st "") s
 
+(* state after calling new command *)
 let new_file_command st file_path =
   let path = parse_word file_path in
-  State.new_file path;
+  State.new_file st path;
   State.open_file st path
+
+(* state after calling cd command *)
+let cd_command st p =
+  change_directory st p
+  |> fun st -> set_command_out st ("Switched to " ^ (get_directory st))
+
+(* state after calling pwd command *)
+let pwd_command st = set_command_out st (get_directory st)
 
 (* [execute_command cmd st] changes the state based on command [cmd]. *)
 let execute_command (cmd : command) (st : state) : state =
   match cmd with
-  | Find s -> set_command_in (find_command st s) ""
-  | Replace s -> set_command_in (replace_command st s) ""
-  | Replace_All s -> set_command_in (replace_all_command st s) ""
-  | Open_File s -> set_command_in (open_command st s) ""
-  | New_File s -> set_command_in (new_file_command st s) ""
+  | Find s -> find_command st s
+  | Replace s -> replace_command st s
+  | Replace_All s ->replace_all_command st s
+  | Open_File s ->open_command st s
+  | New_File s ->new_file_command st s
+  | Change_Dir s -> cd_command st s
+  | Print_Dir -> pwd_command st
 
 (* [respond_to_event event st] changes the state based on some event,
  * such as a keyboard shorctut. *)
@@ -124,8 +142,8 @@ let respond_to_event (event : LTerm_event.t) (st : state) : state =
         | Char c when (UChar.char_of c) = 'c' -> copy st
         | Char v when (UChar.char_of v) = 'v' -> paste st
         | Char x when (UChar.char_of x) = 'x' -> cut st
-        | Char w when (UChar.char_of w) = 'w' -> 
-          State.close_file st 
+        | Char w when (UChar.char_of w) = 'w' ->
+          State.close_file st
         | Left -> State.tab_left st
         | Right -> State.tab_right st
         | _ -> st
@@ -183,6 +201,8 @@ let respond_to_event (event : LTerm_event.t) (st : state) : state =
       | Command ->
         begin
           match keycode with
+          | Up -> cycle_up st
+          | Down -> cycle_down st
           | Right -> cmd_cursor_right st
           | Left -> cmd_cursor_left st
           | Char c -> cmd_insert st (UChar.char_of c)

@@ -8,6 +8,7 @@ PKG lwt
 PKG lwt.log
 PKG lwt.unix
 PKG lwt_react
+PKG oUnit
 PKG react
 PKG result
 PKG rope

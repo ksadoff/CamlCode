@@ -36,11 +36,15 @@ let draw_tabs st ctx =
       {row1 = 0; col1 = 0 + (n*10); row2 = tab_height; col2 = 10 + (n*10)}
       Light;
     let file_name = (List.nth (get_file_names st) n) in
-    if (String.length file_name)>10 then let tab_name = get_tab_name (file_name)
-in
-draw_string ctx 1 (1+(n*10)) tab_name ~style:normal;
+    if (String.length file_name)>10
+    then let tab_name = get_tab_name (file_name) in
+      draw_string ctx 1 (1+(n*10)) tab_name ~style:normal;
+      if file_name = get_current_file_name st
+      then draw_string ctx 1 (1+(n*10)) tab_name ~style:highlighted;
     else let () =
-           draw_string ctx 1 (1+(n*10)) file_name ~style:normal in ()
+           draw_string ctx 1 (1+(n*10)) file_name ~style:normal;
+           if file_name = get_current_file_name st
+           then draw_string ctx 1 (1+(n*10)) file_name ~style:highlighted; in ()
   done
 
 (* [draw_file st ctx] draws the currently selected file in [st]
@@ -57,6 +61,7 @@ let txt_ctx = sub ctx {row1=1; col1=0; row2=(size ctx).rows;
 
     (* name of file at the top *)
     get_current_file_name st
+    |> Filename.basename
     |> draw_string_aligned ctx 0 H_align_center ~style:normal;
 
     (* contents of file *)
@@ -98,14 +103,11 @@ let draw_cmd st ctx =
   draw_string_aligned ctx 0 H_align_center ~style:normal "Command Terminal";
   let cmd_in = st |> get_command_in |> extract in
   let cmd_out = st |> get_command_out |> extract in
-  (* boxes for terminal input/output *)
-  draw_frame ctx {row1 = 1; col1 = 0; row2 = 4; col2 = (size ctx).cols} Light;
-  draw_frame ctx {row1 = 4; col1 = 0; row2 = 7; col2 = (size ctx).cols} Light;
   (* display terminal input/output *)
-  draw_string ctx 2 1 ~style:normal (cmd_out);
-  draw_string ctx 5 1 ~style:normal (cmd_in);
+  draw_string ctx 2 0 ~style:normal (cmd_out);
+  draw_string ctx 1 0 ~style:normal ("> "^cmd_in);
   if (get_typing_area st) = Command then
-    draw_string ctx 5 ((get_cmd_cursor st)+1) ~style:highlighted (get_cmd_text st)
+    draw_string ctx 1 ((get_cmd_cursor st)+2) ~style:highlighted (get_cmd_text st)
   else ()
 
 
@@ -122,7 +124,7 @@ let draw_all ctx st =
   | Some _ ->
     begin
       (* Draw file in its own subcontext *)
-      sub ctx {row1=tab_height+7; col1=0; row2=size.rows; col2=size.cols}
+      sub ctx {row1=tab_height+3; col1=0; row2=size.rows; col2=size.cols}
       |> draw_file st;
 
       (* Draw tabs *)
@@ -130,7 +132,7 @@ let draw_all ctx st =
       |> draw_tabs st;
 
       (* draw command prompt *)
-      sub ctx {row1=tab_height; col1=0; row2=tab_height+7; col2=size.cols}
+      sub ctx {row1=tab_height; col1=0; row2=tab_height+3; col2=size.cols}
       |> draw_cmd st
     end
   | None ->

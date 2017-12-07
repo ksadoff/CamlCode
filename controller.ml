@@ -25,8 +25,8 @@ let rec repl ui stref =
       | Some cmd_str -> Plugin.parse_command cmd_str
         |> fun cmd_opt -> begin
           match cmd_opt with
-          | Some cmd_in -> Plugin.execute_command cmd_in !stref
-          | None -> !stref
+          | Some cmd_in -> Plugin.execute_command cmd_in !stref |> update_commands
+          | None -> set_command_out (!stref |> update_commands) "unrecognized command"
         end;
     end;
     LTerm_ui.draw ui;

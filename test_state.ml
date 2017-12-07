@@ -8,8 +8,6 @@ let slstate''' = State.open_file slstate'' "testtxts/easy.txt"
 let slstate'''' = State.set_current_file slstate''' (File.open_file "testtxts/temp.txt")
 let slstate''''' = State.set_current_file slstate'''' (File.open_file "testtxts/easy.txt")
 
-
-
 (* If [f st] returns [st'], this function returns a test case with
  * name [tname] that checks that [(get_cursor_location st', *)
 let basic_clipboard = string_to_clipboard "hello"
@@ -47,8 +45,9 @@ let tests = [
 
   (* new file, modify file, save file *)
   "save" >:: (fun _ -> assert_equal "fghij\n" (
-      new_file "testtxts/statetest.txt";
-      let fghij_state = empty_state
+      let orig_state = empty_state in
+      new_file orig_state "testtxts/statetest.txt";
+      let fghij_state = orig_state
       |> fun st -> open_file st "testtxts/statetest.txt"
       |> fun st -> insert_text st "fghij" 0 in
       save_file fghij_state "testtxts/statetemp.txt" |> fun st -> ();

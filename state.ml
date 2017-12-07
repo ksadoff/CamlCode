@@ -3,7 +3,7 @@
 
 open Color
 open File
-open Sys
+open Filename
 
 (* Indicates whether or not a file is open *)
 type opened_file = Nofile | Fname of string
@@ -45,9 +45,70 @@ type state = {
   command_cursor : int;
   (* stores the absolute path of our current working directory *)
   curr_dir : string;
-  (* the current size of the window *)
-  (* window_size : size *)
+  up_cmds : string list;
+  down_cmds : string list;
 }
+
+
+let max_cmds = 50
+
+(* [rem_tail lst] returns a copy of [lst] with the last element removed *)
+let rec rem_tail = function
+  | []
+  | _::[] -> []
+  | h::t -> h::(rem_tail t)
+
+(* [add_up_cmds st] returns the previous commands queue of [st] with its
+ * current command input pushed, if it not [None] *)
+let add_up_cmds st =
+  match st.command_in with
+  | None -> st.down_cmds
+  | Some cmd_in ->
+    if List.length st.up_cmds < max_cmds
+    then cmd_in::st.up_cmds
+    else  cmd_in::(rem_tail st.up_cmds)
+
+(* [add_down_cmds st] returns the previous commands down queue of [st] with its
+ * current command input pushed, if it not [None] *)
+let add_down_cmds st =
+  match st.command_in with
+  | None -> st.up_cmds
+  | Some cmd_in ->
+    if List.length st.down_cmds < max_cmds
+    then cmd_in::st.down_cmds
+    else  cmd_in::(rem_tail st.down_cmds)
+
+(* [cycle_up st] returns a copy of [st] with the command input set to the next
+ * command in the stack of previously used commands *)
+let cycle_up st =
+  match st.up_cmds with
+  | [] -> st
+  | h::t -> { st with
+              command_in = Some h;
+              command_cursor = String.length h;
+              up_cmds = t;
+              down_cmds = add_down_cmds st  }
+
+(* [cycle_down st] returns a copy of [st] with the command input set to the next
+ * command in the stack of things popped from the previously used commands*)
+let cycle_down st =
+  match st.down_cmds with
+  | [] -> st
+  | h::t -> { st with
+              command_in = Some h;
+              command_cursor = String.length h;
+              up_cmds = add_up_cmds st;
+              down_cmds = t }
+
+(* [update_commands st] returns [st], with the command input set to empty,
+ * the previous commant input of [st] pushed to the previous command stack, and
+ * the down command stack cleared *)
+let update_commands st =
+  { st with command_in = Some "";
+            command_cursor = 0;
+            up_cmds = add_up_cmds st;
+            down_cmds = [];
+  }
 
 (* [extract file_opt] takes in an 'a option and returns the 'a. Only to be
  * used on files we know exist.
@@ -119,10 +180,6 @@ let replace_current_file st f =
     current_file = Fname file_name;
   }
 
-(* [new_file s] creates a new, empty file at path [s].
- * Raises [Sys_error] if creating file failed. *)
-let new_file s = let ch_out = open_out s in close_out ch_out
-
 let new_clipboard = Rope.empty
 
 let string_to_clipboard s = Rope.of_string s
@@ -140,8 +197,9 @@ let empty_state =
     command_out = None;
     command_in = None;
     command_cursor = 0;
-    curr_dir = getcwd() ^ "/../..";
-    (* window_size = LTerm.size *)
+    curr_dir = Sys.getcwd ();
+    up_cmds = [];
+    down_cmds = [];
   }
 
 (* [get_file_names st] returns a list of strings that represent the names of
@@ -177,19 +235,9 @@ let get_current_file_name st =
   let curr_fname = st.current_file |> extract in
   let curr_file_index = (find_index file_names curr_fname 0) in
   let left_file_index = curr_file_index - 1 in
-  print_endline (get_current_file_name st);
-  print_endline (string_of_int curr_file_index ^ " ");
-  List.iter (fun x -> print_endline x) file_names;
   if (curr_file_index <= 0)
-  then let () = (print_endline("same")) in st
-  else
-  let new_st =
-  {st with current_file = Fname (List.nth file_names left_file_index)} in
-  let () = (print_endline("else case: " ^ (get_current_file_name new_st))) in
-  new_st
-
-
-
+  then st
+  else {st with current_file = Fname (List.nth file_names left_file_index)}
 
 (* [get_typing_area st] returns the typing area of [st], either the command
  * prompt or a file *)
@@ -201,30 +249,54 @@ let toggle_typing_area st =
   | Command -> { st with typing_loc = File; }
   | File -> { st with typing_loc = Command; }
 
-(* [open_file st s] constructs the file at path [s] and adds it
+(* [convert_path st p] returns the string filepath [p] appended
+ * to the current working directory in [st] if it is a relative path. *)
+let convert_path st p = if is_relative p then concat st.curr_dir p else p
+
+(* [new_file st s] creates a new, empty file with name [s], relative
+ * to the current working directory of [st].
+ * Raises [Sys_error] if creating file failed. *)
+let new_file st s =
+  let p = convert_path st s in
+  let ch_out = open_out p in
+  close_out ch_out
+
+(* [open_file st s] constructs the file with name [s] and adds it
  * to the list of files in state [st].
- * Raises Sys_error if file read failed. *)
+ * Raises [Sys_error] if file read failed. *)
 let open_file st s =
+  let p = convert_path st s in
   let file_names = List.map (fun x -> fst x) st.files in
-  if (List.exists (fun x -> x = s) file_names) then
-    {st with current_file = Fname s}
+  if (List.exists (fun x -> x = p) file_names) then
+    {st with current_file = Fname p}
   else
-  let new_file = File.open_file s in
+  let new_file = File.open_file p in
   { st with
-    files = (s, new_file) :: st.files;
+    files = (p, new_file) :: st.files;
     screens = [];
-    current_file = Fname s;
+    current_file = Fname p;
   }
+
+(* [save_file st s] saves the currently selected file in [st]
+ * at relative path [s].
+ * Raises [Sys_error] if file write failed. *)
+let save_file st s =
+  let p = convert_path st s in
+  fmap_st_f (fun f -> File.save_file f p) st
+
+(* [change_directory st d] changes the current directory in [st].
+ * Say [c] is the previous directory in [st]. If [d] is a relative path,
+ * the new directory will be [c/d]. If [d] is an absolute path,
+ * the new directory will be [d]. *)
+let change_directory st d = { st with curr_dir = convert_path st d; }
+
+(* [get_directory st] is the current directory in [st]. *)
+let get_directory st = st.curr_dir
 
 (* [is_filed_saved st s] returns the file named [s] in state [st] is saved.
  * Raises [Not_found] if file does not exist in [st]. *)
 let is_file_saved st s =
   List.assoc s st.files |> fun f -> File.is_saved f
-
-(* [save_file st s] saves the currently selected file in [st]
- * at relative path [s].
- * Raises Sys_error if file write failed. *)
-let save_file st s = fmap_st_f (fun f -> File.save_file f s) st
 
 (* [close_file st] removes the currently selected file [f]
  * from the list of open files in [st]. The newly selected file
