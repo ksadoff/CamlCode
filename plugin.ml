@@ -5,7 +5,7 @@ open State
 open Color
 open CamomileLibrary
 
-
+(* variant to represent the different valid command prompt commands *)
 type command =
   | Find of string
   | Replace of string
@@ -24,7 +24,7 @@ let parse_word s =
   with
   | Not_found -> s
 
-
+(* parses a string to a command *)
 let parse_command (s : string) : command option =
   let first_word = parse_word s in
   (* single word commands *)
@@ -108,6 +108,7 @@ let cd_command st p =
 (* state after calling pwd command *)
 let pwd_command st = set_command_out st (get_directory ())
 
+(* maps command variant to a function that returns a new state *)
 let execute_command (cmd : command) (st : state) : state =
   match cmd with
   | Find s -> find_command st s
@@ -133,18 +134,25 @@ let delete_or_fun st f =
   | Some (i0, i1) ->
     delete_text st i0 i1 |> unselect_text
 
+(* [last_sep s c] returns the subtring of [s] that is after the last occurrance
+ * of [c] in it. If [s] does not contain [c], returns [s] *)
 let last_sep s c =
   match String.rindex_opt s c with
   | None -> s
   | Some ind -> String.sub s (ind+1) (String.length s - ind - 1)
 
+(* [starts_with s b] returns true if [s] is longer than [b] and [b] is the
+ * substring at the beginning of [s] *)
 let starts_with s b =
   String.(length s >= length b) && String.(sub s 0 (length b)) = b
 
+(* [get_head l] returns the head of [l], if it exists*)
 let get_head = function
   | [] -> ""
   | h::t -> h
 
+(* [tab_infer st] guesses what the next file or directory in the command prompt
+ * input of [st] and updates with with the guess *)
 let tab_infer st =
   match get_command_in st with
   | None -> st
@@ -201,14 +209,17 @@ let press_key_file st k shift = LTerm_key.( try
   | Delete -> delete_or_fun st
     (fun st -> st |> cursor_right |> delete_char)
   | F2 ->
+    (* open/close command prompt *)
     begin
       match get_command_in st with
       | None -> open_terminal st
       | Some _ -> close_terminal st
     end
-  | F3 -> if get_command_in st = None
-          then st |> open_terminal
-          else toggle_typing_area st
+  | F3 ->
+    (* toggle typing area *)
+    if get_command_in st = None
+    then st |> open_terminal
+    else toggle_typing_area st
   | _ -> st
   with No_file_exn _ -> st)
 
@@ -223,10 +234,12 @@ let press_key_terminal st k = LTerm_key.(
   | Char c -> cmd_insert st (UChar.char_of c)
   | Backspace -> cmd_delete st
   | Delete ->
+    (* delete character in front of cursor *)
     if (st |> get_cmd_cursor) = (st |> cmd_cursor_right |> get_cmd_cursor)
     then st
     else st |> cmd_cursor_right |> cmd_delete
   | F2 ->
+    (* open/close command prompt *)
     begin
       match get_command_in st with
       | None -> open_terminal st
@@ -247,11 +260,9 @@ let ctrl_command st kc = LTerm_key.(
     State.save_file st (State.get_current_file st |> File.get_name)
   (* close file *)
   | Char w when (UChar.char_of w) = 'w' ->
-    if is_on_file (State.close_file st) && get_typing_area st = File
-    then State.close_file st
-    else st |> State.close_file |> toggle_typing_area |> open_terminal
-  (* | Tab ->
-    *)
+    if not (is_on_file (State.close_file st)) && get_typing_area st = File
+    then st |> State.close_file |> toggle_typing_area |> open_terminal
+    else State.close_file st
   | Char c when (UChar.char_of c) = 'c' -> copy st
   | Char v when (UChar.char_of v) = 'v' -> paste st
   | Char x when (UChar.char_of x) = 'x' -> cut st
@@ -259,6 +270,7 @@ let ctrl_command st kc = LTerm_key.(
     State.close_file st
   | Left -> State.tab_left st
   | Right -> State.tab_right st
+  (* toggle typing area *)
   | Up -> if get_command_in st = None
           then st |> open_terminal
           else toggle_typing_area st
