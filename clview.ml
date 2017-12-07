@@ -39,7 +39,7 @@ let draw_tabs st ctx =
 in
 draw_string ctx 1 (1+(n*10)) tab_name ~style:normal;
     else let () =
-           draw_string ctx 0 (1+(n*10)) file_name ~style:normal in ()
+           draw_string ctx 1 (1+(n*10)) file_name ~style:normal in ()
   done
 
 (* [draw_file st ctx] draws the currently selected file in [st]

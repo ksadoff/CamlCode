@@ -157,7 +157,8 @@ let open_file s =
     end
     with End_of_file -> rope_acc in
   let channel = open_in s in
-  let contents = append_lines channel Rope.empty in
+  let contents = append_lines channel Rope.empty
+   |> fun r -> if Rope.to_string r = "" then Rope.of_string "\n" else r in
   {
     name = s;
     contents = contents;
@@ -227,7 +228,7 @@ let rec get_location lla loc1 i2 =
   then raise (Invalid_argument ("invalid column " ^ (string_of_int c1)))
   else
   (* if i1 and i2 on same line, return ln1 *)
-  if i2 >= line_start && i2 < line_start + line_len 
+  if i2 >= line_start && i2 < line_start + line_len
   then {index=i2; line_num=ln1; column=i2-line_start}
   (* if i2 not on i1's line, recursively call with previous or next line *)
   else
@@ -236,7 +237,7 @@ let rec get_location lla loc1 i2 =
   let new_start =
     if i2 < line_start then i1 - c1 - new_len
     else i1 - c1 + line_len in
-  get_location lla {index=new_start; line_num=new_ln; column=0} i2 
+  get_location lla {index=new_start; line_num=new_ln; column=0} i2
 
 (* [move_cursor f l] moves the cursor location in [f] to [l]. The cursor
  * index, line number, and column number are all updated. If [l] is an
@@ -384,7 +385,7 @@ let get_text f l1 l2 =
 (* [get_all_text f] returns a string representing all of the text in [f] *)
 let get_all_text f = Rope.to_string f.contents
 
-(* [start_selecting f] sets the fixed selecting point to the current 
+(* [start_selecting f] sets the fixed selecting point to the current
  * location of the cursor in [f]. *)
 let start_selecting f = {f with selectpoint = Some f.cursor}
 
@@ -393,7 +394,9 @@ let start_selecting f = {f with selectpoint = Some f.cursor}
  * The selection point is set to [l1] and the cursor is set to [l2]. *)
 let select_text f l1 l2 =
   let (l1', l2') = make_range_valid (l1, l2) (cont_length f) in
-  {f with 
+  (* print_endline (string_of_int l1);
+  print_endline (string_of_int l2); *)
+  {f with
     cursor = get_location f.line_lengths f.cursor (l2'-1);
     selectpoint = Some (get_location f.line_lengths f.cursor l1');
   }
@@ -404,27 +407,27 @@ let unselect_text f = {f with selectpoint = None}
 (* [get_selected_range f] returns [None] if no text is selected,
  * or [Some (i1, i2)] if there is currently text selected from
  * index [i1] to [i2]. *)
-let get_selected_range f = 
+let get_selected_range f =
   match f.selectpoint with
   | None -> None
   | Some sp -> (make_range_valid (f.cursor.index, sp.index) (cont_length f))
     |> fun (i0, i1) -> Some (i0, i1+1)
 
 (* [get_select_start f] returns [Some (i, l, c)] where [i]
- * is the index of the beginning of the selection region, [l] is the line 
+ * is the index of the beginning of the selection region, [l] is the line
  * number, and [c] is the column. If no selection has been made,
  * returns None. *)
-let get_select_start f = 
+let get_select_start f =
   match f.selectpoint with
-  | None -> None 
-  | Some sp -> 
+  | None -> None
+  | Some sp ->
     if sp.index < f.cursor.index then Some (sp.index, sp.line_num, sp.column)
     else Some (f.cursor.index, f.cursor.line_num, f.cursor.column)
 
 (* [get_select_point f] returns [Some (i, l, c)] where [i]
  * is the index of the fixed selection point, [l] is the line number,
  * and [c] is the column. If no selection has been made, returns [None]. *)
-let get_select_point f = 
+let get_select_point f =
   match f.selectpoint with
   | Some {index=i; line_num=l; column=c} -> Some (i, l, c)
   | None -> None
@@ -449,6 +452,7 @@ let insert_text f s l' =
   let end_rope = Rope.sub f.contents l (len_rope - l) in
   let insert_rope = Rope.of_string s in
   let new_rope = concat_with_newline [begin_rope; insert_rope; end_rope] in
+  (* print_endline s; *)
   let nf = add_undo f in
   { nf with
     contents = new_rope;
@@ -527,7 +531,7 @@ let delete_char f =
   let deleted_char = Rope.get f.contents (f.cursor.index - 1) in
   let begin_rope = Rope.sub f.contents 0 (f.cursor.index - 1) in
   let len_rope = Rope.length f.contents in
-  let end_rope = Rope.sub f.contents f.cursor.index 
+  let end_rope = Rope.sub f.contents f.cursor.index
     (len_rope - f.cursor.index) in
   let new_rope = Rope.concat2 begin_rope end_rope in
   let nf = add_undo f in
@@ -675,7 +679,7 @@ let replace_next f =
         let undo_file = add_undo f in
         let nf = delete_text to_replace st en in
         let nf = insert_text nf rep_term st in
-        {(select_text nf st (st + String.length rep_term)) with 
+        {(select_text nf st (st + String.length rep_term)) with
                  num_undos = undo_file.num_undos;
                  undo_list = undo_file.undo_list;
                  num_redos = 0;

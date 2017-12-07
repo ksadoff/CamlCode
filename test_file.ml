@@ -107,6 +107,9 @@ let tests = [
   "line_lengths" >:: (fun _ -> assert_equal [6; 6; 1; 4]
     (somelines |> get_line_lengths)
     ~printer: int_list_printer);
+  "open_empty" >:: (fun _ -> assert_equal "\n"
+    (open_file "testtxts/empty.txt" |> get_all_text)
+  );
 
   (* cursor moving tests *)
   move_cursor_test "cursor0" somelines 1 (1, 0, 1);
@@ -441,4 +444,12 @@ let tests = [
   is_saved_test "issaved4" delete_char somelines true;
   is_saved_test "issaved5" (fun f -> move_cursor f 4 |> delete_char)
     somelines false;
+
+
+  (* color_text *)
+  (* "color text" >:: (fun _ -> assert_equal ) *)
+
+  (* get_coloring *)
+  (* "get_coloring" >:: (fun _ -> assert_equal ) *)
+
 ]
